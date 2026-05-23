@@ -36,6 +36,6 @@ io.on('connection', (socket) => {
 });
 
 // Escuta em todas as interfaces de rede (sem 'localhost')
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
