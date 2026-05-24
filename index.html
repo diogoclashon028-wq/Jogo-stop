@@ -7,12 +7,13 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 500px; text-align: center; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 500px; text-align: center; }
         .status-bar { background: #ff4757; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; display: block; }
         .status-bar.connected { background: #2ed573; }
         h1 { color: #6f42c1; margin-bottom: 20px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
+        h3 { margin: 15px 0 8px 0; color: #4a00e0; font-size: 16px; text-align: left; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
         button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; transition: transform 0.1s; }
         button:active { transform: scale(0.98); }
         .btn-primary { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
@@ -24,6 +25,20 @@
         .row-vote { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         .vote-btns { display: flex; gap: 10px; }
         .vote-btns button { width: auto; padding: 8px 15px; margin: 0; }
+        .category-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; justify-content: center; }
+        .category-chip { background: #f1f2f6; padding: 6px 12px; border-radius: 20px; font-size: 14px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+        .category-chip button { background: none; border: none; color: #ff4757; cursor: pointer; font-size: 12px; padding: 0; width: auto; margin: 0; }
+        .grid-letras { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0; }
+        .btn-letra { padding: 8px 4px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin: 0; width: 100%; color: #333; }
+        .btn-letra.ativa { background: #2ed573; color: white; border-color: #2ed573; }
+        .btn-letra.inativa { background: #f1f2f6; color: #a4b0be; text-decoration: line-through; border-color: #e2e8f0; }
+        .custom-label { font-size: 14px; font-weight: bold; color: #555; display: block; text-align: left; margin-top: 6px; }
+        
+        /* Estilos do Top 3 */
+        .rank-gold { background: #fff9e6 !important; font-weight: bold; }
+        .rank-silver { background: #f1f2f6 !important; font-weight: bold; }
+        .rank-bronze { background: #faf0e6 !important; font-weight: bold; }
+        .details-box { margin-top: 5px; padding: 8px 12px; border-left: 3px solid #6f42c1; background: #ffffff; border-radius: 4px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -41,32 +56,66 @@
         </div>
 
         <div id="screenLobby" class="screen">
-            <h2 style="color: #4a00e0;">Lobby da Sala: <span id="labelCodigoSala" style="color:#ff4757;"></span></h2>
-            <p style="margin: 10px 0;">Jogadores na sala:</p>
-            <ul id="listaJogadores" style="list-style: none; margin-bottom: 20px; font-weight: bold;"></ul>
+            <h2 style="color: #4a00e0;">Sala: <span id="labelCodigoSala" style="color:#ff4757;"></span></h2>
+            <p style="margin: 5px 0; font-size: 14px; color: #666;">Jogadores conectados:</p>
+            <ul id="listaJogadores" style="list-style: none; margin-bottom: 15px; font-weight: bold;"></ul>
             
-            <div id="painelHost" style="display: none; border-top: 2px dashed #eee; padding-top: 15px;">
-                <h3>Configurações do Host</h3>
-                <input type="text" id="inputNovaCategoria" placeholder="Nova Categoria">
-                <button class="btn-primary" onclick="adicionarCategoria()">+ Adicionar Categoria</button>
+            <div id="painelHost" style="display: none; border-top: 2px dashed #eee; padding-top: 10px;">
+                <h3>📚 Temas da Partida</h3>
+                <div id="listaCategoriasConfig" class="category-list"></div>
+                <div style="display:flex; gap: 5px;">
+                    <input type="text" id="inputNovaCategoria" placeholder="Nova Categoria">
+                    <button class="btn-primary" style="width: auto; padding: 0 15px; margin: 8px 0;" onclick="adicionarCategoria()">+</button>
+                </div>
+
+                <h3>⚙️ Modo e Regras</h3>
                 <select id="selectModo" onchange="alterarConfiguracoes()">
                     <option value="classico">Modo Clássico</option>
                     <option value="competitive">Modo Competitivo (Stop Imediato)</option>
+                    <option value="custom">Modo Personalizado</option>
                 </select>
-                <button class="btn-success" style="margin-top: 15px;" onclick="iniciarRodada()">START ROUND</button>
+
+                <span class="custom-label">Sistema de Votação:</span>
+                <select id="selectVotacao" onchange="alterarConfiguracoes()">
+                    <option value="sim">Ativada (Votação manual 👍/👎)</option>
+                    <option value="nao">Desativada (Validação Automática)</option>
+                </select>
+
+                <div id="painelCustomSettings" style="display: none; background: #f8f9fa; padding: 12px; border-radius: 10px; margin-top: 5px; border: 1px solid #e2e8f0;">
+                    <span class="custom-label">Quantidade de Rodadas:</span>
+                    <input type="number" id="inputMaxRounds" value="5" onchange="alterarConfiguracoes()">
+                    
+                    <span class="custom-label">Tempo do Round (segundos):</span>
+                    <input type="number" id="inputRoundTime" value="60" onchange="alterarConfiguracoes()">
+                    
+                    <span class="custom-label">Pontos por Palavra Única:</span>
+                    <input type="number" id="inputPtsAcerto" value="10" onchange="alterarConfiguracoes()">
+                    
+                    <span class="custom-label">Pontos por Palavra Repetida:</span>
+                    <input type="number" id="inputPtsRepetido" value="5" onchange="alterarConfiguracoes()">
+                </div>
+
+                <h3>🔤 Letras Permitidas</h3>
+                <div id="gridLetras" class="grid-letras"></div>
+
+                <button class="btn-success" style="margin-top: 20px; font-size: 18px;" onclick="iniciarRodada()">START ROUND 🚀</button>
             </div>
-            <div id="playerWaitingMsg" style="color: #666; font-style: italic;">Aguardando o host iniciar o jogo...</div>
+            
+            <div id="playerWaitingMsg" style="color: #666; font-style: italic; margin-top: 15px;">Aguardando o host configurar e iniciar o jogo...</div>
         </div>
 
         <div id="screenJogo" class="screen">
-            <h2>Letra do Round: <span id="labelLetra" style="font-size: 36px; color: #ff4757;">-</span></h2>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Letra: <span id="labelLetra" style="font-size: 32px; color: #ff4757;">-</span></h2>
+                <div style="font-size: 18px; font-weight: bold; color: #6f42c1;">⏱️ <span id="cronometroRound">0</span>s</div>
+            </div>
             <div id="containerCategorias" class="grid-inputs"></div>
             <button class="btn-danger" style="margin-top: 20px; font-size: 20px;" onclick="pressionarStop()">STOOOP!</button>
         </div>
 
         <div id="screenRevisao" class="screen">
             <h2>Votação de Palavras</h2>
-            <p style="margin-bottom: 15px; font-style: italic;">Vote se a palavra é válida para a categoria!</p>
+            <p style="margin-bottom: 15px; font-style: italic; font-size: 14px;">Avalie as palavras dos outros jogadores:</p>
             <div id="containerVotacao"></div>
             <div id="painelAvancarHost" style="display: none; margin-top: 20px;">
                 <button class="btn-success" onclick="aplicarVotos()">Aplicar Votos e Avançar</button>
@@ -74,12 +123,13 @@
         </div>
 
         <div id="screenRanking" class="screen">
-            <h2>Pontuação Geral</h2>
+            <h2>🏆 Classificação Geral 🏆</h2>
             <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #eee;">
-                        <th style="padding: 10px;">Jogador</th>
-                        <th style="padding: 10px;">Pontos</th>
+                        <th style="padding: 10px; text-align: left;">Pos / Jogador</th>
+                        <th style="padding: 10px; text-align: right;">Pontos</th>
+                        <th style="padding: 10px; text-align: center;">Info</th>
                     </tr>
                 </thead>
                 <tbody id="tabelaRanking"></tbody>
@@ -94,14 +144,16 @@
         const socket = io();
         let meuId = "";
         let salaAtual = null;
+        
+        // Controle do Cronômetro do Round
+        let tempoGastoS = 0;
+        let intervaloCronometro = null;
 
-        // Gerenciamento de Telas
         function alternarTela(idTela) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(idTela).classList.add('active');
         }
 
-        // Status de Conexão Física
         socket.on('connect', () => {
             meuId = socket.id;
             const bar = document.getElementById('statusBar');
@@ -115,7 +167,6 @@
             bar.classList.remove('connected');
         });
 
-        // Ações do Usuário
         function criarSala() {
             const nome = document.getElementById('inputNome').value.trim();
             if(!nome) return alert("Digite seu nome!");
@@ -137,9 +188,30 @@
             }
         }
 
+        function removerCategoria(cat) {
+            socket.emit('removeCategory', cat);
+        }
+
+        function toggleLetra(letra) {
+            socket.emit('toggleLetter', letra);
+        }
+
         function alterarConfiguracoes() {
             const modo = document.getElementById('selectModo').value;
-            socket.emit('updateSettings', { gameMode: modo });
+            const sistemaVotacao = document.getElementById('selectVotacao').value;
+            const maxRds = document.getElementById('inputMaxRounds').value;
+            const rTime = document.getElementById('inputRoundTime').value;
+            const pAcerto = document.getElementById('inputPtsAcerto').value;
+            const pRep = document.getElementById('inputPtsRepetido').value;
+
+            socket.emit('updateSettings', {
+                gameMode: modo,
+                useVoting: sistemaVotacao,
+                maxRounds: maxRds,
+                roundTime: rTime,
+                ptsAcerto: pAcerto,
+                ptsRepetido: pRep
+            });
         }
 
         function iniciarRodada() {
@@ -147,11 +219,14 @@
         }
 
         function pressionarStop() {
+            clearInterval(intervaloCronometro); // Para o cronômetro local
             const respostas = {};
             salaAtual.categories.forEach(cat => {
-                respostas[cat] = document.getElementById(`input-cat-${cat}`).value.trim();
+                const el = document.getElementById(`input-cat-${cat}`);
+                respostas[cat] = el ? el.value.trim() : "";
             });
-            socket.emit('pressStop', { respostas, tempoGasto: 0 });
+            // Envia as respostas junto com o tempo exato decorrido!
+            socket.emit('pressStop', { respostas, tempoGasto: tempoGastoS });
         }
 
         function enviarVoto(playerTargetId, categoria, voto) {
@@ -162,7 +237,13 @@
             socket.emit('aplicarVotosEAvancar');
         }
 
-        // Eventos vindos do Servidor (Socket.io)
+        function toggleLupa(idDoJogador) {
+            const painelInfo = document.getElementById(`details-${idDoJogador}`);
+            if(painelInfo) {
+                painelInfo.style.display = painelInfo.style.display === 'none' ? 'table-row' : 'none';
+            }
+        }
+
         socket.on('salaCriado', (codigo) => {
             document.getElementById('labelCodigoSala').innerText = codigo;
             alternarTela('screenLobby');
@@ -171,16 +252,43 @@
         socket.on('roomUpdated', (sala) => {
             salaAtual = sala;
             document.getElementById('labelCodigoSala').innerText = sala.code;
-            alternarTela('screenLobby');
+            
+            if (sala.gameState === 'lobby') {
+                alternarTela('screenLobby');
+            }
 
-            // Atualiza lista de jogadores
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = sala.players.map(p => `<li>👤 ${p.name} (${p.points} pts) ${p.id === sala.host ? '👑' : ''}</li>`).join('');
 
-            // Mostra controles se for o host
             if(socket.id === sala.host) {
                 document.getElementById('painelHost').style.display = 'block';
                 document.getElementById('playerWaitingMsg').style.display = 'none';
+
+                document.getElementById('selectModo').value = sala.gameMode;
+                document.getElementById('selectVotacao').value = sala.useVoting || 'sim';
+                
+                if(sala.gameMode === 'custom') {
+                    document.getElementById('painelCustomSettings').style.display = 'block';
+                    if(document.activeElement.id !== 'inputMaxRounds') document.getElementById('inputMaxRounds').value = sala.maxRounds;
+                    if(document.activeElement.id !== 'inputRoundTime') document.getElementById('inputRoundTime').value = sala.roundTime;
+                    if(document.activeElement.id !== 'inputPtsAcerto') document.getElementById('inputPtsAcerto').value = sala.ptsAcerto;
+                    if(document.activeElement.id !== 'inputPtsRepetido') document.getElementById('inputPtsRepetido').value = sala.ptsRepetido;
+                } else {
+                    document.getElementById('painelCustomSettings').style.display = 'none';
+                }
+
+                const listaCats = document.getElementById('listaCategoriasConfig');
+                listaCats.innerHTML = sala.categories.map(cat => `
+                    <span class="category-chip">${cat} <button onclick="removerCategoria('${cat}')">❌</button></span>
+                `).join('');
+
+                const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+                const grid = document.getElementById('gridLetras');
+                grid.innerHTML = alfabeto.map(l => {
+                    const ativa = sala.allowedLetters.includes(l);
+                    return `<button class="btn-letra ${ativa ? 'ativa' : 'inativa'}" onclick="toggleLetra('${l}')">${l}</button>`;
+                }).join('');
+
             } else {
                 document.getElementById('painelHost').style.display = 'none';
                 document.getElementById('playerWaitingMsg').style.display = 'block';
@@ -188,6 +296,15 @@
         });
 
         socket.on('roundStarted', (data) => {
+            // Inicializa o cronômetro regressivo/progressivo local
+            tempoGastoS = 0;
+            document.getElementById('cronometroRound').innerText = tempoGastoS;
+            clearInterval(intervaloCronometro);
+            intervaloCronometro = setInterval(() => {
+                tempoGastoS++;
+                document.getElementById('cronometroRound').innerText = tempoGastoS;
+            }, 1000);
+
             document.getElementById('labelLetra').innerText = data.letter;
             const container = document.getElementById('containerCategorias');
             container.innerHTML = data.categories.map(cat => `
@@ -200,6 +317,7 @@
         });
 
         socket.on('abrirRevisao', (data) => {
+            clearInterval(intervaloCronometro);
             alternarTela('screenRevisao');
             document.getElementById('painelAvancarHost').style.display = socket.id === data.hostId ? 'block' : 'none';
 
@@ -207,7 +325,7 @@
             container.innerHTML = "";
 
             data.players.forEach(p => {
-                if(p.id === socket.id) return; // Não vota em si mesmo
+                if(p.id === socket.id) return; 
                 data.categories.forEach(cat => {
                     const palavra = p.answers[cat] || "Não respondeu";
                     const row = document.createElement('div');
@@ -228,25 +346,36 @@
         });
 
         socket.on('showReviewTable', (data) => {
+            clearInterval(intervaloCronometro);
             alternarTela('screenRanking');
             const tabela = document.getElementById('tabelaRanking');
-            tabela.innerHTML = data.ranking.map(p => `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding:10px;">${p.name}</td>
-                    <td style="padding:10px; font-weight:bold;">${p.points}</td>
-                </tr>
-            `).join('');
+            tabela.innerHTML = "";
 
-            if(salaAtual && socket.id === salaAtual.host && !data.isLastRound) {
-                document.getElementById('painelProximaRodadaHost').style.display = 'block';
-            } else {
-                document.getElementById('painelProximaRodadaHost').style.display = 'none';
-            }
-        });
+            // Renderiza a lista aplicando classes para o TOP 3 (Ouro, Prata, Bronze)
+            data.ranking.forEach((p, index) => {
+                let posicaoEstilo = "";
+                let medalhaOuNum = `${index + 1}º`;
 
-        socket.on('erro', (msg) => {
-            alert(msg);
-        });
-    </script>
-</body>
-</html>
+                if (index === 0) {
+                    posicaoEstilo = "rank-gold";
+                    medalhaOuNum = "🥇 1º";
+                } else if (index === 1) {
+                    posicaoEstilo = "rank-silver";
+                    medalhaOuNum = "🥈 2º";
+                } else if (index === 2) {
+                    posicaoEstilo = "rank-bronze";
+                    medalhaOuNum = "🥉 3º";
+                }
+
+                // Cria a linha principal do jogador + linha oculta com os dados da Lupa (🔍)
+                const trPrincipal = `
+                    <tr class="${posicaoEstilo}" style="border-bottom: 1px solid #eee;">
+                        <td style="padding:12px; text-align: left;">${medalhaOuNum} - ${p.name}</td>
+                        <td style="padding:12px; font-weight:bold; text-align: right;">${p.points}</td>
+                        <td style="padding:12px; text-align: center;">
+                            <button class="btn-primary" style="width:auto; padding: 4px 10px; font-size:12px; margin:0;" onclick="toggleLupa('${p.id}')">🔍</button>
+                        </td>
+                    </tr>
+                `;
+
+                // Constrói a caixa expandida contendo
