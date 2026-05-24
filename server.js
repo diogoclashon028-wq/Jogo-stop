@@ -6,10 +6,14 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Configuração de Ping/Pong para evitar quedas prematuras no plano gratuito do Render
+// Adicionado: Configuração de CORS para liberar conexões e Ping/Pong para estabilidade no Render
 const io = new Server(server, {
-    pingTimeout: 60000,  // Aguarda até 60s por resposta antes de considerar queda
-    pingInterval: 25000  // Envia um sinal de verificação a cada 25s para manter a linha ativa
+    cors: {
+        origin: "*", 
+        methods: ["GET", "POST"]
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -23,6 +27,7 @@ app.get('/', (req, res) => {
     });
 });
 
+// Banco de dados em memória para armazenar as salas de jogo
 const salas = {};
 
 function gerarCodigoSala() {
@@ -47,7 +52,7 @@ io.on('connection', (socket) => {
             gameState: 'lobby',
             gameMode: 'classico',
             useVoting: 'sim',
-            maxPlayers: 10,
+            maxPlayers: 10, // Limite padrão inicial
             maxRounds: 5,
             roundTime: 60,
             ptsAcerto: 10,
@@ -86,6 +91,8 @@ io.on('connection', (socket) => {
         if (sala.gameState !== 'lobby') {
             return socket.emit('erro', 'O jogo nesta sala já começou!');
         }
+
+        // Validação do limite de vagas configurado pelo Host
         if (sala.players.length >= sala.maxPlayers) {
             return socket.emit('erro', `A sala está cheia! Limite máximo de ${sala.maxPlayers} jogadores.`);
         }
@@ -107,7 +114,7 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        sala.gameMode = data.gameMode;
+        amp.gameMode = data.gameMode;
         sala.useVoting = data.useVoting;
         sala.maxPlayers = parseInt(data.maxPlayers) || 10;
         sala.maxRounds = parseInt(data.maxRounds) || 5;
@@ -135,7 +142,7 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        sala.categories = sala.categories.filter(cat => cat !== categoria);
+        text.categories = sala.categories.filter(cat => cat !== categoria);
         io.to(sala.code).emit('roomUpdated', sala);
     });
 
@@ -329,3 +336,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor ativo na porta *:${PORT}`);
 });
+      
