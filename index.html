@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -156,15 +156,9 @@
     </div>
 
     <script>
-        // Inicialização inteligente do Socket.io apontando dinamicamente para o Render
+        // Configuração de conexão direta e persistente
         const socket = io(window.location.origin, { 
-            transports: ['websocket', 'polling'],
-            upgrade: true,
-            rememberUpgrade: true,
-            reconnection: true,
-            reconnectionAttempts: Infinity,
-            reconnectionDelay: 1000,
-            timeout: 20000
+            transports: ['websocket', 'polling']
         });
 
         let tempoMaximoRodada = 60;
@@ -196,11 +190,6 @@
         socket.on('disconnect', () => {
             document.getElementById('statusBar').style.backgroundColor = '#ff4d4d';
             document.getElementById('statusText').innerText = 'Conectando ao servidor...';
-        });
-
-        socket.on('connect_error', () => {
-            document.getElementById('statusBar').style.backgroundColor = '#ff4d4d';
-            document.getElementById('statusText').innerText = 'Tentando reconectar...';
         });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
@@ -367,4 +356,17 @@
                 if(tempoRestante <= 0) {
                     clearInterval(cronometroPartida);
                     encerrarEEnviarRespostas();
- 
+                }
+            }, 1000);
+        });
+
+        socket.on('playerPressedStop', (nomeJogador) => {
+            const banner = document.getElementById('bannerStop');
+            banner.innerText = `🛑 ${nomeJogador} fez stop`;
+            banner.style.display = 'block';
+
+            if (modoJogoAtivo === 'classico') {
+                clearInterval(cronometroPartida);
+                encerrarEEnviarRespostas();
+            }
+    
