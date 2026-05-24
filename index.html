@@ -9,7 +9,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 480px; text-align: center; position: relative; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 480px; text-align: center; }
         h1, h2, h3 { color: #5e35b1; margin-bottom: 15px; }
         
         .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color 0.5s; }
@@ -37,7 +37,7 @@
         .player-item { background: #f9f9f9; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #00bfa5; }
         
         .host-controls { display: flex; gap: 8px; align-items: center; }
-        .btn-kick { background: #ff4d4d; color: white; border: none; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-kick { background: #e53935; color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .host-badge { background: #764ba2; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 20px; font-weight: bold; }
 
         .config-section { background: #f5f6fa; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #e4e7eb; }
@@ -58,8 +58,7 @@
         .input-box-game { margin-bottom: 12px; text-align: left; }
         .input-box-game label { display: block; font-weight: bold; color: #475569; margin-bottom: 4px; font-size: 0.95rem; }
         
-        /* Alerta de Stop Notificação */
-        .stop-banner { background: #feebc8; color: #c05621; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; border: 1px solid #fbd38d; display: none; }
+        .stop-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; border: 1px solid #ffeeba; display: none; font-size: 1.05rem; }
     </style>
 </head>
 <body>
@@ -83,7 +82,7 @@
             <h2 style="text-align: center;">Sala de Espera</h2>
             <div class="room-code-display">CÓDIGO: <span id="codigoSalaGerado">----</span></div>
 
-            <h3>Jogadores:</h3>
+            <h3>Jogadores Conectados:</h3>
             <ul id="listaJogadores" class="player-list"></ul>
 
             <div id="painelConfiguracoes" class="config-section">
@@ -159,7 +158,7 @@
     <script>
         const socket = io();
         let tempoMaximoRodada = 60;
-        let meuIdVisual = "";
+        let modoJogoAtivo = 'regressiva';
 
         function alternarTela(idTela) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -182,7 +181,6 @@
         socket.on('connect', () => {
             document.getElementById('statusBar').style.backgroundColor = '#2ecc71';
             document.getElementById('statusText').innerText = 'Conectado ao Servidor';
-            meuIdVisual = socket.id;
         });
 
         socket.on('disconnect', () => {
@@ -240,6 +238,7 @@
             }
 
             tempoMaximoRodada = parseInt(sala.roundTime) || 60;
+            modoJogoAtivo = sala.gameMode || 'regressiva';
             const souHost = socket.id === sala.host;
 
             const lista = document.getElementById('listaJogadores');
@@ -248,14 +247,14 @@
                 const li = document.createElement('li');
                 li.className = 'player-item';
                 
-                let conteudoItem = `<span>${p.name}</span>`;
+                let htmlJogador = `<span>${p.name}</span>`;
                 if (p.id === sala.host) {
-                    conteudoItem += `<span class="host-badge">Dono</span>`;
+                    htmlJogador += `<span class="host-badge">Dono</span>`;
                 } else if (souHost) {
-                    conteudoItem += `<div class="host-controls"><button class="btn-kick" onclick="expulsarJogador('${p.id}')">❌ Expulsar</button></div>`;
+                    htmlJogador += `<div class="host-controls"><button class="btn-kick" onclick="removerDoJogo('${p.id}')">❌ Expulsar</button></div>`;
                 }
                 
-                li.innerHTML = conteudoItem;
+                li.innerHTML = htmlJogador;
                 lista.appendChild(li);
             });
 
@@ -294,8 +293,8 @@
             });
         });
 
-        function expulsarJogador(idJogador) {
-            if(confirm("Tem certeza que deseja expulsar este jogador?")) {
+        function removerDoJogo(idJogador) {
+            if(confirm("Deseja mesmo expulsar este jogador da sala?")) {
                 socket.emit('kickPlayer', idJogador);
             }
         }
@@ -303,10 +302,10 @@
         socket.on('playerKicked', () => {
             socket.disconnect();
             document.body.innerHTML = `
-                <div class="container" style="text-align:center; padding: 40px;">
-                    <h1 style="color:#e53935;">Você foi expulso!</h1>
-                    <p style="font-size:1.2rem; color:#4a5568; margin-top:10px;">O dono da sala removeu você desta partida.</p>
-                    <button onclick="window.location.reload()" style="background:#764ba2; margin-top:20px; width:200px;">Voltar ao Menu</button>
+                <div class="container" style="text-align:center; padding: 40px; max-width:400px;">
+                    <h1 style="color:#e53935; font-size: 1.8rem;">Você foi expulso!</h1>
+                    <p style="font-size:1.1rem; color:#4a5568; margin-top:12px;">O dono da sala removeu você desta partida.</p>
+                    <button onclick="window.location.reload()" style="background:#764ba2; margin-top:20px; padding:10px 20px;">Voltar ao Menu</button>
                 </div>
             `;
         });
@@ -316,13 +315,13 @@
         });
 
         let cronometroPartida;
-        let modoJogoAtivo = 'regressiva';
-
         socket.on('roundStarted', (dadosRodada) => {
             alternarTela('telaJogo');
             document.getElementById('bannerStop').style.display = 'none';
-            document.getElementById('btnStop').disabled = false;
-            document.getElementById('btnStop').style.opacity = '1';
+            
+            const botaoStop = document.getElementById('btnStop');
+            botaoStop.disabled = false;
+            botaoStop.style.opacity = '1';
             
             document.getElementById('gameRodada').innerText = `${dadosRodada.round}/${dadosRodada.maxRounds}`;
             document.getElementById('letraSorteada').innerText = dadosRodada.letter;
@@ -350,24 +349,23 @@
                 document.getElementById('gameCronometro').innerText = tempoRestante;
                 if(tempoRestante <= 0) {
                     clearInterval(cronometroPartida);
-                    dispararStop(true);
+                    encerrarEEnviarRespostas();
                 }
             }, 1000);
         });
 
-        // Ouvinte para quando alguém aperta STOP
         socket.on('playerPressedStop', (nomeJogador) => {
             const banner = document.getElementById('bannerStop');
-            banner.innerText = `🛑 ${nomeJogador} fez STOP!`;
+            banner.innerText = `🛑 ${nomeJogador} fez stop`;
             banner.style.display = 'block';
 
-            // Se for o modo clássico, encerra a rodada imediatamente para todos
+            // Se for modo clássico, trava e encerra IMEDIATAMENTE para todos
             if (modoJogoAtivo === 'classico') {
                 clearInterval(cronometroPartida);
-                dispararStop(false);
+                encerrarEEnviarRespostas();
             }
         });
 
-        function dispararStop(porTempoEsgotado = false) {
-            if (!porTempoEsgotado) {
-                // Notifica 
+        function encerrarEEnviarRespostas() {
+            clearInterval(cronometroPartida);
+            document.getElementById('btnStop').
