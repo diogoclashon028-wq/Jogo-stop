@@ -1,16 +1,16 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Completo</title>
+    <title>Stop! Online Avançado</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;}
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
         #status-conexao { text-align: center; padding: 10px; background: #ff4b2b; color: white; font-weight: bold; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
         h2 { color: #4a148c; text-align: center; margin-top: 0; }
         h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
-        label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; }
+        label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; font-size: 14px;}
         input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; }
         button { width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; }
         .btn-primary { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; }
@@ -18,17 +18,17 @@
         .btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; font-size: 20px; }
         .screen { display: none; }
         .screen.active { display: block; }
-        .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; cursor: pointer;}
         .letter-display { font-size: 72px; text-align: center; font-weight: bold; color: #ffb300; margin: 10px 0; }
         .timer { font-size: 24px; text-align: center; font-weight: bold; color: #d32f2f; margin: 15px 0; background: #ffebee; padding: 10px; border-radius: 8px; }
-        
-        /* Painel Seletor de Letras */
         .letters-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
-        .letter-btn { padding: 8px 0; font-size: 14px; background: #4caf50; color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-align: center; text-transform: uppercase;}
+        .letter-btn { padding: 8px 0; font-size: 13px; background: #4caf50; color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-align: center;}
         .letter-btn.disabled { background: #f44336; text-decoration: line-through; opacity: 0.6; }
-        
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
         .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
+        .review-box { background: #fff; border: 2px solid #ba68c8; border-radius: 8px; padding: 15px; margin-top: 10px; display: none; }
+        .row-config { display: flex; gap: 10px; }
+        .row-config div { flex: 1; }
     </style>
 </head>
 <body>
@@ -54,17 +54,36 @@
                 <button class="btn-primary" onclick="addTheme()" style="width:auto; margin:0; padding: 0 20px;">+</button>
             </div>
             
-            <label style="margin-top:15px;">Escolha as Letras Disponíveis:</label>
-            <div class="letters-grid" id="alphabet-selector"></div>
+            <div class="row-config">
+                <div>
+                    <label>N° de Rodadas:</label>
+                    <input type="number" id="setting-rounds" value="5" onchange="updateSettings()">
+                </div>
+                <div>
+                    <label>Tempo (seg):</label>
+                    <input type="number" id="setting-time" value="60" onchange="updateSettings()">
+                </div>
+            </div>
 
-            <label style="margin-top:15px;">Tempo da Rodada (segundos):</label>
-            <input type="number" id="setting-time" value="60" onchange="updateSettings()">
+            <div class="row-config">
+                <div>
+                    <label>Pts Palavra Única:</label>
+                    <input type="number" id="setting-pts-acerto" value="10" onchange="updateSettings()">
+                </div>
+                <div>
+                    <label>Pts Repetida:</label>
+                    <input type="number" id="setting-pts-repetido" value="5" onchange="updateSettings()">
+                </div>
+            </div>
+            
+            <label style="margin-top:10px;">Letras Permitidas:</label>
+            <div class="letters-grid" id="alphabet-selector"></div>
         </div>
 
         <h3>Temas Ativos</h3>
         <div id="lobby-themes-list"></div>
         
-        <h3>Jogadores na Sala</h3>
+        <h3>Jogadores</h3>
         <div id="player-list"></div>
         
         <button id="btn-start-game" class="btn-success" onclick="startRound()" style="display: none;">Começar Jogo</button>
@@ -72,25 +91,36 @@
 
     <div id="screen-game" class="screen">
         <h2 id="game-status">Rodada 1</h2>
+        <div id="stop-alert" style="display:none; text-align:center; background:#ff9800; color:white; font-weight:bold; padding:8px; border-radius:8px; margin-bottom:10px;"></div>
         <div class="letter-display" id="game-letter">-</div>
         <div class="timer" id="game-timer">Tempo: --s</div>
-        <form id="game-form" onsubmit="sendAnswers(event)">
+        <form id="game-form" onsubmit="triggerStop(event)">
             <div id="dynamic-inputs-container"></div>
-            <button type="submit" class="btn-stop">STOP!</button>
+            <button type="submit" id="btn-main-action" class="btn-stop">STOP!</button>
         </form>
     </div>
 
     <div id="screen-review" class="screen">
         <h2>Fim da Rodada!</h2>
+        <p style="text-align:center; color:#666; font-size:14px;">Clique no nome de qualquer jogador para conferir o tempo e as palavras dele.</p>
+        
         <h3>Placar Geral</h3>
         <div id="ranking-list"></div>
-        <button id="btn-next-round" class="btn-success" onclick="startRound()" style="display: none;">Próxima Rodada</button>
+
+        <div id="review-details-box" class="review-box">
+            <h4 id="review-player-name" style="margin:0 0 10px 0; color:#4a148c;">Folha de Respostas</h4>
+            <p id="review-player-time" style="font-weight:bold; color:#d32f2f; margin:5px 0;"></p>
+            <div id="review-player-answers"></div>
+        </div>
+
+        <button id="btn-next-round" class="btn-success" onclick="startRound()" style="display: none; margin-top:20px;">Próxima Rodada</button>
     </div>
 
     <div id="screen-final" class="screen">
-        <h2>🏆 FIM DE JOGO! 🏆</h2>
+        <h2>🏆 PODIUM FINAL 🏆</h2>
+        <p style="text-align:center; font-weight:bold; color:#4a148c; margin-bottom:25px;">Os 3 jogadores com mais pontos nesta partida:</p>
         <div id="podium-content"></div>
-        <button class="btn-primary" onclick="window.location.reload()">Jogar Novamente</button>
+        <button class="btn-primary" onclick="window.location.reload()" style="margin-top:20px;">Jogar Novamente</button>
     </div>
 </div>
 
@@ -98,17 +128,14 @@
 <script>
     const socket = io("https://jogo-stop.onrender.com");
     let myId = null, timerInterval = null, activeCategories = [], isHost = false;
+    let tempoTotalRodada = 60, milissegundosPassados = 0, cronometroAtivo = false;
+    let guardouPlayersReview = [];
     const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     socket.on('connect', () => { 
         myId = socket.id; 
         document.getElementById('status-conexao').innerText = "🟢 Conectado ao Servidor!";
         document.getElementById('status-conexao').style.background = "#11998e";
-    });
-
-    socket.on('disconnect', () => { 
-        document.getElementById('status-conexao').innerText = "🔴 Conexão perdida.";
-        document.getElementById('status-conexao').style.background = "#ff4b2b";
     });
 
     function showScreen(screenId) {
@@ -137,35 +164,59 @@
         }
     }
 
-    function removeTheme(tema) {
-        socket.emit('removeCategory', tema);
-    }
-
-    function toggleLetter(letra) {
-        if(isHost) socket.emit('toggleLetter', letra);
-    }
+    function removeTheme(tema) { socket.emit('removeCategory', tema); }
+    function toggleLetter(letra) { if(isHost) socket.emit('toggleLetter', letra); }
 
     function updateSettings() {
         if(isHost) {
             socket.emit('updateSettings', {
-                maxRounds: 5,
-                roundTime: document.getElementById('setting-time').value
+                maxRounds: document.getElementById('setting-rounds').value,
+                roundTime: document.getElementById('setting-time').value,
+                ptsAcerto: document.getElementById('setting-pts-acerto').value,
+                ptsRepetido: document.getElementById('setting-pts-repetido').value
             });
         }
     }
 
     function startRound() { socket.emit('startRound'); }
 
-    function sendAnswers(e) {
+    // COMPORTAMENTO DO BOTÃO DE STOP
+    function triggerStop(e) {
         e.preventDefault();
+        cronometroAtivo = false;
         const answers = {};
         activeCategories.forEach(c => {
             answers[c] = document.getElementById('ans-' + c).value;
         });
-        socket.emit('submitAnswers', answers);
+        
+        const tempoGastoFinal = (milissegundosPassados / 1000).toFixed(1) + "s";
+        
+        // Avisa que este jogador apertou STOP. O jogo continua aberto pros outros até o tempo expirar.
+        socket.emit('pressStop', { respostas: answers, tempoGasto: tempoGastoFinal });
+        
+        // Bloqueia os inputs dele para ele não trapacear continuando a digitar
+        document.getElementById('btn-main-action').disabled = true;
+        document.getElementById('btn-main-action').innerText = "VOCÊ DEU STOP!";
+        document.getElementById('btn-main-action').style.background = "#777";
+    }
+
+    // ENVIO AUTOMÁTICO (QUANDO O TEMPO ACABA)
+    function enviarPorFimDeTempo() {
+        const answers = {};
+        activeCategories.forEach(c => {
+            answers[c] = document.getElementById('ans-' + c).value;
+        });
+        const tempoGastoFinal = (tempoTotalRodada).toFixed(1) + "s";
+        socket.emit('submitAnswers', { respostas: answers, tempoGasto: tempoGastoFinal });
     }
 
     socket.on('salaCriada', () => { showScreen('screen-lobby'); });
+
+    socket.on('stopPressionado', (nome) => {
+        const alerta = document.getElementById('stop-alert');
+        alerta.innerText = `🚨 ${nome} deu STOP! Digite rápido até o tempo acabar!`;
+        alerta.style.display = 'block';
+    });
 
     socket.on('roomUpdated', (room) => {
         activeCategories = room.categories;
@@ -175,7 +226,6 @@
         document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
         document.getElementById('btn-start-game').style.display = isHost ? 'block' : 'none';
 
-        // Renderiza Teclado de Seleção de Letras para o Dono
         if(isHost) {
             const grid = document.getElementById('alphabet-selector');
             grid.innerHTML = '';
@@ -185,7 +235,6 @@
             });
         }
 
-        // Lista Temas
         const themesList = document.getElementById('lobby-themes-list');
         themesList.innerHTML = '';
         room.categories.forEach(c => {
@@ -196,17 +245,25 @@
                 </div>`;
         });
 
-        // Lista Jogadores
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = '';
         room.players.forEach(p => {
-            playerList.innerHTML += `<div class="player-item">${p.name} ${p.id === room.host ? '👑' : ''}</div>`;
+            playerList.innerHTML += `<div class="player-item" style="cursor:default">${p.name} ${p.id === room.host ? '👑' : ''} ${p.submitted ? '✅' : '⏳'}</div>`;
         });
     });
 
     socket.on('roundStarted', (data) => {
         clearInterval(timerInterval);
         activeCategories = data.categories;
+        tempoTotalRodada = data.roundTime;
+        milissegundosPassados = 0;
+        cronometroAtivo = true;
+
+        document.getElementById('stop-alert').style.display = 'none';
+        document.getElementById('btn-main-action').disabled = false;
+        document.getElementById('btn-main-action').innerText = "STOP!";
+        document.getElementById('btn-main-action').style.background = "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)";
+
         document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
         document.getElementById('game-letter').innerText = data.letter;
         
@@ -216,29 +273,52 @@
             container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}">`;
         });
 
-        let timeLeft = data.roundTime;
-        document.getElementById('game-timer').innerText = 'Tempo: ' + timeLeft + 's';
+        document.getElementById('game-timer').innerText = 'Tempo: ' + tempoTotalRodada + 's';
+        
         timerInterval = setInterval(() => {
-            timeLeft--;
-            document.getElementById('game-timer').innerText = 'Tempo: ' + timeLeft + 's';
-            if(timeLeft <= 0) clearInterval(timerInterval);
+            if (cronometroAtivo) {
+                milissegundosPassados += 1000;
+            }
+            let tempoRestante = tempoTotalRodada - (milissegundosPassados / 1000);
+            document.getElementById('game-timer').innerText = 'Tempo: ' + Math.max(0, Math.ceil(tempoRestante)) + 's';
+            
+            if(tempoRestante <= 0) {
+                clearInterval(timerInterval);
+                enviarPorFimDeTempo();
+            }
         }, 1000);
         showScreen('screen-game');
     });
 
-    socket.on('showReviewTable', ({ ranking, isLastRound }) => {
+    socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
         clearInterval(timerInterval);
+        guardouPlayersReview = players; // Salva a lista localmente para consulta
+        
+        document.getElementById('review-details-box').style.display = 'none';
+        
         const rList = document.getElementById('ranking-list');
         rList.innerHTML = '';
         ranking.forEach((p, idx) => {
-            rList.innerHTML += `<div class="player-item"><b>${idx+1}° ${p.name}</b> <span>${p.points} pts</span></div>`;
+            rList.innerHTML += `
+                <div class="player-item" onclick="mostrarDetalhesJogador('${p.id}')">
+                    <b>${idx+1}° ${p.name}</b> 
+                    <span>🔍 Ver Folha | ${p.points} pts</span>
+                </div>`;
         });
 
         if(isLastRound) {
+            document.getElementById('btn-next-round').style.display = 'none';
             const podium = document.getElementById('podium-content');
             podium.innerHTML = '';
+            
+            // FILTRA APENAS OS 3 PRIMEIROS DO RANKING
             ranking.slice(0, 3).forEach((p, i) => {
-                podium.innerHTML += `<div class="player-item" style="background:#ffa000;">🏆 ${i+1}° Lugar: ${p.name} - ${p.points} pts</div>`;
+                let medalha = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
+                podium.innerHTML += `
+                    <div class="player-item" style="background:#ffca28; cursor:default; font-size:18px; padding:15px;">
+                        <span>${medalha} ${i+1}° Lugar: <b>${p.name}</b></span>
+                        <b>${p.points} pts</b>
+                    </div>`;
             });
             showScreen('screen-final');
         } else {
@@ -246,6 +326,25 @@
             showScreen('screen-review');
         }
     });
+
+    // SISTEMA INTERATIVO PARA REVISAR PALAVRAS E TEMPO DOS OUTROS
+    function mostrarDetalhesJogador(idJogador) {
+        const player = guardouPlayersReview.find(p => p.id === idJogador);
+        if(!player) return;
+
+        document.getElementById('review-player-name').innerText = `Folha de: ${player.name}`;
+        document.getElementById('review-player-time').innerText = `⏱️ Tempo de envio: ${player.timeTaken || "Não finalizou"}`;
+        
+        const containerAns = document.getElementById('review-player-answers');
+        containerAns.innerHTML = '';
+        
+        activeCategories.forEach(cat => {
+            const respostaDada = player.answers[cat] || '---';
+            containerAns.innerHTML += `<p style="margin:6px 0; font-size:15px;"><b>${cat}:</b> <span style="color:#2575fc">${respostaDada}</span></p>`;
+        });
+
+        document.getElementById('review-details-box').style.display = 'block';
+    }
 
     socket.on('erro', (msg) => alert(msg));
 </script>
