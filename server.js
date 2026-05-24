@@ -86,7 +86,7 @@ io.on('connection', (socket) => {
     socket.on('removeCategory', (categoria) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (sala) {
-            sala.categories = sala.categories.filter(c => c !== category);
+            sala.categories = sala.categories.filter(c => c !== categoria);
             io.to(sala.code).emit('roomUpdated', sala);
         }
     });
@@ -185,4 +185,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-        
+                                  
