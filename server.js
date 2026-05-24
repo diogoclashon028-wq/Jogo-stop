@@ -9,10 +9,8 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 10000;
 
-// Serve os arquivos estáticos da pasta atual
 app.use(express.static(__dirname));
 
-// Rota principal que entrega o arquivo index.html limpo
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -24,8 +22,6 @@ function gerarCodigo() {
 }
 
 io.on('connection', (socket) => {
-    console.log('Jogador conectado:', socket.id);
-
     socket.on('criarSala', (nomeJogador) => {
         const codigo = gerarCodigo();
         salas[codigo] = {
@@ -59,6 +55,116 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('addCategory', (category) => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id) {
+                if (!salas[codigo].categories.includes(category)) {
+                    salas[codigo].categories.push(category);
+                    io.to(codigo).emit('roomUpdated', salas[codigo]);
+                }
+            }
+        }
+    });
+
+    socket.on('removeCategory', (category) => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id) {
+                salas[codigo].categories = salas[codigo].categories.filter(c => c !== category);
+                io.to(codigo).emit('roomUpdated', salas[codigo]);
+            }
+        }
+    });
+
+    socket.on('toggleLetter', (letter) => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id) {
+                let sala = salas[codigo];
+                if (sala.allowedLetters.includes(letter)) {
+                    sala.allowedLetters = sala.allowedLetters.filter(l => l !== letter);
+                } else {
+                    sala.allowedLetters.push(letter);
+                }
+                io.to(codigo).emit('roomUpdated', sala);
+            }
+        }
+    });
+
+    socket.on('updateSettings', (settings) => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id) {
+                salas[codigo].maxRounds = parseInt(settings.maxRounds);
+                salas[codigo].roundTime = parseInt(settings.roundTime);
+                salas[codigo].pointsPerCategory = parseInt(settings.pointsPerCategory);
+                salas[codigo].pointsPerRepeated = parseInt(settings.pointsPerRepeated);
+                io.to(codigo).emit('roomUpdated', salas[codigo]);
+            }
+        }
+    });
+
+    socket.on('startRound', () => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id) {
+                const sala = salas[codigo];
+                if (sala.allowedLetters.length === 0) {
+                    socket.emit('erro', 'Selecione pelo menos uma letra!');
+                    return;
+                }
+                sala.currentRound++;
+                sala.gameState = 'playing';
+                const idx = Math.floor(Math.random() * sala.allowedLetters.length);
+                sala.currentLetter = sala.allowedLetters[idx];
+                sala.roundStartTime = Date.now();
+                
+                sala.players.forEach(p => {
+                    p.submitted = false;
+                    p.answers = {};
+                    p.timeTaken = 0;
+                });
+
+                io.to(codigo).emit('roundStarted', {
+                    round: sala.currentRound,
+                    maxRounds: sala.maxRounds,
+                    letter: sala.currentLetter,
+                    categories: sala.categories,
+                    roundTime: sala.roundTime
+                });
+                io.to(codigo).emit('roomUpdated', sala);
+            }
+        }
+    });
+
+    socket.on('submitAnswers', (answers) => {
+        let targetSala = null;
+        let player = null;
+        for (let codigo in salas) {
+            player = salas[codigo].players.find(p => p.id === socket.id);
+            if (player) {
+                targetSala = salas[codigo];
+                break;
+            }
+        }
+        if (targetSala && targetSala.gameState === 'playing') {
+            player.submitted = true;
+            player.answers = answers;
+            player.timeTaken = Math.floor((Date.now() - targetSala.roundStartTime) / 1000);
+            
+            const allDone = targetSala.players.every(p => p.submitted);
+            if (allDone) {
+                finalizarRodada(targetSala);
+            } else {
+                io.to(targetSala.code).emit('roomUpdated', targetSala);
+            }
+        }
+    });
+
+    socket.on('forceRoundEnd', () => {
+        for (let codigo in salas) {
+            if (salas[codigo].host === socket.id && salas[codigo].gameState === 'playing') {
+                finalizarRodada(salas[codigo]);
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         for (let codigo in salas) {
             const sala = salas[codigo];
@@ -74,6 +180,47 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+function finalizarRodada(sala) {
+    sala.gameState = 'reviewing';
+    sala.players.forEach(p => {
+        if (!p.submitted) {
+            p.timeTaken = sala.roundTime;
+        }
+    });
+
+    sala.categories.forEach(cat => {
+        let contagemPalavras = {};
+        sala.players.forEach(p => {
+            let ans = (p.answers[cat] || '').trim().toUpperCase();
+            if (ans && ans.startsWith(sala.currentLetter)) {
+                contagemPalavras[ans] = (contagemPalavras[ans] || 0) + 1;
+            }
+        });
+
+        sala.players.forEach(p => {
+            let ans = (p.answers[cat] || '').trim().toUpperCase();
+            if (ans && ans.startsWith(sala.currentLetter)) {
+                if (contagemPalavras[ans] > 1) {
+                    p.points += sala.pointsPerRepeated;
+                } else {
+                    p.points += sala.pointsPerCategory;
+                }
+            }
+        });
+    });
+
+    const ranking = sala.players.map(p => ({ name: p.name, points: p.points })).sort((a, b) => b.points - a.points);
+    const isLastRound = sala.currentRound >= sala.maxRounds;
+
+    io.to(sala.code).emit('showReviewTable', {
+        players: sala.players,
+        ranking,
+        categories: sala.categories,
+        isLastRound
+    });
+    io.to(sala.code).emit('roomUpdated', sala);
+}
 
 server.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
