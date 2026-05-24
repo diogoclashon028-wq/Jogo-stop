@@ -156,7 +156,6 @@
     </div>
 
     <script>
-        // Chamada limpa do io() sem parâmetros, confiando no roteamento do Render
         const socket = io();
 
         let tempoMaximoRodada = 60;
@@ -370,4 +369,5 @@
         });
 
         function encerrarEEnviarRespostas() {
-            clearInterva
+            clearInterval(cronometroPartida);
+            document.getElementById('btnStop').disabled = tru
