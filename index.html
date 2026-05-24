@@ -28,7 +28,7 @@
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
         .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
         .review-box { background: #fff; border: 2px solid #ba68c8; border-radius: 8px; padding: 15px; margin-top: 10px; display: none; position: relative; }
-        .btn-close-review { position: absolute; top: 10px; right: 10px; background: #ff4b2b; color: white; border: none; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer; line-height: 30px; text-align: center; }
+        .btn-close-review { position: absolute; top: 10px; right: 10px; background: #ff4b2b; color: white; border: none; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer; line-height: 30px; text-align: center; font-weight: bold;}
         .row-config { display: flex; gap: 10px; }
         .row-config div { flex: 1; }
     </style>
@@ -270,10 +270,11 @@
         document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
         document.getElementById('game-letter').innerText = data.letter;
         
+        // CORREÇÃO ESSENCIAL: Recria caixas limpas, ativas e remove o autocomplete para não sugerir respostas antigas
         const container = document.getElementById('dynamic-inputs-container');
         container.innerHTML = '';
         activeCategories.forEach(c => {
-            container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}">`;
+            container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}" autocomplete="off">`;
         });
 
         document.getElementById('game-timer').innerText = 'Tempo: ' + tempoTotalRodada + 's';
@@ -296,8 +297,6 @@
     socket.on('showReviewTable', ({ hostId, players, ranking, categories, isLastRound }) => {
         clearInterval(timerInterval);
         guardouPlayersReview = players;
-        
-        // Garante que a checagem de privilégio persista ao mudar de tela
         isHost = hostId === myId;
         
         document.getElementById('review-details-box').style.display = 'none';
@@ -327,7 +326,6 @@
             });
             showScreen('screen-final');
         } else {
-            // Exibe o botão de Próxima Rodada apenas para quem for de fato o Host dono da sala
             document.getElementById('btn-next-round').style.display = isHost ? 'block' : 'none';
             showScreen('screen-review');
         }
@@ -348,10 +346,13 @@
             containerAns.innerHTML += `<p style="margin:6px 0; font-size:15px;"><b>${cat}:</b> <span style="color:#2575fc">${respostaDada}</span></p>`;
         });
 
-        document.getElementById('review-details-box').style.display = 'block';
+        const boxDetalhes = document.getElementById('review-details-box');
+        boxDetalhes.style.display = 'block';
+        
+        // CORREÇÃO: Rolagem confortável de tela para o usuário ver as notas abertas
+        boxDetalhes.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // NOVA FUNÇÃO DO BOTÃO "X" SOLICITADO
     function fecharDetalhesJogador() {
         document.getElementById('review-details-box').style.display = 'none';
     }
@@ -360,3 +361,4 @@
 </script>
 </body>
 </html>
+
