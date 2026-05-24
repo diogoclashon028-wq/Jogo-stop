@@ -178,7 +178,8 @@
     </div>
 
     <script>
-        const socket = io({ transports: ['websocket'], upgrade: false });
+        // Configuração nativa sem passar URLs estáticas, permitindo que se adapte ao Render automaticamente
+        const socket = io({ transports: ['websocket', 'polling'] });
         let minhaSala = '';
         let meuId = '';
         let souDono = false;
@@ -186,16 +187,17 @@
         let cronometro;
         let categoriasLocais = [];
 
-        socket.on('statusConexao', (conectado) => {
-            const bolinha = document.getElementById('statusBolinha');
-            const texto = document.getElementById('statusTexto');
-            if(conectado) {
-                bolinha.classList.add('conectado');
-                texto.innerText = "Conectado";
-            }
+        // SISTEMA DE STATUS INTEGRADO NATIVO
+        socket.on('connect', () => { 
+            meuId = socket.id; 
+            document.getElementById('statusBolinha').classList.add('conectado');
+            document.getElementById('statusTexto').innerText = "Conectado";
         });
 
-        socket.on('connect', () => { meuId = socket.id; });
+        socket.on('disconnect', () => {
+            document.getElementById('statusBolinha').classList.remove('conectado');
+            document.getElementById('statusTexto').innerText = "Desconectado";
+        });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
@@ -225,6 +227,10 @@
             dispararSalvarConfig();
         });
 
+        function disparoConfigAutomatico() {
+            if(souDono) dispararSalvarConfig();
+        }
+
         function dispararSalvarConfig() {
             const checkboxes = document.querySelectorAll('.check-tema');
             checkboxes.forEach(cb => {
@@ -233,12 +239,12 @@
             });
 
             const novaConfig = {
-                tempo: parseInt(document.getElementById('cfgTempo').value),
-                totalRodadas: parseInt(document.getElementById('cfgRodadas').value),
-                pontosPorPalavra: parseInt(document.getElementById('cfgPoints').value),
-                limiteJogadores: parseInt(document.getElementById('cfgLimite').value),
+                tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
+                totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
+                pontosPorPalavra: parseInt(document.getElementById('cfgPoints').value) || 10,
+                limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
-                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value),
+                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 3,
                 regrasRepetidas: document.getElementById('cfgRepetidas').value,
                 categorias: categoriasLocais
             };
@@ -281,6 +287,13 @@
                 document.getElementById('btnSalvarConfig').classList.remove('escondido');
                 document.getElementById('areaCriarTema').classList.remove('escondido');
                 document.getElementById('avisoDono').innerText = "(Você é o Dono)";
+                document.getElementById('cfgTempo').disabled = false;
+                document.getElementById('cfgRodadas').disabled = false;
+                document.getElementById('cfgPoints').disabled = false;
+                document.getElementById('cfgLimite').disabled = false;
+                document.getElementById('cfgVotacao').disabled = false;
+                document.getElementById('cfgVencedores').disabled = false;
+                document.getElementById('cfgRepetidas').disabled = false;
             }
 
             document.getElementById('cfgTempo').value = sala.config.tempo;
@@ -301,7 +314,7 @@
                 divTemas.innerHTML += `
                     <div class="tema-item">
                         <label>
-                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr}> ${cat.nome}
+                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr} onchange="disparoConfigAutomatico()"> ${cat.nome}
                         </label>
                         ${botaoExcluir}
                     </div>
@@ -348,7 +361,7 @@
             categoriasLocais = data.config.categorias.filter(c => c.ativa);
             
             categoriasLocais.forEach(cat => {
-                container.innerHTML += `<input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="${cat.nome}..." oninput="dispararLupa()">`;
+                container.innerHTML += `<div style="text-align:left; margin:8px 0;"><label style="font-weight:bold; font-size:0.9rem;">${cat.nome}:</label><input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="Digite aqui..." oninput="dispararLupa()"></div>`;
             });
 
             clearInterval(cronometro);
@@ -374,12 +387,14 @@
         socket.on('espiarJogador', (data) => {
             const divLupa = document.getElementById('dadosLupa');
             let resumo = `<strong>Exibindo progresso:</strong><br>`;
+            let temDado = false;
             Object.keys(data.respostas).forEach(cat => {
                 if(data.respostas[cat]) {
                     resumo += `▪️ ${cat}: <span style="color:#764ba2">${data.respostas[cat]}</span><br>`;
+                    temDado = true;
                 }
             });
-            divLupa.innerHTML = resumo;
+            divLupa.innerHTML = temDado ? resumo : "Ninguém digitando ainda...";
         });
 
         document.getElementById('btnStop').addEventListener('click', () => {
@@ -389,30 +404,4 @@
         function coletarEVoar(pararGeral) {
             clearInterval(cronometro);
             const respostas = {};
-            categoriasLocais.forEach(cat => {
-                const el = document.getElementById(`resp_${cat.nome}`);
-                if(el) respostas[cat.nome] = el.value.trim();
-            });
-
-            if(pararGeral) {
-                socket.emit('pressStop', { roomCode: minhaSala, respostas });
-            } else {
-                socket.emit('enviarRespostasRestantes', { roomCode: minhaSala, respostas });
-            }
-        }
-
-        socket.on('jogoParado', (data) => {
-            document.getElementById('telaJogo').classList.add('escondido');
-            document.getElementById('telaResultado').classList.remove('escondido');
-            if(socket.id !== data.quemParou) {
-                coletarEVoar(false);
-            }
-        });
-
-        socket.on('atualizarRespostasFinais', (respostasDoServidor) => {
-            const div = document.getElementById('resultadosCorpo');
-            div.innerHTML = '';
-            
-            Object.keys(respostasDoServidor).forEach(id => {
-                const resp = respostasDoServidor[id];
-                let bloco = `<div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10
+            categ
