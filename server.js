@@ -2,7 +2,8 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { 
-    cors: { origin: "*" } 
+    cors: { origin: "*" },
+    transports: ['websocket', 'polling'] // Garante compatibilidade máxima
 });
 const path = require('path');
 
@@ -17,7 +18,6 @@ const salas = {};
 
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
-    socket.emit('statusConexao', true);
 
     socket.on('criarSala', (nome) => {
         if (!nome) return;
@@ -161,4 +161,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-      
+                        
