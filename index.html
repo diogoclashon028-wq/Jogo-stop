@@ -178,7 +178,7 @@
     </div>
 
     <script>
-        const socket = io();
+        const socket = io({ transports: ['websocket'], upgrade: false });
         let minhaSala = '';
         let meuId = '';
         let souDono = false;
