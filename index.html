@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -9,7 +9,7 @@
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
         #status-conexao { text-align: center; padding: 10px; background: #ff4b2b; color: white; font-weight: bold; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
         h2 { color: #4a148c; text-align: center; margin-top: 0; }
-        h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; }
+        h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
         label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; }
         input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; }
         button { width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; }
@@ -21,7 +21,14 @@
         .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; }
         .letter-display { font-size: 72px; text-align: center; font-weight: bold; color: #ffb300; margin: 10px 0; }
         .timer { font-size: 24px; text-align: center; font-weight: bold; color: #d32f2f; margin: 15px 0; background: #ffebee; padding: 10px; border-radius: 8px; }
+        
+        /* Painel Seletor de Letras */
+        .letters-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .letter-btn { padding: 8px 0; font-size: 14px; background: #4caf50; color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-align: center; text-transform: uppercase;}
+        .letter-btn.disabled { background: #f44336; text-decoration: line-through; opacity: 0.6; }
+        
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
+        .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -40,23 +47,27 @@
     <div id="screen-lobby" class="screen">
         <h2 id="lobby-title">Sala: ----</h2>
         
-        <div id="host-settings">
+        <div id="host-settings" style="display: none;">
             <h3>Configurações do Jogo</h3>
             <div style="display:flex; gap: 5px;">
                 <input type="text" id="new-theme-name" placeholder="Adicionar Novo Tema" style="margin:0;">
                 <button class="btn-primary" onclick="addTheme()" style="width:auto; margin:0; padding: 0 20px;">+</button>
             </div>
-            <label>Tempo da Rodada (segundos):</label>
+            
+            <label style="margin-top:15px;">Escolha as Letras Disponíveis:</label>
+            <div class="letters-grid" id="alphabet-selector"></div>
+
+            <label style="margin-top:15px;">Tempo da Rodada (segundos):</label>
             <input type="number" id="setting-time" value="60" onchange="updateSettings()">
         </div>
 
-        <h3>Temas da Partida</h3>
+        <h3>Temas Ativos</h3>
         <div id="lobby-themes-list"></div>
         
         <h3>Jogadores na Sala</h3>
         <div id="player-list"></div>
         
-        <button id="btn-start-game" class="btn-success" onclick="startRound()">Começar Jogo</button>
+        <button id="btn-start-game" class="btn-success" onclick="startRound()" style="display: none;">Começar Jogo</button>
     </div>
 
     <div id="screen-game" class="screen">
@@ -73,7 +84,7 @@
         <h2>Fim da Rodada!</h2>
         <h3>Placar Geral</h3>
         <div id="ranking-list"></div>
-        <button id="btn-next-round" class="btn-success" onclick="startRound()">Próxima Rodada</button>
+        <button id="btn-next-round" class="btn-success" onclick="startRound()" style="display: none;">Próxima Rodada</button>
     </div>
 
     <div id="screen-final" class="screen">
@@ -86,17 +97,18 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
     const socket = io("https://jogo-stop.onrender.com");
-    let myId = null, timerInterval = null, activeCategories = [];
+    let myId = null, timerInterval = null, activeCategories = [], isHost = false;
+    const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     socket.on('connect', () => { 
         myId = socket.id; 
-        const indicador = document.getElementById('status-conexao');
-        indicador.innerText = "🟢 Conectado ao Servidor!";
-        indicador.style.background = "#11998e";
+        document.getElementById('status-conexao').innerText = "🟢 Conectado ao Servidor!";
+        document.getElementById('status-conexao').style.background = "#11998e";
     });
 
     socket.on('disconnect', () => { 
         document.getElementById('status-conexao').innerText = "🔴 Conexão perdida.";
+        document.getElementById('status-conexao').style.background = "#ff4b2b";
     });
 
     function showScreen(screenId) {
@@ -125,16 +137,24 @@
         }
     }
 
-    function updateSettings() {
-        socket.emit('updateSettings', {
-            maxRounds: 5,
-            roundTime: document.getElementById('setting-time').value
-        });
+    function removeTheme(tema) {
+        socket.emit('removeCategory', tema);
     }
 
-    function startRound() { 
-        socket.emit('startRound'); 
+    function toggleLetter(letra) {
+        if(isHost) socket.emit('toggleLetter', letra);
     }
+
+    function updateSettings() {
+        if(isHost) {
+            socket.emit('updateSettings', {
+                maxRounds: 5,
+                roundTime: document.getElementById('setting-time').value
+            });
+        }
+    }
+
+    function startRound() { socket.emit('startRound'); }
 
     function sendAnswers(e) {
         e.preventDefault();
@@ -149,19 +169,34 @@
 
     socket.on('roomUpdated', (room) => {
         activeCategories = room.categories;
+        isHost = room.host === myId;
         document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
         
-        // Exibe ou oculta os controles caso seja o host administrador
-        const isHost = room.host === myId;
         document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
         document.getElementById('btn-start-game').style.display = isHost ? 'block' : 'none';
 
+        // Renderiza Teclado de Seleção de Letras para o Dono
+        if(isHost) {
+            const grid = document.getElementById('alphabet-selector');
+            grid.innerHTML = '';
+            alfabeto.forEach(l => {
+                const ativa = room.allowedLetters.includes(l);
+                grid.innerHTML += `<button class="letter-btn ${ativa ? '' : 'disabled'}" onclick="toggleLetter('${l}')">${l}</button>`;
+            });
+        }
+
+        // Lista Temas
         const themesList = document.getElementById('lobby-themes-list');
         themesList.innerHTML = '';
         room.categories.forEach(c => {
-            themesList.innerHTML += `<div class="theme-tag"><span>📝 ${c}</span></div>`;
+            themesList.innerHTML += `
+                <div class="theme-tag">
+                    <span>📝 ${c}</span>
+                    ${isHost ? `<button class="btn-remove-theme" onclick="removeTheme('${c}')">❌</button>` : ''}
+                </div>`;
         });
 
+        // Lista Jogadores
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = '';
         room.players.forEach(p => {
@@ -186,9 +221,7 @@
         timerInterval = setInterval(() => {
             timeLeft--;
             document.getElementById('game-timer').innerText = 'Tempo: ' + timeLeft + 's';
-            if(timeLeft <= 0) {
-                clearInterval(timerInterval);
-            }
+            if(timeLeft <= 0) clearInterval(timerInterval);
         }, 1000);
         showScreen('screen-game');
     });
@@ -209,6 +242,7 @@
             });
             showScreen('screen-final');
         } else {
+            document.getElementById('btn-next-round').style.display = isHost ? 'block' : 'none';
             showScreen('screen-review');
         }
     });
