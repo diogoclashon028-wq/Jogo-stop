@@ -29,7 +29,7 @@ io.on('connection', (socket) => {
                 limiteJogadores: 8,
                 votacaoAtiva: true,
                 qtdVencedores: 3,
-                regrasRepetidas: 'metade', // 'normal' ou 'metade'
+                regrasRepetidas: 'metade', 
                 categorias: [
                     { nome: 'Nome', ativa: true },
                     { nome: 'Animal', ativa: true },
@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
             }
             const jaExiste = sala.jogadores.find(p => p.id === socket.id);
             if (!jaExiste) {
-                if(!name) return; // Proteção para reconexões vazias
+                if(!name) return; 
                 sala.jogadores.push({ id: socket.id, nome: name, pontos: 0 });
             }
             socket.join(codigo);
@@ -70,7 +70,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Dono expulsar jogador
     socket.on('expulsarJogador', ({ roomCode, idParaExpulsar }) => {
         if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
             salas[roomCode].jogadores = salas[roomCode].jogadores.filter(p => p.id !== idParaExpulsar);
@@ -129,8 +128,7 @@ io.on('connection', (socket) => {
         if (sala && sala.donoId === socket.id) {
             sala.jogadores.forEach(j => {
                 if (pontosAtualizados[j.id] !== undefined) {
-                    j.points = (j.pontos || 0) + pontosAtualizados[j.id];
-                    j.pontos = j.points; 
+                    j.pontos = (j.pontos || 0) + pontosAtualizados[j.id];
                 }
             });
             sala.status = 'lobby';
