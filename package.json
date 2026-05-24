@@ -1,7 +1,7 @@
 {
   "name": "stop-online-supremo",
-  "version": "1.0.0",
-  "description": "Jogo de Stop com Painel de Controle Avançado",
+  "version": "1.0.2",
+  "description": "Jogo de Stop com Controle de Temas e Expulsão",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,4 +11,3 @@
     "socket.io": "^4.7.5"
   }
 }
-
