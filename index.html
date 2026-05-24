@@ -101,7 +101,7 @@
                 </div>
                 <div class="config-row">
                     <label>Pontos Base:</label>
-                    <input type="number" id="cfgPontos" value="10">
+                    <input type="number" id="cfgPoints" value="10">
                 </div>
                 <div class="config-row">
                     <label>Palavras Repetidas:</label>
@@ -235,7 +235,7 @@
             const novaConfig = {
                 tempo: parseInt(document.getElementById('cfgTempo').value),
                 totalRodadas: parseInt(document.getElementById('cfgRodadas').value),
-                pontosPorPalavra: parseInt(document.getElementById('cfgPontos').value),
+                pontosPorPalavra: parseInt(document.getElementById('cfgPoints').value),
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value),
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value),
@@ -270,7 +270,7 @@
                 document.getElementById('avisoDono').innerText = "(Apenas Visualizando)";
                 document.getElementById('cfgTempo').disabled = true;
                 document.getElementById('cfgRodadas').disabled = true;
-                document.getElementById('cfgPontos').disabled = true;
+                document.getElementById('cfgPoints').disabled = true;
                 document.getElementById('cfgLimite').disabled = true;
                 document.getElementById('cfgVotacao').disabled = true;
                 document.getElementById('cfgVencedores').disabled = true;
@@ -285,7 +285,7 @@
 
             document.getElementById('cfgTempo').value = sala.config.tempo;
             document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
-            document.getElementById('cfgPontos').value = sala.config.pontosPorPalavra;
+            document.getElementById('cfgPoints').value = sala.config.pontosPorPalavra;
             document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
@@ -387,7 +387,6 @@
         });
 
         function coletarEVoar(pararGeral) {
-            clearInterval(cronweb);
             clearInterval(cronometro);
             const respostas = {};
             categoriasLocais.forEach(cat => {
@@ -416,4 +415,4 @@
             
             Object.keys(respostasDoServidor).forEach(id => {
                 const resp = respostasDoServidor[id];
-                let bloco = `<div style="background:#f9f9f9; padding:10px;
+                let bloco = `<div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10
