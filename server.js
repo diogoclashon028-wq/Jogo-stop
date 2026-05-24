@@ -6,7 +6,6 @@ const io = require('socket.io')(http, {
 });
 const path = require('path');
 
-// Serve os arquivos da pasta atual (onde vai estar o index.html)
 app.use(express.static(path.join(__dirname, '')));
 
 const salas = {};
@@ -140,7 +139,8 @@ io.on('connection', (socket) => {
             maxRounds: sala.maxRounds,
             letter: sala.currentLetter,
             categories: sala.categories,
-            gameMode: sala.gameMode
+            gameMode: sala.gameMode,
+            roundTime: sala.roundTime
         });
     });
 
@@ -168,7 +168,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Usuário desconectado:', socket.id);
         Object.keys(salas).forEach(codigo => {
             const sala = salas[codigo];
             sala.players = sala.players.filter(p => p.id !== socket.id);
@@ -186,4 +185,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-
+        
