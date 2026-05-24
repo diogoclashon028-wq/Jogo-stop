@@ -4,377 +4,217 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; color: #333; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 500px; text-align: center; }
-        .status-bar { background: #ff4757; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; display: block; }
-        .status-bar.connected { background: #2ed573; }
-        h1 { color: #6f42c1; margin-bottom: 20px; }
-        h3 { margin: 15px 0 8px 0; color: #4a00e0; font-size: 16px; text-align: left; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
-        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; transition: transform 0.1s; }
-        button:active { transform: scale(0.98); }
-        .btn-primary { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
-        .btn-success { background: linear-gradient(135deg, #11998e, #38ef7d); }
-        .btn-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
-        .screen { display: none; }
-        .screen.active { display: block; }
-        .grid-inputs { text-align: left; margin-top: 15px; }
-        .row-vote { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-        .vote-btns { display: flex; gap: 10px; }
-        .vote-btns button { width: auto; padding: 8px 15px; margin: 0; }
-        .category-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; justify-content: center; }
-        .category-chip { background: #f1f2f6; padding: 6px 12px; border-radius: 20px; font-size: 14px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
-        .category-chip button { background: none; border: none; color: #ff4757; cursor: pointer; font-size: 12px; padding: 0; width: auto; margin: 0; }
-        .grid-letras { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0; }
-        .btn-letra { padding: 8px 4px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin: 0; width: 100%; color: #333; }
-        .btn-letra.ativa { background: #2ed573; color: white; border-color: #2ed573; }
-        .btn-letra.inativa { background: #f1f2f6; color: #a4b0be; text-decoration: line-through; border-color: #e2e8f0; }
-        .custom-label { font-size: 14px; font-weight: bold; color: #555; display: block; text-align: left; margin-top: 6px; }
-        
-        /* Estilos do Top 3 */
-        .rank-gold { background: #fff9e6 !important; font-weight: bold; }
-        .rank-silver { background: #f1f2f6 !important; font-weight: bold; }
-        .rank-bronze { background: #faf0e6 !important; font-weight: bold; }
-        .details-box { margin-top: 5px; padding: 8px 12px; border-left: 3px solid #6f42c1; background: #ffffff; border-radius: 4px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #5e35b1;
+            margin-bottom: 25px;
+            font-size: 2.5rem;
+        }
+
+        .status-bar {
+            background-color: #ff4d4d;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background-color 0.5s ease;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background-color: white;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #764ba2;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+            margin-top: 5px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-create {
+            background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
+            margin-bottom: 15px;
+        }
+
+        .btn-join {
+            background: linear-gradient(135deg, #00bfa5 0%, #00bc8c 100%);
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+        }
+
+        .divisor {
+            margin: 15px 0;
+            color: #999;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .divisor::before, .divisor::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 35%;
+            height: 1px;
+            background-color: #ddd;
+        }
+
+        .divisor::before { left: 0; }
+        .divisor::after { right: 0; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div id="statusBar" class="status-bar">🔴 Conectando ao servidor...</div>
-
-        <div id="screenLogin" class="screen active">
-            <h1>Stop! Online</h1>
-            <input type="text" id="inputNome" placeholder="Seu Nome" maxlength="15">
-            <button class="btn-primary" onclick="criarSala()">CRIAR NOVA SALA</button>
-            <div style="margin: 15px 0; color: #aaa;">-- OU --</div>
-            <input type="text" id="inputCodigo" placeholder="CÓDIGO DA SALA">
-            <button class="btn-success" onclick="entrarSala()">ENTRAR EM SALA</button>
+    <div class="container">
+        <div id="statusBar" class="status-bar">
+            <span class="status-dot"></span>
+            <span id="statusText">Conectando ao servidor...</span>
         </div>
 
-        <div id="screenLobby" class="screen">
-            <h2 style="color: #4a00e0;">Sala: <span id="labelCodigoSala" style="color:#ff4757;"></span></h2>
-            <p style="margin: 5px 0; font-size: 14px; color: #666;">Jogadores conectados (<span id="contadorJogadores">0/0</span>):</p>
-            <ul id="listaJogadores" style="list-style: none; margin-bottom: 15px; font-weight: bold;"></ul>
-            
-            <div id="painelHost" style="display: none; border-top: 2px dashed #eee; padding-top: 10px;">
-                <h3>📚 Temas da Partida</h3>
-                <div id="listaCategoriasConfig" class="category-list"></div>
-                <div style="display:flex; gap: 5px;">
-                    <input type="text" id="inputNovaCategoria" placeholder="Nova Categoria">
-                    <button class="btn-primary" style="width: auto; padding: 0 15px; margin: 8px 0;" onclick="adicionarCategoria()">+</button>
-                </div>
+        <h1>Stop! Online</h1>
 
-                <h3>⚙️ Modo e Regras</h3>
-                <select id="selectModo" onchange="alterarConfiguracoes()">
-                    <option value="classico">Modo Clássico</option>
-                    <option value="competitive">Modo Competitivo (Stop Imediato)</option>
-                    <option value="custom">Modo Personalizado</option>
-                </select>
+        <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
 
-                <span class="custom-label">Sistema de Votação:</span>
-                <select id="selectVotacao" onchange="alterarConfiguracoes()">
-                    <option value="sim">Ativada (Votação manual 👍/👎)</option>
-                    <option value="nao">Desativada (Validação Automática)</option>
-                </select>
+        <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
 
-                <span class="custom-label">Limite de Jogadores na Sala:</span>
-                <select id="selectMaxPlayers" onchange="alterarConfiguracoes()">
-                    <option value="2">2 Jogadores</option>
-                    <option value="3">3 Jogadores</option>
-                    <option value="4">4 Jogadores</option>
-                    <option value="5">5 Jogadores</option>
-                    <option value="10" selected>10 Jogadores</option>
-                    <option value="15">15 Jogadores</option>
-                    <option value="20">20 Jogadores</option>
-                    <option value="999">Sem Limite</option>
-                </select>
+        <div class="divisor">-- OU --</div>
 
-                <div id="painelCustomSettings" style="display: none; background: #f8f9fa; padding: 12px; border-radius: 10px; margin-top: 5px; border: 1px solid #e2e8f0;">
-                    <span class="custom-label">Quantidade de Rodadas:</span>
-                    <input type="number" id="inputMaxRounds" value="5" onchange="alterarConfiguracoes()">
-                    
-                    <span class="custom-label">Tempo do Round (segundos):</span>
-                    <input type="number" id="inputRoundTime" value="60" onchange="alterarConfiguracoes()">
-                    
-                    <span class="custom-label">Pontos por Palavra Única:</span>
-                    <input type="number" id="inputPtsAcerto" value="10" onchange="alterarConfiguracoes()">
-                    
-                    <span class="custom-label">Pontos por Palavra Repetida:</span>
-                    <input type="number" id="inputPtsRepetido" value="5" onchange="alterarConfiguracoes()">
-                </div>
-
-                <h3>🔤 Letras Permitidas</h3>
-                <div id="gridLetras" class="grid-letras"></div>
-
-                <button class="btn-success" style="margin-top: 20px; font-size: 18px;" onclick="iniciarRodada()">START ROUND 🚀</button>
-            </div>
-            
-            <div id="playerWaitingMsg" style="color: #666; font-style: italic; margin-top: 15px;">Aguardando o host configurar e iniciar o jogo...</div>
-        </div>
-
-        <div id="screenJogo" class="screen">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Letra: <span id="labelLetra" style="font-size: 32px; color: #ff4757;">-</span></h2>
-                <div style="font-size: 18px; font-weight: bold; color: #6f42c1;">⏱️ <span id="cronometroRound">0</span>s</div>
-            </div>
-            <div id="containerCategorias" class="grid-inputs"></div>
-            <button class="btn-danger" style="margin-top: 20px; font-size: 20px;" onclick="pressionarStop()">STOOOP!</button>
-        </div>
-
-        <div id="screenRevisao" class="screen">
-            <h2>Votação de Palavras</h2>
-            <p style="margin-bottom: 15px; font-style: italic; font-size: 14px;">Avalie as palavras dos outros jogadores:</p>
-            <div id="containerVotacao"></div>
-            <div id="painelAvancarHost" style="display: none; margin-top: 20px;">
-                <button class="btn-success" onclick="aplicarVotos()">Aplicar Votos e Avançar</button>
-            </div>
-        </div>
-
-        <div id="screenRanking" class="screen">
-            <h2>🏆 Classificação Geral 🏆</h2>
-            <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #eee;">
-                        <th style="padding: 10px; text-align: left;">Pos / Jogador</th>
-                        <th style="padding: 10px; text-align: right;">Pontos</th>
-                        <th style="padding: 10px; text-align: center;">Info</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaRanking"></tbody>
-            </table>
-            <div id="painelProximaRodadaHost" style="display: none;">
-                <button class="btn-primary" onclick="iniciarRodada()">Próxima Rodada</button>
-            </div>
-        </div>
+        <input type="text" id="codigoSala" placeholder="CÓDIGO DA SALA" maxlength="4" style="text-transform: uppercase;">
+        <button id="btnEntrar" class="btn-join">ENTRAR EM SALA</button>
     </div>
 
     <script>
+        // Inicializa a conexão com o Socket.io de forma inteligente
         const socket = io();
-        let meuId = "";
-        let salaAtual = null;
-        
-        let tempoGastoS = 0;
-        let intervaloCronometro = null;
 
-        function alternarTela(idTela) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(idTela).classList.add('active');
-        }
+        const statusBar = document.getElementById('statusBar');
+        const statusText = document.getElementById('statusText');
+        const btnCriar = document.getElementById('btnCriar');
+        const btnEntrar = document.getElementById('btnEntrar');
+        const nomeJogador = document.getElementById('nomeJogador');
+        const codigoSala = document.getElementById('codigoSala');
 
+        // Monitor de conexão ativa (Barra fica verde)
         socket.on('connect', () => {
-            meuId = socket.id;
-            const bar = document.getElementById('statusBar');
-            bar.innerText = "🟢 Conectado ao Servidor";
-            bar.classList.add('connected');
+            statusBar.style.backgroundColor = '#2ecc71';
+            statusText.innerText = 'Conectado ao Servidor';
         });
 
+        // Monitor de queda de conexão (Barra fica vermelha)
         socket.on('disconnect', () => {
-            const bar = document.getElementById('statusBar');
-            bar.innerText = "🔴 Conectando ao servidor...";
-            bar.classList.remove('connected');
+            statusBar.style.backgroundColor = '#ff4d4d';
+            statusText.innerText = 'Conectando ao servidor...';
         });
 
-        function criarSala() {
-            const nome = document.getElementById('inputNome').value.trim();
-            if(!nome) return alert("Digite seu nome!");
+        // Ação do Botão Criar Sala
+        btnCriar.addEventListener('click', () => {
+            const nome = nomeJogador.value.trim();
+            if (!nome) {
+                alert('Por favor, digite o seu nome para jogar!');
+                return;
+            }
             socket.emit('criarSala', nome);
-        }
+        });
 
-        function entrarSala() {
-            const nome = document.getElementById('inputNome').value.trim();
-            const codigo = document.getElementById('inputCodigo').value.trim().toUpperCase();
-            if(!nome || !codigo) return alert("Preencha nome e código da sala!");
+        // Ação do Botão Entrar na Sala
+        btnEntrar.addEventListener('click', () => {
+            const nome = nomeJogador.value.trim();
+            const codigo = codigoSala.value.trim().toUpperCase();
+
+            if (!nome) {
+                alert('Por favor, digite o seu nome para jogar!');
+                return;
+            }
+            if (codigo.length !== 4) {
+                alert('O código da sala deve conter exatamente 4 letras!');
+                return;
+            }
+
             socket.emit('joinRoom', { roomCode: codigo, name: nome });
-        }
-
-        function adicionarCategoria() {
-            const cat = document.getElementById('inputNovaCategoria').value.trim();
-            if(cat) {
-                socket.emit('addCategory', cat);
-                document.getElementById('inputNovaCategoria').value = "";
-            }
-        }
-
-        function removerCategoria(cat) {
-            socket.emit('removeCategory', cat);
-        }
-
-        function toggleLetra(letra) {
-            socket.emit('toggleLetter', letra);
-        }
-
-        function alterarConfiguracoes() {
-            const modo = document.getElementById('selectModo').value;
-            const sistemaVotacao = document.getElementById('selectVotacao').value;
-            const maxPlayers = document.getElementById('selectMaxPlayers').value;
-            const maxRds = document.getElementById('inputMaxRounds').value;
-            const rTime = document.getElementById('inputRoundTime').value;
-            const pAcerto = document.getElementById('inputPtsAcerto').value;
-            const pRep = document.getElementById('inputPtsRepetido').value;
-
-            socket.emit('updateSettings', {
-                gameMode: modo,
-                useVoting: sistemaVotacao,
-                maxPlayers: maxPlayers,
-                maxRounds: maxRds,
-                roundTime: rTime,
-                ptsAcerto: pAcerto,
-                ptsRepetido: pRep
-            });
-        }
-
-        function iniciarRodada() {
-            socket.emit('startRound');
-        }
-
-        function pressionarStop() {
-            clearInterval(intervaloCronometro);
-            const respostas = {};
-            salaAtual.categories.forEach(cat => {
-                const el = document.getElementById(`input-cat-${cat}`);
-                respostas[cat] = el ? el.value.trim() : "";
-            });
-            socket.emit('pressStop', { respostas, tempoGasto: tempoGastoS });
-        }
-
-        function enviarVoto(playerTargetId, categoria, voto) {
-            socket.emit('votarPalavra', { playerTargetId, categoria, voto });
-        }
-
-        function aplicarVotos() {
-            socket.emit('aplicarVotosEAvancar');
-        }
-
-        function toggleLupa(idDoJogador) {
-            const painelInfo = document.getElementById(`details-${idDoJogador}`);
-            if(painelInfo) {
-                painelInfo.style.display = painelInfo.style.display === 'none' ? 'table-row' : 'none';
-            }
-        }
-
-        socket.on('salaCriado', (codigo) => {
-            document.getElementById('labelCodigoSala').innerText = codigo;
-            alternarTela('screenLobby');
         });
 
-        socket.on('roomUpdated', (sala) => {
-            salaAtual = sala;
-            document.getElementById('labelCodigoSala').innerText = sala.code;
-            
-            // Atualiza o contador visual de pessoas conectadas ex: 3/5
-            const textoLimite = sala.maxPlayers == 999 ? "∞" : sala.maxPlayers;
-            document.getElementById('contadorJogadores').innerText = `${sala.players.length}/${textoLimite}`;
-            
-            if (sala.gameState === 'lobby') {
-                alternarTela('screenLobby');
-            }
-
-            const lista = document.getElementById('listaJogadores');
-            lista.innerHTML = sala.players.map(p => `<li>👤 ${p.name} (${p.points} pts) ${p.id === sala.host ? '👑' : ''}</li>`).join('');
-
-            if(socket.id === sala.host) {
-                document.getElementById('painelHost').style.display = 'block';
-                document.getElementById('playerWaitingMsg').style.display = 'none';
-
-                document.getElementById('selectModo').value = sala.gameMode;
-                document.getElementById('selectVotacao').value = sala.useVoting || 'sim';
-                document.getElementById('selectMaxPlayers').value = sala.maxPlayers || '10';
-                
-                if(sala.gameMode === 'custom') {
-                    document.getElementById('painelCustomSettings').style.display = 'block';
-                    if(document.activeElement.id !== 'inputMaxRounds') document.getElementById('inputMaxRounds').value = sala.maxRounds;
-                    if(document.activeElement.id !== 'inputRoundTime') document.getElementById('inputRoundTime').value = sala.roundTime;
-                    if(document.activeElement.id !== 'inputPtsAcerto') document.getElementById('inputPtsAcerto').value = sala.ptsAcerto;
-                    if(document.activeElement.id !== 'inputPtsRepetido') document.getElementById('inputPtsRepetido').value = sala.ptsRepetido;
-                } else {
-                    document.getElementById('painelCustomSettings').style.display = 'none';
-                }
-
-                const listaCats = document.getElementById('listaCategoriasConfig');
-                listaCats.innerHTML = sala.categories.map(cat => `
-                    <span class="category-chip">${cat} <button onclick="removerCategoria('${cat}')">❌</button></span>
-                `).join('');
-
-                const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-                const grid = document.getElementById('gridLetras');
-                grid.innerHTML = alfabeto.map(l => {
-                    const ativa = sala.allowedLetters.includes(l);
-                    return `<button class="btn-letra ${ativa ? 'ativa' : 'inativa'}" onclick="toggleLetra('${l}')">${l}</button>`;
-                }).join('');
-
-            } else {
-                document.getElementById('painelHost').style.display = 'none';
-                document.getElementById('playerWaitingMsg').style.block = 'block';
-            }
+        // Ouvinte de redirecionamento quando a sala é criada com sucesso
+        socket.on('salaCriado', (codigoGerado) => {
+            // Mantém a compatibilidade com a sua estrutura de páginas
+            window.location.href = `/lobby.html?room=${codigoGerado}`;
         });
 
-        socket.on('roundStarted', (data) => {
-            tempoGastoS = 0;
-            document.getElementById('cronometroRound').innerText = tempoGastoS;
-            clearInterval(intervaloCronometro);
-            intervaloCronometro = setInterval(() => {
-                tempoGastoS++;
-                document.getElementById('cronometroRound').innerText = tempoGastoS;
-            }, 1000);
-
-            document.getElementById('labelLetra').innerText = data.letter;
-            const container = document.getElementById('containerCategorias');
-            container.innerHTML = data.categories.map(cat => `
-                <div style="margin-bottom: 12px;">
-                    <label><b>${cat}:</b></label>
-                    <input type="text" id="input-cat-${cat}" placeholder="Palavra com ${data.letter}...">
-                </div>
-            `).join('');
-            alternarTela('screenJogo');
+        // Ouvinte para erros retornados pelo servidor (Ex: Sala cheia, Sala não encontrada)
+        socket.on('erro', (mensagem) => {
+            alert(mensagem);
         });
+    </script>
 
-        socket.on('abrirRevisao', (data) => {
-            clearInterval(intervaloCronometro);
-            alternarTela('screenRevisao');
-            document.getElementById('painelAvancarHost').style.display = socket.id === data.hostId ? 'block' : 'none';
-
-            const container = document.getElementById('containerVotacao');
-            container.innerHTML = "";
-
-            data.players.forEach(p => {
-                if(p.id === socket.id) return; 
-                data.categories.forEach(cat => {
-                    const palavra = p.answers[cat] || "Não respondeu";
-                    const row = document.createElement('div');
-                    row.className = "row-vote";
-                    row.innerHTML = `
-                        <div style="text-align:left;">
-                            <div><b>${p.name}</b> em <i>${cat}</i></div>
-                            <div style="font-size:18px; color:#4a00e0; font-weight:bold;">${palavra}</div>
-                        </div>
-                        <div class="vote-btns">
-                            <button class="btn-success" onclick="enviarVoto('${p.id}', '${cat}', 'sim')">👍</button>
-                            <button class="btn-danger" onclick="enviarVoto('${p.id}', '${cat}', 'nao')">👎</button>
-                        </div>
-                    `;
-                    container.appendChild(row);
-                });
-            });
-        });
-
-        socket.on('showReviewTable', (data) => {
-            clearInterval(intervaloCronometro);
-            alternarTela('screenRanking');
-            const tabela = document.getElementById('tabelaRanking');
-            tabela.innerHTML = "";
-
-            data.ranking.forEach((p, index) => {
-                let posicaoEstilo = "";
-                let medalhaOuNum = `${index + 1}º`;
-
-                if (index === 0) {
-                    posicaoEstilo = "rank-gold";
-                    medalhaOuNum = "🥇 1º";
-                } else if (index === 1) {
-                    posicaoEstilo = "rank-silver";
-                    medalhaOuNum = "🥈 2º";
-                } else if (index ===
+</body>
+</html>
