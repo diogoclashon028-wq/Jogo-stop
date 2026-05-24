@@ -155,7 +155,7 @@
     </div>
 
     <script>
-        // Inicializa a conexão com o Socket.io de forma inteligente
+        // Conexão limpa e direta com o servidor
         const socket = io();
 
         const statusBar = document.getElementById('statusBar');
@@ -165,19 +165,18 @@
         const nomeJogador = document.getElementById('nomeJogador');
         const codigoSala = document.getElementById('codigoSala');
 
-        // Monitor de conexão ativa (Barra fica verde)
+        // Gerenciador visual de conexão estável
         socket.on('connect', () => {
             statusBar.style.backgroundColor = '#2ecc71';
             statusText.innerText = 'Conectado ao Servidor';
         });
 
-        // Monitor de queda de conexão (Barra fica vermelha)
         socket.on('disconnect', () => {
             statusBar.style.backgroundColor = '#ff4d4d';
             statusText.innerText = 'Conectando ao servidor...';
         });
 
-        // Ação do Botão Criar Sala
+        // Evento de Clique para Criar Sala
         btnCriar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             if (!nome) {
@@ -187,7 +186,7 @@
             socket.emit('criarSala', nome);
         });
 
-        // Ação do Botão Entrar na Sala
+        // Evento de Clique para Entrar na Sala existente
         btnEntrar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             const codigo = codigoSala.value.trim().toUpperCase();
@@ -204,13 +203,15 @@
             socket.emit('joinRoom', { roomCode: codigo, name: nome });
         });
 
-        // Ouvinte de redirecionamento quando a sala é criada com sucesso
+        // CORREÇÃO AQUI: Quando a sala é criada, o servidor manda de volta o 'salaCriado'.
+        // Em vez de mudar a URL do navegador para uma página inexistente, deixamos o seu 
+        // próprio evento 'roomUpdated' ou a lógica interna do seu frontend renderizar o lobby na tela.
         socket.on('salaCriado', (codigoGerado) => {
-            // Mantém a compatibilidade com a sua estrutura de páginas
-            window.location.href = `/lobby.html?room=${codigoGerado}`;
+            console.log("Sala criada com sucesso! Código:", codigoGerado);
+            // Removido o window.location.href que causava o erro de página não encontrada
         });
 
-        // Ouvinte para erros retornados pelo servidor (Ex: Sala cheia, Sala não encontrada)
+        // Tratamento de erros vindo do backend
         socket.on('erro', (mensagem) => {
             alert(mensagem);
         });
