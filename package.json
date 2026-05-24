@@ -1,7 +1,7 @@
 {
   "name": "stop-online-supremo",
-  "version": "1.0.2",
-  "description": "Jogo de Stop com Controle de Temas e Expulsão",
+  "version": "1.0.3",
+  "description": "Jogo de Stop Supremo - Corrigido e Estabilizado",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,3 +11,4 @@
     "socket.io": "^4.7.5"
   }
 }
+
