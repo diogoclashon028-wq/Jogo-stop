@@ -142,7 +142,7 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
     // Conexão padrão automática do Socket.io
-    const socket = io();
+    const socket = io(https://jogo-stop.onrender.com);
     let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
     let currentPlayersData = [], activeCategories = [];
     const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
@@ -346,6 +346,18 @@
         showScreen('screen-final');
     }
     socket.on('erro', (msg) => { alert(msg); });
+    const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+
+// Deixe a configuração do io exatamente assim para liberar o acesso:
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+    
 </script>
 </body>
 </html>
