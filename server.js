@@ -10,11 +10,8 @@ const salas = {};
 
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
-
-    // Envia sinal de conexão bem-sucedida para ativar a bolinha verde
     socket.emit('statusConexao', true);
 
-    // Criar Sala (O criador vira o Dono)
     socket.on('criarSala', (nome) => {
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         salas[codigo] = {
@@ -25,16 +22,21 @@ io.on('connection', (socket) => {
             letraAtual: '',
             respostas: {},
             rodadaAtual: 0,
-            // Configurações do Dono
             config: {
                 tempo: 60,
                 pontosPorPalavra: 10,
                 totalRodadas: 5,
-                modo: 'classico',
-                categorias: ['Nome', 'Animal', 'Objeto', 'Cor', 'Fruta'],
+                limiteJogadores: 8,
                 votacaoAtiva: true,
-                qtdVencedores: 1,
-                limiteJogadores: 8
+                qtdVencedores: 3,
+                regrasRepetidas: 'metade', // 'normal' ou 'metade'
+                categorias: [
+                    { nome: 'Nome', ativa: true },
+                    { nome: 'Animal', ativa: true },
+                    { nome: 'Objeto', ativa: true },
+                    { nome: 'Cor', ativa: true },
+                    { nome: 'Fruta', ativa: true }
+                ]
             }
         };
         socket.join(codigo);
@@ -42,7 +44,6 @@ io.on('connection', (socket) => {
         io.to(codigo).emit('atualizarSala', salas[codigo]);
     });
 
-    // Dono altera configurações em tempo real no Lobby
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
             salas[roomCode].config = { ...salas[roomCode].config, ...novaConfig };
@@ -50,7 +51,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Entrar na Sala
     socket.on('joinRoom', ({ roomCode, name }) => {
         const codigo = roomCode.toUpperCase();
         if (salas[codigo]) {
@@ -60,6 +60,7 @@ io.on('connection', (socket) => {
             }
             const jaExiste = sala.jogadores.find(p => p.id === socket.id);
             if (!jaExiste) {
+                if(!name) return; // Proteção para reconexões vazias
                 sala.jogadores.push({ id: socket.id, nome: name, pontos: 0 });
             }
             socket.join(codigo);
@@ -69,19 +70,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Atualização do que a pessoa está digitando (Para a Lupa de Espionagem)
+    // Dono expulsar jogador
+    socket.on('expulsarJogador', ({ roomCode, idParaExpulsar }) => {
+        if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
+            salas[roomCode].jogadores = salas[roomCode].jogadores.filter(p => p.id !== idParaExpulsar);
+            io.to(idParaExpulsar).emit('fuiExpulsado');
+            io.to(roomCode).emit('atualizarSala', salas[roomCode]);
+        }
+    });
+
     socket.on('digitandoRespostas', ({ roomCode, respostas }) => {
         if (salas[roomCode] && salas[roomCode].status === 'jogando') {
             socket.to(roomCode).emit('espiarJogador', { id: socket.id, respostas });
         }
     });
 
-    // Iniciar Rodada
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
         if (sala && sala.donoId === socket.id) {
             if (sala.rodadaAtual >= sala.config.totalRodadas) {
-                // Chegou ao fim de todas as rodadas -> Mostrar Classificação Final
                 sala.status = 'podio';
                 io.to(codigo).emit('mostrarPodioFinal', sala);
                 return;
@@ -97,7 +104,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Botão de Stop pressionado ou Tempo Esgotado
     socket.on('pressStop', ({ roomCode, respostas }) => {
         const sala = salas[roomCode];
         if (sala && sala.status === 'jogando') {
@@ -118,13 +124,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Avançar para próxima rodada ou computar pontos
     socket.on('atualizarPontos', ({ roomCode, pontosAtualizados }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.jogadores.forEach(j => {
                 if (pontosAtualizados[j.id] !== undefined) {
-                    j.pontos += pontosAtualizados[j.id];
+                    j.points = (j.pontos || 0) + pontosAtualizados[j.id];
+                    j.pontos = j.points; 
                 }
             });
             sala.status = 'lobby';
@@ -132,7 +138,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Reiniciar o jogo inteiro do zero
     socket.on('reiniciarJogoCompleto', (roomCode) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
