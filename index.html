@@ -155,7 +155,6 @@
     </div>
 
     <script>
-        // Conexão limpa e direta com o servidor
         const socket = io();
 
         const statusBar = document.getElementById('statusBar');
@@ -165,7 +164,6 @@
         const nomeJogador = document.getElementById('nomeJogador');
         const codigoSala = document.getElementById('codigoSala');
 
-        // Gerenciador visual de conexão estável
         socket.on('connect', () => {
             statusBar.style.backgroundColor = '#2ecc71';
             statusText.innerText = 'Conectado ao Servidor';
@@ -176,7 +174,6 @@
             statusText.innerText = 'Conectando ao servidor...';
         });
 
-        // Evento de Clique para Criar Sala
         btnCriar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             if (!nome) {
@@ -186,7 +183,6 @@
             socket.emit('criarSala', nome);
         });
 
-        // Evento de Clique para Entrar na Sala existente
         btnEntrar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             const codigo = codigoSala.value.trim().toUpperCase();
@@ -203,15 +199,11 @@
             socket.emit('joinRoom', { roomCode: codigo, name: nome });
         });
 
-        // CORREÇÃO AQUI: Quando a sala é criada, o servidor manda de volta o 'salaCriado'.
-        // Em vez de mudar a URL do navegador para uma página inexistente, deixamos o seu 
-        // próprio evento 'roomUpdated' ou a lógica interna do seu frontend renderizar o lobby na tela.
+        // Redireciona usando a rota limpa '/lobby' aceita pelo Express
         socket.on('salaCriado', (codigoGerado) => {
-            console.log("Sala criada com sucesso! Código:", codigoGerado);
-            // Removido o window.location.href que causava o erro de página não encontrada
+            window.location.href = `/lobby?room=${codigoGerado}`;
         });
 
-        // Tratamento de erros vindo do backend
         socket.on('erro', (mensagem) => {
             alert(mensagem);
         });
