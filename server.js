@@ -6,7 +6,6 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Configuração correta do Socket.io para evitar bloqueios de conexão
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -16,7 +15,6 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// Garante que o Express encontre o index.html corretamente na pasta raiz
 app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
