@@ -1,7 +1,7 @@
 {
-  "name": "jogo-stop",
+  "name": "stop-online",
   "version": "1.0.0",
-  "description": "Jogo de Stop Online",
+  "description": "Jogo de Stop Online com Regras Customizadas",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
