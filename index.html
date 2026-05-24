@@ -4,179 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 480px; text-align: center; }
+        h1, h2, h3 { color: #5e35b1; margin-bottom: 15px; }
+        
+        /* Status Bar */
+        .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color 0.5s; }
+        .status-dot { width: 12px; height: 12px; background-color: white; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+        /* Forms & Buttons */
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; outline: none; }
+        input:focus, select:focus { border-color: #764ba2; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: transform 0.1s, filter 0.2s; margin-top: 5px; }
+        button:active { transform: scale(0.98); }
+        button:hover { filter: brightness(1.1); }
+        .btn-create { background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%); }
+        .btn-join { background: linear-gradient(135deg, #00bfa5 0%, #00bc8c 100%); }
+        .btn-stop { background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%); margin-top: 15px; }
+        .divisor { margin: 15px 0; color: #999; font-weight: bold; position: relative; }
+        .divisor::before, .divisor::after { content: ""; position: absolute; top: 50%; width: 30%; height: 1px; background-color: #ddd; }
+        .divisor::before { left: 0; } .divisor::after { right: 0; }
 
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-        }
+        /* Painéis de Telas */
+        .panel { display: none; text-align: left; }
+        .active { display: block; }
 
-        h1 {
-            color: #5e35b1;
-            margin-bottom: 25px;
-            font-size: 2.5rem;
-        }
+        /* Lobby Info */
+        .room-code-display { background: #f0f0f0; padding: 12px; border-radius: 10px; font-size: 1.3rem; font-weight: bold; color: #333; text-align: center; margin-bottom: 15px; border: 2px dashed #764ba2; }
+        .player-list { list-style: none; margin: 10px 0; }
+        .player-item { background: #f9f9f9; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #00bfa5; }
+        .host-badge { background: #764ba2; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 20px; font-weight: bold; }
 
-        .status-bar {
-            background-color: #ff4d4d;
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: background-color 0.5s ease;
-        }
+        /* Configurações Box */
+        .config-section { background: #f5f6fa; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #e4e7eb; }
+        .config-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .config-group label { font-size: 0.9rem; color: #4a5568; font-weight: 600; width: 60%; }
+        .config-group input, .config-group select { width: 40%; padding: 6px 10px; margin: 0; }
+        
+        /* Temas Tags */
+        .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .tag { background: #e2e8f0; color: #4a5568; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .tag span { cursor: pointer; color: #e53935; font-weight: bold; }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            background-color: white;
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse 1.5s infinite;
-        }
+        /* Alfabeto Grid */
+        .letter-grid { display: grid; grid-template-columns: repeat(7, 13fr); gap: 4px; margin-top: 5px; }
+        .letter-btn { padding: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #334155; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; }
+        .letter-btn.active { background: #764ba2; color: white; border-color: #764ba2; }
 
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
-        }
-
-        input {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            border-color: #764ba2;
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: transform 0.1s, filter 0.2s;
-            margin-top: 5px;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-create {
-            background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
-            margin-bottom: 15px;
-        }
-
-        .btn-join {
-            background: linear-gradient(135deg, #00bfa5 0%, #00bc8c 100%);
-        }
-
-        button:hover {
-            filter: brightness(1.1);
-        }
-
-        .divisor {
-            margin: 15px 0;
-            color: #999;
-            font-weight: bold;
-            position: relative;
-        }
-
-        .divisor::before, .divisor::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            width: 35%;
-            height: 1px;
-            background-color: #ddd;
-        }
-
-        .divisor::before { left: 0; }
-        .divisor::after { right: 0; }
-
-        /* Estilos do Painel do Lobby */
-        .lobby-panel {
-            display: none; /* Escondido por padrão */
-            margin-top: 20px;
-            text-align: left;
-        }
-
-        .room-code-display {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-            text-align: center;
-            margin-bottom: 20px;
-            border: 2px dashed #764ba2;
-        }
-
-        .player-list {
-            list-style: none;
-            margin: 15px 0;
-            padding: 0;
-        }
-
-        .player-item {
-            background: #f9f9f9;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid #00bfa5;
-        }
-
-        .host-badge {
-            background: #764ba2;
-            color: white;
-            font-size: 0.8rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
+        /* Área de Jogo */
+        .game-header { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
+        .letter-big { font-size: 2.2rem; color: #e53935; text-align: center; margin: 10px 0; font-weight: 900; }
+        .input-box-game { margin-bottom: 12px; text-align: left; }
+        .input-box-game label { display: block; font-weight: bold; color: #475569; margin-bottom: 4px; font-size: 0.95rem; }
     </style>
 </head>
 <body>
@@ -187,141 +71,258 @@
             <span id="statusText">Conectando ao servidor...</span>
         </div>
 
-        <div id="telaInicial">
+        <div id="telaInicial" class="panel active">
             <h1>Stop! Online</h1>
-
             <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
-
             <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
-
             <div class="divisor">-- OU --</div>
-
             <input type="text" id="codigoSala" placeholder="CÓDIGO DA SALA" maxlength="4" style="text-transform: uppercase;">
             <button id="btnEntrar" class="btn-join">ENTRAR EM SALA</button>
         </div>
 
-        <div id="telaLobby" class="lobby-panel">
-            <h2 style="color: #5e35b1; text-align: center; margin-bottom: 15px;">Sala de Espera</h2>
-            
-            <div class="room-code-display">
-                CÓDIGO: <span id="codigoSalaGerado">----</span>
+        <div id="telaLobby" class="panel">
+            <h2 style="text-align: center;">Sala de Espera</h2>
+            <div class="room-code-display">CÓDIGO: <span id="codigoSalaGerado">----</span></div>
+
+            <h3>Jogadores:</h3>
+            <ul id="listaJogadores" class="player-list"></ul>
+
+            <div id="painelConfiguracoes" class="config-section">
+                <h4 style="color: #4a5568; margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Configurações da Partida</h4>
+                
+                <div class="config-group">
+                    <label>Tempo da Rodada (segundos):</label>
+                    <input type="number" id="cfgTempo" value="60" min="15" max="180">
+                </div>
+                <div class="config-group">
+                    <label>Total de Rodadas:</label>
+                    <input type="number" id="cfgRodadas" value="5" min="1" max="15">
+                </div>
+                <div class="config-group">
+                    <label>Modo de Avaliação por Votos:</label>
+                    <select id="cfgVotos">
+                        <option value="sim">Ativado (Votação)</option>
+                        <option value="nao">Desativado (Automático)</option>
+                    </select>
+                </div>
+
+                <h4 style="color: #4a5568; margin: 12px 0 5px 0; font-size: 0.95rem; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Temas do Jogo</h4>
+                <div class="tag-container" id="containerCategorias"></div>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="novoTemaInput" placeholder="Adicionar Tema (Ex: Carro)" style="padding: 6px 10px; margin: 0; font-size: 0.9rem;">
+                    <button id="btnaddTema" style="width: auto; padding: 0 15px; margin: 0; font-size: 0.9rem; background: #764ba2;">+</button>
+                </div>
+
+                <h4 style="color: #4a5568; margin: 12px 0 5px 0; font-size: 0.95rem; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Letras Ativas</h4>
+                <div class="letter-grid" id="gridLetras"></div>
             </div>
 
-            <h3 style="color: #555; margin-bottom: 10px;">Jogadores Conectados:</h3>
-            <ul id="listaJogadores" class="player-list">
-                </ul>
+            <button id="btnIniciarJogo" class="btn-join" style="margin-top: 20px;">INICIAR JOGO</button>
+            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 20px; display: none;">Aguardando o organizador configurar e iniciar a partida...</p>
+        </div>
 
-            <button id="btnIniciarJogo" class="btn-join" style="display: none; margin-top: 20px;">INICIAR JOGO</button>
-            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 20px;">Aguardando o organizador iniciar a partida...</p>
+        <div id="telaJogo" class="panel">
+            <div class="game-header">
+                <div>Rodada: <span id="gameRodada">1/5</span></div>
+                <div>⏱️ <span id="gameCronometro">60</span>s</div>
+            </div>
+            
+            <p style="text-align: center; color: #4a5568; font-weight: bold;">A LETRA DA RODADA É:</p>
+            <div id="letraSorteada" class="letter-big">-</div>
+
+            <div id="inputsContainerJogo"></div>
+
+            <button id="btnStop" class="btn-stop">STOP!</button>
         </div>
     </div>
 
     <script>
         const socket = io();
 
-        const statusBar = document.getElementById('statusBar');
-        const statusText = document.getElementById('statusText');
-        const telaInicial = document.getElementById('telaInicial');
-        const telaLobby = document.getElementById('telaLobby');
-        
-        const btnCriar = document.getElementById('btnCriar');
-        const btnEntrar = document.getElementById('btnEntrar');
-        const nomeJogador = document.getElementById('nomeJogador');
-        const codigoSala = document.getElementById('codigoSala');
-        
-        const codigoSalaGerado = document.getElementById('codigoSalaGerado');
-        const listaJogadores = document.getElementById('listaJogadores');
-        const btnIniciarJogo = document.getElementById('btnIniciarJogo');
-        const txtAguardandoHost = document.getElementById('txtAguardandoHost');
+        // Alternador de Telas Navegáveis
+        function alternarTela(idTela) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(idTela).classList.add('active');
+        }
 
+        // Setup inicial do alfabeto interativo na interface
+        const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const gridLetras = document.getElementById('gridLetras');
+        alfabeto.forEach(letra => {
+            const btn = document.createElement('div');
+            btn.className = 'letter-btn active';
+            btn.innerText = letra;
+            btn.dataset.letra = letra;
+            btn.addEventListener('click', () => {
+                socket.emit('toggleLetter', letra);
+            });
+            gridLetras.appendChild(btn);
+        });
+
+        // Eventos de Conexão Socket
         socket.on('connect', () => {
-            statusBar.style.backgroundColor = '#2ecc71';
-            statusText.innerText = 'Conectado ao Servidor';
+            document.getElementById('statusBar').style.backgroundColor = '#2ecc71';
+            document.getElementById('statusText').innerText = 'Conectado ao Servidor';
         });
 
         socket.on('disconnect', () => {
-            statusBar.style.backgroundColor = '#ff4d4d';
-            statusText.innerText = 'Conectando ao servidor...';
+            document.getElementById('statusBar').style.backgroundColor = '#ff4d4d';
+            document.getElementById('statusText').innerText = 'Conectando ao servidor...';
         });
 
-        // Clique em Criar Sala
-        btnCriar.addEventListener('click', () => {
-            const nome = nomeJogador.value.trim();
-            if (!nome) {
-                alert('Por favor, digite o seu nome para jogar!');
-                return;
-            }
+        // Fluxo de entrada e criação de salas
+        document.getElementById('btnCriar').addEventListener('click', () => {
+            const nome = document.getElementById('nomeJogador').value.trim();
+            if (!nome) return alert('Digite seu nome!');
             socket.emit('criarSala', nome);
         });
 
-        // Clique em Entrar na Sala
-        btnEntrar.addEventListener('click', () => {
-            const nome = nomeJogador.value.trim();
-            const codigo = codigoSala.value.trim().toUpperCase();
-
-            if (!nome) {
-                alert('Por favor, digite o seu nome para jogar!');
-                return;
-            }
-            if (codigo.length !== 4) {
-                alert('O código da sala deve conter exatamente 4 letras!');
-                return;
-            }
-
+        document.getElementById('btnEntrar').addEventListener('click', () => {
+            const nome = document.getElementById('nomeJogador').value.trim();
+            const codigo = document.getElementById('codigoSala').value.trim().toUpperCase();
+            if (!nome || codigo.length !== 4) return alert('Insira dados válidos!');
             socket.emit('joinRoom', { roomCode: codigo, name: nome });
         });
 
-        // Evento disparado pelo Host para iniciar o jogo
-        btnIniciarJogo.addEventListener('click', () => {
-            socket.emit('startRound');
-        });
-
-        // Quando a sala é criada, troca as telas e exibe o código
         socket.on('salaCriado', (codigoGerado) => {
-            telaInicial.style.display = 'none';
-            telaLobby.style.display = 'block';
-            codigoSalaGerado.innerText = codigoGerado;
+            alternarTela('telaLobby');
+            document.getElementById('codigoSalaGerado').innerText = codigoGerado;
         });
 
-        // Atualização em tempo real dos jogadores na sala
+        // Envio em tempo real de modificações de inputs de configuração (Apenas Host)
+        function enviarConfiguracoesAtuais() {
+            socket.emit('updateSettings', {
+                roundTime: document.getElementById('cfgTempo').value,
+                maxRounds: document.getElementById('cfgRodadas').value,
+                useVoting: document.getElementById('cfgVotos').value,
+                gameMode: 'classico'
+            });
+        }
+
+        ['cfgTempo', 'cfgRodadas', 'cfgVotos'].forEach(id => {
+            document.getElementById(id).addEventListener('change', enviarConfiguracoesAtuais);
+        });
+
+        document.getElementById('btnaddTema').addEventListener('click', () => {
+            const input = document.getElementById('novoTemaInput');
+            const valor = input.value.trim();
+            if(valor) {
+                socket.emit('addCategory', valor);
+                input.value = '';
+            }
+        });
+
+        // Atualização da Sala em Tempo Real (Lobby)
         socket.on('roomUpdated', (sala) => {
-            // Se o jogador entrou por código, muda a tela dele também
-            if (telaInicial.style.display !== 'none') {
-                telaInicial.style.display = 'none';
-                telaLobby.style.display = 'block';
-                codigoSalaGerado.innerText = sala.code;
+            if (!document.getElementById('telaJogo').classList.contains('active')) {
+                alternarTela('telaLobby');
+                document.getElementById('codigoSalaGerado').innerText = sala.code;
             }
 
-            // Limpa a lista atual
-            listaJogadores.innerHTML = '';
-
-            // Preenche com os novos dados recebidos do servidor
+            // Renderizar Lista de Usuários Conectados
+            const lista = document.getElementById('listaJogadores');
+            lista.innerHTML = '';
             sala.players.forEach(p => {
                 const li = document.createElement('li');
                 li.className = 'player-item';
-                
-                let isHost = p.id === sala.host;
-                li.innerHTML = `
-                    <span>${p.name}</span>
-                    ${isHost ? '<span class="host-badge">Dono</span>' : ''}
-                `;
-                listaJogadores.appendChild(li);
+                li.innerHTML = `<span>${p.name}</span> ${p.id === sala.host ? '<span class="host-badge">Dono</span>' : ''}`;
+                lista.appendChild(li);
             });
 
-            // Mostra o botão de iniciar apenas para o Dono da Sala (Host)
-            if (socket.id === sala.host) {
-                btnIniciarJogo.style.display = 'block';
-                txtAguardandoHost.style.display = 'none';
-            } else {
-                btnIniciarJogo.style.display = 'none';
-                txtAguardandoHost.style.display = 'block';
+            // Controle de Roles (Dono vs Conectados)
+            const souHost = socket.id === sala.host;
+            document.getElementById('painelConfiguracoes').style.display = souHost ? 'block' : 'none';
+            document.getElementById('btnIniciarJogo').style.display = souHost ? 'block' : 'none';
+            document.getElementById('txtAguardandoHost').style.display = souHost ? 'none' : 'block';
+
+            // Sincronizar UI de configurações com os dados reais do servidor
+            if (!souHost) {
+                document.getElementById('cfgTempo').value = sala.roundTime;
+                document.getElementById('cfgRodadas').value = sala.maxRounds;
+                document.getElementById('cfgVotos').value = sala.useVoting;
             }
+
+            // Atualizar Tags de Temas na Tela
+            const containerTags = document.getElementById('containerCategorias');
+            containerTags.innerHTML = '';
+            sala.categories.forEach(cat => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerText = cat;
+                if(souHost) {
+                    const demoverBtn = document.createElement('span');
+                    demoverBtn.innerText = '×';
+                    demoverBtn.addEventListener('click', () => socket.emit('removeCategory', cat));
+                    tag.appendChild(demoverBtn);
+                }
+                containerTags.appendChild(tag);
+            });
+
+            // Atualizar Grade Visual do Alfabeto
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                const letra = btn.dataset.letra;
+                if (sala.allowedLetters.includes(letra)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
         });
 
-        socket.on('erro', (mensagem) => {
-            alert(mensagem);
+        // Comando do Host para Disparar Rodada
+        document.getElementById('btnIniciarJogo').addEventListener('click', () => {
+            socket.emit('startRound');
         });
+
+        let cronometroPartida;
+        // Início da Rodada Ativa
+        socket.on('roundStarted', (dadosRodada) => {
+            alternarTela('telaJogo');
+            document.getElementById('gameRodada').innerText = `${dadosRodada.round}/${dadosRodada.maxRounds}`;
+            document.getElementById('letraSorteada').innerText = dadosRodada.letter;
+            
+            // Gerar dinamicamente os inputs de texto baseados nas categorias configuradas
+            const containerInputs = document.getElementById('inputsContainerJogo');
+            containerInputs.innerHTML = '';
+            
+            dadosRodada.categories.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = 'input-box-game';
+                div.innerHTML = `
+                    <label>${cat}</label>
+                    <input type="text" class="resposta-input-game" data-categoria="${cat}" placeholder="Escreva aqui..." style="margin: 4px 0;">
+                `;
+                containerInputs.appendChild(div);
+            });
+
+            // Ativação do Timer de Regressão
+            let tempoRestante = dadosRodada.roundTime;
+            document.getElementById('gameCronometro').innerText = tempoRestante;
+            
+            clearInterval(cronometroPartida);
+            cronometroPartida = setInterval(() => {
+                tempoRestante--;
+                document.getElementById('gameCronometro').innerText = tempoRestante;
+                if(tempoRestante <= 0) {
+                    clearInterval(cronometroPartida);
+                    dispararStop();
+                }
+            }, 1000);
+        });
+
+        // Evento de envio manual ou automático por tempo esgotado do STOP
+        function dispararStop() {
+            clearInterval(cronometroPartida);
+            const respostas = {};
+            document.querySelectorAll('.resposta-input-game').forEach(input => {
+                respostas[input.dataset.categoria] = input.value;
+            });
+            socket.emit('pressStop', { respostas: respostas, tempoGasto: 0 });
+        }
+
+        document.getElementById('btnStop').addEventListener('click', dispararStop);
+
+        socket.on('erro', (msg) => alert(msg));
     </script>
-
 </body>
 </html>
