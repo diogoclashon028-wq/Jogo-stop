@@ -132,6 +132,51 @@
 
         .divisor::before { left: 0; }
         .divisor::after { right: 0; }
+
+        /* Estilos do Painel do Lobby */
+        .lobby-panel {
+            display: none; /* Escondido por padrão */
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .room-code-display {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px dashed #764ba2;
+        }
+
+        .player-list {
+            list-style: none;
+            margin: 15px 0;
+            padding: 0;
+        }
+
+        .player-item {
+            background: #f9f9f9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #00bfa5;
+        }
+
+        .host-badge {
+            background: #764ba2;
+            color: white;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -142,16 +187,33 @@
             <span id="statusText">Conectando ao servidor...</span>
         </div>
 
-        <h1>Stop! Online</h1>
+        <div id="telaInicial">
+            <h1>Stop! Online</h1>
 
-        <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
+            <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
 
-        <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
+            <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
 
-        <div class="divisor">-- OU --</div>
+            <div class="divisor">-- OU --</div>
 
-        <input type="text" id="codigoSala" placeholder="CÓDIGO DA SALA" maxlength="4" style="text-transform: uppercase;">
-        <button id="btnEntrar" class="btn-join">ENTRAR EM SALA</button>
+            <input type="text" id="codigoSala" placeholder="CÓDIGO DA SALA" maxlength="4" style="text-transform: uppercase;">
+            <button id="btnEntrar" class="btn-join">ENTRAR EM SALA</button>
+        </div>
+
+        <div id="telaLobby" class="lobby-panel">
+            <h2 style="color: #5e35b1; text-align: center; margin-bottom: 15px;">Sala de Espera</h2>
+            
+            <div class="room-code-display">
+                CÓDIGO: <span id="codigoSalaGerado">----</span>
+            </div>
+
+            <h3 style="color: #555; margin-bottom: 10px;">Jogadores Conectados:</h3>
+            <ul id="listaJogadores" class="player-list">
+                </ul>
+
+            <button id="btnIniciarJogo" class="btn-join" style="display: none; margin-top: 20px;">INICIAR JOGO</button>
+            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 20px;">Aguardando o organizador iniciar a partida...</p>
+        </div>
     </div>
 
     <script>
@@ -159,10 +221,18 @@
 
         const statusBar = document.getElementById('statusBar');
         const statusText = document.getElementById('statusText');
+        const telaInicial = document.getElementById('telaInicial');
+        const telaLobby = document.getElementById('telaLobby');
+        
         const btnCriar = document.getElementById('btnCriar');
         const btnEntrar = document.getElementById('btnEntrar');
         const nomeJogador = document.getElementById('nomeJogador');
         const codigoSala = document.getElementById('codigoSala');
+        
+        const codigoSalaGerado = document.getElementById('codigoSalaGerado');
+        const listaJogadores = document.getElementById('listaJogadores');
+        const btnIniciarJogo = document.getElementById('btnIniciarJogo');
+        const txtAguardandoHost = document.getElementById('txtAguardandoHost');
 
         socket.on('connect', () => {
             statusBar.style.backgroundColor = '#2ecc71';
@@ -174,6 +244,7 @@
             statusText.innerText = 'Conectando ao servidor...';
         });
 
+        // Clique em Criar Sala
         btnCriar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             if (!nome) {
@@ -183,6 +254,7 @@
             socket.emit('criarSala', nome);
         });
 
+        // Clique em Entrar na Sala
         btnEntrar.addEventListener('click', () => {
             const nome = nomeJogador.value.trim();
             const codigo = codigoSala.value.trim().toUpperCase();
@@ -199,9 +271,51 @@
             socket.emit('joinRoom', { roomCode: codigo, name: nome });
         });
 
-        // Redireciona usando a rota limpa '/lobby' aceita pelo Express
+        // Evento disparado pelo Host para iniciar o jogo
+        btnIniciarJogo.addEventListener('click', () => {
+            socket.emit('startRound');
+        });
+
+        // Quando a sala é criada, troca as telas e exibe o código
         socket.on('salaCriado', (codigoGerado) => {
-            window.location.href = `/lobby?room=${codigoGerado}`;
+            telaInicial.style.display = 'none';
+            telaLobby.style.display = 'block';
+            codigoSalaGerado.innerText = codigoGerado;
+        });
+
+        // Atualização em tempo real dos jogadores na sala
+        socket.on('roomUpdated', (sala) => {
+            // Se o jogador entrou por código, muda a tela dele também
+            if (telaInicial.style.display !== 'none') {
+                telaInicial.style.display = 'none';
+                telaLobby.style.display = 'block';
+                codigoSalaGerado.innerText = sala.code;
+            }
+
+            // Limpa a lista atual
+            listaJogadores.innerHTML = '';
+
+            // Preenche com os novos dados recebidos do servidor
+            sala.players.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                
+                let isHost = p.id === sala.host;
+                li.innerHTML = `
+                    <span>${p.name}</span>
+                    ${isHost ? '<span class="host-badge">Dono</span>' : ''}
+                `;
+                listaJogadores.appendChild(li);
+            });
+
+            // Mostra o botão de iniciar apenas para o Dono da Sala (Host)
+            if (socket.id === sala.host) {
+                btnIniciarJogo.style.display = 'block';
+                txtAguardandoHost.style.display = 'none';
+            } else {
+                btnIniciarJogo.style.display = 'none';
+                txtAguardandoHost.style.display = 'block';
+            }
         });
 
         socket.on('erro', (mensagem) => {
