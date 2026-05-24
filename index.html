@@ -6,18 +6,18 @@
     <title>Stop! Online</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 500px; text-align: center; position: relative; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 500px; text-align: center; }
         
-        .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; transition: background 0.3s; }
+        .status-bar { background-color: #ff4d4d; color: white; padding: 8px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; font-size: 0.9rem; }
         
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; outline: none; }
-        input:focus, select:focus { border-color: #764ba2; }
         button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; margin-top: 5px; }
+        
         .btn-create { background: #6a1b9a; }
         .btn-join { background: #00bfa5; }
-        .btn-stop { background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%); margin-top: 15px; }
+        .btn-stop { background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%); }
         .btn-ready { background: #2ecc71; margin-top: 15px; }
         
         .panel { display: none; text-align: left; }
@@ -30,34 +30,31 @@
         .host-badge { background: #764ba2; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 20px; font-weight: bold; }
         .btn-kick { background: #e53935; color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
 
-        .config-section { background: #f5f6fa; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #e4e7eb; }
-        .config-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
-        .config-group label { font-size: 0.9rem; color: #4a5568; font-weight: 600; width: 60%; }
-        .config-group input, .config-group select { width: 40%; padding: 6px 10px; margin: 0; }
+        .config-section { background: #f5f6fa; padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .config-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .config-group label { font-size: 0.9rem; font-weight: 600; color: #4a5568; }
+        .config-group input, .config-group select { width: 45%; padding: 6px; margin: 0; }
 
         .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-        .tag { background: #e2e8f0; color: #4a5568; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .tag { background: #e2e8f0; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
         .tag span { cursor: pointer; color: #e53935; font-weight: bold; }
 
         .letter-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 5px; }
-        .letter-btn { padding: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #334155; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; }
-        .letter-btn.active { background: #764ba2; color: white; border-color: #764ba2; }
+        .letter-btn { padding: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; background: white; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; }
+        .letter-btn.active { background: #764ba2; color: white; }
 
         .game-header { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
-        .letter-big { font-size: 2.5rem; color: #e53935; text-align: center; margin: 10px 0; font-weight: 900; }
-        .input-box-game { margin-bottom: 12px; }
-        .input-box-game label { display: block; font-weight: bold; color: #475569; margin-bottom: 4px; }
+        .letter-big { font-size: 2.8rem; color: #e53935; text-align: center; margin: 10px 0; font-weight: 900; }
         .stop-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
 
         .vote-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .vote-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .vote-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; background: white; padding: 8px; border-radius: 8px; }
         .btn-anular { background: #cbd5e1; color: #334155; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; width: auto; margin: 0; }
         .btn-anular.invalidada { background: #e53935; color: white; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; position: relative; text-align: left; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .close-modal { position: absolute; top: 10px; right: 16px; font-size: 2rem; font-weight: bold; color: #94a3b8; cursor: pointer; }
-        .close-modal:hover { color: #e53935; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 90%; max-width: 400px; position: relative; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #94a3b8; }
 
         .podium-list { list-style: none; margin-top: 15px; }
         .podium-item { padding: 12px; margin-bottom: 8px; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
@@ -98,7 +95,7 @@
                     </select>
                 </div>
                 <div class="config-group">
-                    <label>Tamanho do Pódio Final:</label>
+                    <label>Tamanho do Pódio:</label>
                     <select id="cfgTopWinners">
                         <option value="3">Top 3 Vencedores</option>
                         <option value="5">Top 5 Vencedores</option>
@@ -106,7 +103,7 @@
                     </select>
                 </div>
                 <div class="config-group">
-                    <label>Limite de Jogadores:</label>
+                    <label>Limite de Players:</label>
                     <input type="number" id="cfgLimiteJogadores" value="8" min="2" max="20">
                 </div>
                 <div class="config-group">
@@ -138,7 +135,7 @@
             </div>
 
             <button id="btnIniciarJogo" class="btn-join" style="margin-top: 15px;">INICIAR JOGO</button>
-            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 15px; display: none;">Aguardando líder iniciar o jogo...</p>
+            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 15px; display: none;">Aguardando líder iniciar...</p>
         </div>
 
         <div id="telaJogo" class="panel">
@@ -155,7 +152,6 @@
 
         <div id="telaVotacao" class="panel">
             <h2 style="color: #764ba2; margin-bottom: 10px;">🔍 Avaliação das Palavras</h2>
-            <p style="font-size:0.9rem; margin-bottom:15px; color:#475569;">Use o "Anular ❌" para reprovar palavras falsas. Clique na lupa para inspecionar o jogador.</p>
             <div id="containerVotacaoItens"></div>
             <button id="btnConfirmarVotos" class="btn-ready">ENVIAR AVALIAÇÃO</button>
         </div>
@@ -163,7 +159,7 @@
         <div id="telaFinal" class="panel">
             <h2 style="text-align:center; color: #eab308; font-size: 1.8rem;">🏆 CLASSIFICAÇÃO FINAL 🏆</h2>
             <ul id="listaPodio" class="podium-list"></ul>
-            <button onclick="window.location.reload()" class="btn-create" style="margin-top:20px;">VOLTAR AO INÍCIO</button>
+            <button onclick="window.location.reload()" class="btn-create" style="margin-top:20px;">JOGAR NOVAMENTE</button>
         </div>
     </div>
 
@@ -171,13 +167,12 @@
         <div class="modal-content">
             <span class="close-modal" id="btnFecharModal">&times;</span>
             <h3 id="modalTitulo" style="color: #6a1b9a; margin-bottom: 12px;">🔎 Detalhes das Respostas</h3>
-            <div id="modalCorpo" style="font-size: 0.95rem; color: #334155; line-height: 1.5;"></div>
+            <div id="modalCorpo" style="font-size: 0.95rem; line-height: 1.5;"></div>
         </div>
     </div>
 
     <script>
         const socket = io();
-        
         let tempoMaximoRodada = 60;
         let modoJogoAtivo = 'regressiva';
         let tempoInicioRodada = 0;
@@ -188,7 +183,6 @@
             document.getElementById(idTela).classList.add('active');
         }
 
-        // Criando o grid do alfabeto dinamicamente
         const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         const gridLetras = document.getElementById('gridLetras');
         alfabeto.forEach(letra => {
@@ -273,15 +267,13 @@
             sala.players.forEach(p => {
                 const li = document.createElement('li');
                 li.className = 'player-item';
-                
-                let htmlJogador = `<span>👤 ${p.name} (${p.points} pts)</span>`;
+                let html = `<span>👤 ${p.name} (${p.points} pts)</span>`;
                 if (p.id === sala.host) {
-                    htmlJogador += `<span class="host-badge">Líder</span>`;
+                    html += `<span class="host-badge">Líder</span>`;
                 } else if (souHost) {
-                    htmlJogador += `<button class="btn-kick" onclick="removerDoJogo('${p.id}')">Expulsar ❌</button>`;
+                    html += `<button class="btn-kick" onclick="socket.emit('kickPlayer','${p.id}')">Expulsar ❌</button>`;
                 }
-                
-                li.innerHTML = htmlJogador;
+                li.innerHTML = html;
                 lista.appendChild(li);
             });
 
@@ -306,52 +298,71 @@
                 tag.className = 'tag';
                 tag.innerText = cat;
                 if(souHost) {
-                    const demoverBtn = document.createElement('span');
-                    demoverBtn.innerText = '×';
-                    demoverBtn.addEventListener('click', () => socket.emit('removeCategory', cat));
-                    tag.appendChild(demoverBtn);
+                    const btnX = document.createElement('span');
+                    btnX.innerText = '×';
+                    btnX.addEventListener('click', () => socket.emit('removeCategory', cat));
+                    tag.appendChild(btnX);
                 }
                 containerTags.appendChild(tag);
             });
 
             document.querySelectorAll('.letter-btn').forEach(btn => {
-                const letra = btn.dataset.letra;
-                btn.className = sala.allowedLetters.includes(letra) ? 'letter-btn active' : 'letter-btn';
+                btn.className = sala.allowedLetters.includes(btn.dataset.letra) ? 'letter-btn active' : 'letter-btn';
             });
         });
 
-        function removerDoJogo(idJogador) {
-            if(confirm("Tem certeza que quer expulsar esse jogador?")) {
-                socket.emit('kickPlayer', idJogador);
-            }
-        }
-
         socket.on('playerKicked', () => {
             socket.disconnect();
-            document.body.innerHTML = `<h2 style="color:white; text-align:center; margin-top:50px;">Você foi removido da sala pelo Host.</h2>`;
+            document.body.innerHTML = `<h2 style="color:white; text-align:center; margin-top:50px;">Você foi removido da sala.</h2>`;
         });
 
-        document.getElementById('btnIniciarJogo').addEventListener('click', () => {
-            socket.emit('startRound');
-        });
+        document.getElementById('btnIniciarJogo').addEventListener('click', () => socket.emit('startRound'));
 
         let cronometroPartida;
-        socket.on('roundStarted', (dadosRodada) => {
+        socket.on('roundStarted', (dados) => {
             alternarTela('telaJogo');
             document.getElementById('bannerStop').style.display = 'none';
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('btnStop').style.opacity = '1';
             
-            const botaoStop = document.getElementById('btnStop');
-            botaoStop.disabled = false;
-            botaoStop.style.opacity = '1';
-            
-            document.getElementById('gameRodada').innerText = `${dadosRodada.round}/${dadosRodada.maxRounds}`;
-            document.getElementById('letraSorteada').innerText = dadosRodada.letter;
-            modoJogoAtivo = dadosRodada.gameMode;
-            tempoMaximoRodada = parseInt(dadosRodada.roundTime);
+            document.getElementById('gameRodada').innerText = `${dados.round}/${dados.maxRounds}`;
+            document.getElementById('letraSorteada').innerText = dados.letter;
             tempoInicioRodada = Date.now();
-            
-            const containerInputs = document.getElementById('inputsContainerJogo');
-            containerInputs.innerHTML = '';
-            
-            dadosRodada.categories.forEach(cat => {
-                const div = document.createElement('d
+
+            const container = document.getElementById('inputsContainerJogo');
+            container.innerHTML = '';
+            dados.categories.forEach(cat => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '12px';
+                div.innerHTML = `
+                    <label style="display:block; font-weight:bold; margin-bottom:4px;">${cat}</label>
+                    <input type="text" class="resposta-input-game" data-categoria="${cat}" placeholder="Com ${dados.letter}...">
+                `;
+                container.appendChild(div);
+            });
+
+            let restante = dados.roundTime;
+            document.getElementById('gameCronometro').innerText = restante;
+            clearInterval(cronometroPartida);
+            cronometroPartida = setInterval(() => {
+                restante--;
+                document.getElementById('gameCronometro').innerText = restante;
+                if(restante <= 0) {
+                    clearInterval(cronometroPartida);
+                    finalizarEEnviar();
+                }
+            }, 1000);
+        });
+
+        socket.on('playerPressedStop', (data) => {
+            document.getElementById('bannerStop').innerText = `🛑 ${data.name} deu STOP!`;
+            document.getElementById('bannerStop').style.display = 'block';
+            if (modoJogoAtivo === 'classico') {
+                clearInterval(cronometroPartida);
+                finalizarEEnviar();
+            }
+        });
+
+        function finalizarEEnviar() {
+            clearInterval(cronometroPartida);
+            document.getElemen
