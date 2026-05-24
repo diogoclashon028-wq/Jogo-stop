@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Completo Corrigido</title>
+    <title>Stop! Online Avançado</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;}
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
@@ -27,7 +27,8 @@
         .letter-btn.disabled { background: #f44336; text-decoration: line-through; opacity: 0.6; }
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
         .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
-        .review-box { background: #fff; border: 2px solid #ba68c8; border-radius: 8px; padding: 15px; margin-top: 10px; display: none; }
+        .review-box { background: #fff; border: 2px solid #ba68c8; border-radius: 8px; padding: 15px; margin-top: 10px; display: none; position: relative; }
+        .btn-close-review { position: absolute; top: 10px; right: 10px; background: #ff4b2b; color: white; border: none; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer; line-height: 30px; text-align: center; }
         .row-config { display: flex; gap: 10px; }
         .row-config div { flex: 1; }
     </style>
@@ -109,6 +110,7 @@
         <div id="ranking-list"></div>
 
         <div id="review-details-box" class="review-box">
+            <button class="btn-close-review" onclick="fecharDetalhesJogador()">X</button>
             <h4 id="review-player-name" style="margin:0 0 10px 0; color:#4a148c;">Folha de Respostas</h4>
             <p id="review-player-time" style="font-weight:bold; color:#d32f2f; margin:5px 0;"></p>
             <div id="review-player-answers"></div>
@@ -181,7 +183,6 @@
 
     function startRound() { socket.emit('startRound'); }
 
-    // TRAVA COMPLETA DE INPUTS QUANDO APERTA STOP
     function triggerStop(e) {
         e.preventDefault();
         euJaDeiStop = true;
@@ -190,7 +191,7 @@
         activeCategories.forEach(c => {
             const inputEl = document.getElementById('ans-' + c);
             answers[c] = inputEl.value;
-            inputEl.disabled = true; // IMPEDE EDIÇÕES IMEDIATAMENTE
+            inputEl.disabled = true;
         });
         
         const tempoGastoFinal = (milissegundosPassados / 1000).toFixed(1) + "s";
@@ -277,7 +278,6 @@
 
         document.getElementById('game-timer').innerText = 'Tempo: ' + tempoTotalRodada + 's';
         
-        // O CRONÔMETRO NUNCA PARA, ELE CONTA CONTINUAMENTE ATÉ O FINAL DA RODADA
         timerInterval = setInterval(() => {
             milissegundosPassados += 1000;
             let tempoRestante = tempoTotalRodada - (milissegundosPassados / 1000);
@@ -293,9 +293,12 @@
         showScreen('screen-game');
     });
 
-    socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
+    socket.on('showReviewTable', ({ hostId, players, ranking, categories, isLastRound }) => {
         clearInterval(timerInterval);
         guardouPlayersReview = players;
+        
+        // Garante que a checagem de privilégio persista ao mudar de tela
+        isHost = hostId === myId;
         
         document.getElementById('review-details-box').style.display = 'none';
         
@@ -324,6 +327,7 @@
             });
             showScreen('screen-final');
         } else {
+            // Exibe o botão de Próxima Rodada apenas para quem for de fato o Host dono da sala
             document.getElementById('btn-next-round').style.display = isHost ? 'block' : 'none';
             showScreen('screen-review');
         }
@@ -345,6 +349,11 @@
         });
 
         document.getElementById('review-details-box').style.display = 'block';
+    }
+
+    // NOVA FUNÇÃO DO BOTÃO "X" SOLICITADO
+    function fecharDetalhesJogador() {
+        document.getElementById('review-details-box').style.display = 'none';
     }
 
     socket.on('erro', (msg) => alert(msg));
