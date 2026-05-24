@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -156,10 +156,8 @@
     </div>
 
     <script>
-        // Configuração de conexão direta e persistente
-        const socket = io(window.location.origin, { 
-            transports: ['websocket', 'polling']
-        });
+        // Chamada limpa do io() sem parâmetros, confiando no roteamento do Render
+        const socket = io();
 
         let tempoMaximoRodada = 60;
         let modoJogoAtivo = 'regressiva';
@@ -369,4 +367,7 @@
                 clearInterval(cronometroPartida);
                 encerrarEEnviarRespostas();
             }
-    
+        });
+
+        function encerrarEEnviarRespostas() {
+            clearInterva
