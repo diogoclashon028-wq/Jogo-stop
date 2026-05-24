@@ -3,66 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Base</title>
+    <title>Stop! Online</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: sans-serif; background: #764ba2; color: white; text-align: center; padding: 20px; }
-        .box { background: white; color: #333; padding: 20px; border-radius: 10px; max-width: 400px; margin: 20px auto; }
-        input { width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px 20px; background: #00bfa5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #333; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            padding: 20px; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            width: 100%; 
+            max-width: 440px; 
+            text-align: center; 
+            position: relative;
+        }
+        h1 { color: #764ba2; margin-bottom: 20px; font-size: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .status-badge { background: #ff4d4d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; display: inline-block; animation: pulse 1.5s infinite; }
+        input[type="text"] { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: 0.3s; }
+        input[type="text"]:focus { border-color: #764ba2; outline: none; }
+        button { width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: #764ba2; }
+        .btn-primary:hover { background: #5a3682; }
+        .btn-secondary { background: #00bfa5; }
+        .btn-secondary:hover { background: #009688; }
+        .btn-danger { background: #ff3333; font-size: 1.3rem; padding: 20px; box-shadow: 0 5px 15px rgba(255,51,51,0.4); }
+        .divisor { margin: 15px 0; color: #aaa; font-weight: bold; position: relative; }
         .escondido { display: none; }
+        ul { list-style: none; margin: 15px 0; text-align: left; }
+        li { background: #f7f7f9; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; font-weight: 500; }
+        .letra-box { font-size: 4rem; font-weight: 900; color: #ff3333; margin: 10px 0; }
+        .item-revisao { background: #f9f9f9; padding: 12px; border-radius: 10px; margin-bottom: 10px; text-align: left; border-left: 5px solid #764ba2; }
+        hr { margin: 15px 0; border: none; border-top: 1px solid #ddd; }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
     </style>
 </head>
 <body>
 
-    <h1>Stop! Online 🎲</h1>
+    <div class="container">
+        <div id="telaInicial">
+            <h1>Stop! Online 🎲</h1>
+            <input type="text" id="nome" placeholder="Digite seu nome">
+            <button class="btn-primary" id="btnCriar">CRIAR NOVA SALA</button>
+            <div class="divisor">-- OU --</div>
+            <input type="text" id="codigo" placeholder="Código da sala">
+            <button class="btn-secondary" id="btnEntrar">ENTRAR EM SALA</button>
+        </div>
 
-    <div id="telaInicial" class="box">
-        <input type="text" id="nome" placeholder="Seu Nome">
-        <button id="btnCriar">Criar Sala</button>
-        <p>or</p>
-        <input type="text" id="codigo" placeholder="Código da Sala">
-        <button id="btnEntrar">Entrar</button>
-    </div>
+        <div id="telaLobby" class="escondido">
+            <h1>Sala: <span id="idSala" style="color:#00bfa5;">----</span></h1>
+            <h3>Jogadores no Lobby:</h3>
+            <ul id="listaJogadores"></ul>
+            <button class="btn-secondary" id="btnIniciar">COMEÇAR JOGO</button>
+        </div>
 
-    <div id="telaLobby" class="box escondido">
-        <h2>Sala: <span id="idSala">----</span></h2>
-        <h3>Jogadores:</h3>
-        <ul id="lista" style="text-align: left;"></ul>
-        <button id="btnIniciar">Começar Jogo</button>
-    </div>
+        <div id="telaJogo" class="escondido">
+            <div class="status-badge">RODADA EM ANDAMENTO</div>
+            <h2>LETA ATUAL:</h2>
+            <div class="letra-box" id="letra">-</div>
+            
+            <input type="text" id="respNome" placeholder="Nome...">
+            <input type="text" id="respAnimal" placeholder="Animal...">
+            <input type="text" id="respObjeto" placeholder="Objeto...">
+            <input type="text" id="respCor" placeholder="Cor...">
+            <input type="text" id="respFrist" placeholder="Fruta...">
 
-    <div id="telaJogo" class="box escondido">
-        <h2>Letra: <span id="letra" style="color: red; font-size: 2rem;">-</span></h2>
-        <input type="text" id="respNome" placeholder="Nome...">
-        <input type="text" id="respAnimal" placeholder="Animal...">
-        <input type="text" id="respObjeto" placeholder="Objeto...">
-        <br><br>
-        <button id="btnStop" style="background: red;">STOP! 🛑</button>
-    </div>
+            <button class="btn-danger" id="btnStop">STOP! 🛑</button>
+        </div>
 
-    <div id="telaResultado" class="box escondido">
-        <h2>Respostas enviadas:</h2>
-        <div id="resultadosCorpo" style="text-align: left;"></div>
-        <br>
-        <button onclick="window.location.reload()">Jogar Novamente</button>
+        <div id="telaResultado" class="escondido">
+            <h1>Revisão de Respostas 📋</h1>
+            <div id="resultadosCorpo"></div>
+            <br>
+            <button class="btn-primary" id="btnConfirmarPontos">Computar e Voltar pro Lobby</button>
+        </div>
     </div>
 
     <script>
         const socket = io();
         let minhaSala = '';
+        let meuId = '';
 
-        // Cliques dos botões
+        // Captura ID do socket conectado
+        socket.on('connect', () => { meuId = socket.id; });
+
+        // Ações de cliques
         document.getElementById('btnCriar').addEventListener('click', () => {
-            const nome = document.getElementById('nome').value;
+            const nome = document.getElementById('nome').value.trim();
             if(nome) socket.emit('criarSala', nome);
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
-            const nome = document.getElementById('nome').value;
-            const cod = document.getElementById('codigo').value;
+            const nome = document.getElementById('nome').value.trim();
+            const cod = document.getElementById('codigo').value.trim().toUpperCase();
             if(nome && cod) {
-                minhaSala = cod.toUpperCase();
+                minhaSala = cod;
                 socket.emit('joinRoom', { roomCode: minhaSala, name: nome });
             }
         });
@@ -72,28 +117,37 @@
         });
 
         document.getElementById('btnStop').addEventListener('click', () => {
-            const respostas = {
-                Nome: document.getElementById('respNome').value,
-                Animal: document.getElementById('respAnimal').value,
-                Objeto: document.getElementById('respObjeto').value
-            };
-            socket.emit('pressStop', { roomCode: minhaSala, respostas: respostas });
+            enviarMinhasRespostas(true);
         });
 
-        // Respostas do Servidor
-        socket.on('salaCriada', (codigo) => {
-            minhaSala = codigo;
-        });
+        function enviarMinhasRespostas(apertouStop = false) {
+            const respostas = {
+                Nome: document.getElementById('respNome').value.trim(),
+                Animal: document.getElementById('respAnimal').value.trim(),
+                Objeto: document.getElementById('respObjeto').value.trim(),
+                Cor: document.getElementById('respCor').value.trim(),
+                Fruta: document.getElementById('respFrist').value.trim()
+            };
+            if(apertouStop) {
+                socket.emit('pressStop', { roomCode: minhaSala, respostas: respostas });
+            } else {
+                socket.emit('enviarRespostasRestantes', { roomCode: minhaSala, respostas: respostas });
+            }
+        }
+
+        // Respostas vindas do servidor
+        socket.on('salaCriada', (codigo) => { minhaSala = codigo; });
 
         socket.on('atualizarSala', (sala) => {
             document.getElementById('telaInicial').classList.add('escondido');
+            document.getElementById('telaResultado').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
-            const lista = document.getElementById('lista');
+            const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
-                lista.innerHTML += `<li>👤 ${p.nome}</li>`;
+                lista.innerHTML += `<li><span>👤 ${p.nome}</span> <span>🏆 ${p.pontos} pts</span></li>`;
             });
         });
 
@@ -101,26 +155,52 @@
             document.getElementById('telaLobby').classList.add('escondido');
             document.getElementById('telaJogo').classList.remove('escondido');
             document.getElementById('letra').innerText = letra;
+            
+            // Limpa campos anteriores
+            document.getElementById('respNome').value = '';
+            document.getElementById('respAnimal').value = '';
+            document.getElementById('respObjeto').value = '';
+            document.getElementById('respCor').value = '';
+            document.getElementById('respFrist').value = '';
         });
 
-        socket.on('jogoParado', (respostasDoServidor) => {
+        socket.on('jogoParado', (data) => {
             document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaResultado').classList.remove('escondido');
             
+            if(meuId !== data.quemParou) {
+                enviarMinhasRespostas(false);
+            }
+        });
+
+        socket.on('atualizarRespostasFinais', (respostasDoServidor) => {
             const div = document.getElementById('resultadosCorpo');
             div.innerHTML = '';
             
             Object.keys(respostasDoServidor).forEach(id => {
                 const resp = respostasDoServidor[id];
                 div.innerHTML += `
-                    <p><strong>Jogador (${id.substring(0,4)}):</strong></p>
-                    <ul>
-                        <li>Nome: ${resp.Nome || '-'}</li>
-                        <li>Animal: ${resp.Animal || '-'}</li>
-                        <li>Objeto: ${resp.Objeto || '-'}</li>
-                    </ul><hr>
+                    <div class="item-revisao">
+                        <p><strong>Jogador: ${id.substring(0,5)}</strong></p>
+                        <p>🔹 Nome: ${resp.Nome || '-'}</p>
+                        <p>🔹 Animal: ${resp.Animal || '-'}</p>
+                        <p>🔹 Objeto: ${resp.Objeto || '-'}</p>
+                        <p>🔹 Cor: ${resp.Cor || '-'}</p>
+                        <p>🔹 Fruta: ${resp.Fruta || '-'}</p>
+                    </div>
                 `;
             });
+        });
+
+        document.getElementById('btnConfirmarPontos').addEventListener('click', () => {
+            // Por enquanto, soma 10 pontos automáticos para testar a volta ao lobby
+            const pontosSimulados = {};
+            pontosSimulados[meuId] = 10;
+            socket.emit('atualizarPontos', { roomCode: minhaSala, pontosAtualizados: pontosSimulados });
+        });
+
+        socket.on('pontuacaoAtualizada', (sala) => {
+            socket.emit('joinRoom', { roomCode: minhaSala, name: '' });
         });
 
         socket.on('erro', (msg) => alert(msg));
