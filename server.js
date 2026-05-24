@@ -1,8 +1,23 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, { cors: { origin: "*" } });
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ['websocket', 'polling'] // Garante compatibilidade com servidores proxy
+});
 const path = require('path');
+
+app.use(express.static(path.join(__dirname, '')));
+
+// ... O RESTANTE DO SEU CÓDIGO DO SERVER.JS CONTINUA EXATAMENTE IGUAL ...
+// (Mantenha todas as funções de salas, votos e processarPontosRodada que enviamos antes)
+
+const PORT = process.env.PORT || 10000;
+http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
 
 app.use(express.static(path.join(__dirname, '')));
 
