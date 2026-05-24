@@ -13,6 +13,9 @@
         .container { 
             background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; 
         }
+        #status-conexao {
+            text-align: center; padding: 8px; background: #ff4b2b; color: white; font-weight: bold; border-radius: 8px; margin-bottom: 15px; font-size: 14px;
+        }
         h2 { color: #4a148c; text-align: center; margin-top: 0; font-size: 28px; }
         h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
         label { font-weight: bold; color: #4a148c; display: block; margin-top: 8px; }
@@ -54,6 +57,8 @@
 </head>
 <body>
 <div class="container">
+    <div id="status-conexao">🔴 Conectando ao servidor backend...</div>
+
     <div id="screen-login" class="screen active">
         <img class="banner-img" src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=600&auto=format&fit=crop&q=60">
         <h2>Stop! Online</h2>
@@ -149,12 +154,18 @@
     let currentPlayersData = [], activeCategories = [];
     const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
+    // Monitoramento da conexão externa
     socket.on('connect', () => { 
         myId = socket.id; 
-        console.log("Conectado! ID:", myId);
+        const indicador = document.getElementById('status-conexao');
+        indicador.innerText = "🟢 Conectado ao Servidor!";
+        indicador.style.background = "#11998e";
     });
-    socket.on('connect_error', (err) => { 
-        console.log("Erro de conexão temporário:", err); 
+
+    socket.on('disconnect', () => { 
+        const indicador = document.getElementById('status-conexao');
+        indicador.innerText = "🔴 Sem conexão com o servidor.";
+        indicador.style.background = "#ff4b2b";
     });
 
     function showScreen(screenId) {
@@ -163,12 +174,20 @@
     }
 
     function createRoom() {
+        if(!socket.connected) {
+            alert("Aviso: O seu jogo ainda não conseguiu se conectar ao servidor do Render. Aguarde a barra ficar verde.");
+            return;
+        }
         const name = document.getElementById('username').value.trim();
         if(!name) return alert('Digite seu nome primeiro!');
         socket.emit('criarSala', name);
     }
 
     function joinRoom() {
+        if(!socket.connected) {
+            alert("Aviso: Sem conexão com o servidor backend ainda.");
+            return;
+        }
         const name = document.getElementById('username').value.trim();
         const roomCode = document.getElementById('room-code-input').value.trim();
         if(!name || !roomCode) return alert('Preencha seu nome e o código da sala!');
