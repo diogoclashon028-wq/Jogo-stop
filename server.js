@@ -21,7 +21,7 @@ io.on('connection', (socket) => {
             categories: ['Nome', 'CEP', 'Cor', 'Fruta'],
             allowedLetters: ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
             maxRounds: 5, roundTime: 60, currentRound: 0, gameState: 'lobby', currentLetter: '',
-            ptsAcerto: 10, ptsRepetido: 5 // Novas configurações de pontos
+            ptsAcerto: 10, ptsRepetido: 5
         };
         socket.join(codigoSala);
         socket.emit('salaCriada', codigoSala);
@@ -98,7 +98,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // QUANDO ALGUÉM CLICA EM STOP
     socket.on('pressStop', ({ respostas, tempoGasto }) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala && sala.gameState === 'playing') {
@@ -107,13 +106,17 @@ io.on('connection', (socket) => {
             jogador.timeTaken = tempoGasto;
             jogador.submitted = true;
 
-            // Alerta todo mundo que alguém deu STOP. O app agora espera os outros ou o tempo acabar.
+            // Transmite quem deu stop para manter o relógio correndo em tempo real nos oponentes
             io.to(sala.code).emit('stopPressionado', jogador.name);
             io.to(sala.code).emit('roomUpdated', sala);
+
+            const todosEnviaram = sala.players.every(p => p.submitted);
+            if (todosEnviaram) {
+                calcularPontuacaoERevisao(sala);
+            }
         }
     });
 
-    // ENVIO NORMAL (POR TEMPO OU QUANDO COMPLETOU APÓS O STOP)
     socket.on('submitAnswers', ({ respostas, tempoGasto }) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala && sala.gameState === 'playing') {
@@ -137,26 +140,23 @@ io.on('connection', (socket) => {
 function calcularPontuacaoERevisao(sala) {
     sala.gameState = 'reviewing';
 
-    // Lógica para verificar repetidas por categoria
     sala.categories.forEach(cat => {
         let contagemRespostas = {};
         
-        // Limpa e padroniza as respostas válidas da categoria
         sala.players.forEach(p => {
             let ans = (p.answers[cat] || '').trim().toUpperCase();
-            if (ans.startsWith(sala.currentLetter)) {
+            if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
                 contagemRespostas[ans] = (contagemRespostas[ans] || 0) + 1;
             }
         });
 
-        // Distribui os pontos configurados pelo dono
         sala.players.forEach(p => {
             let ans = (p.answers[cat] || '').trim().toUpperCase();
-            if (ans.startsWith(sala.currentLetter)) {
+            if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
                 if (contagemRespostas[ans] > 1) {
-                    p.points += sala.ptsRepetido; // Ponto de repetida
+                    p.points += sala.ptsRepetido;
                 } else {
-                    p.points += sala.ptsAcerto; // Ponto de acerto único
+                    p.points += sala.ptsAcerto;
                 }
             }
         });
@@ -171,4 +171,3 @@ function calcularPontuacaoERevisao(sala) {
 }
 
 http.listen(PORT, () => console.log("Servidor ativo"));
-              
