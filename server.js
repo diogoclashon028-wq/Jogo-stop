@@ -31,6 +31,7 @@ io.on('connection', (socket) => {
       code: codigoSala,
       host: socket.id,
       players: [{ id: socket.id, name: nomeJogador, points: 0, submitted: false, answers: {}, timeTaken: 0, waiting: false }],
+      categories: ['Nome', 'CEP', 'Cor', 'Fruta'], // CATEGORIAS CORRIGIDAS AQUI
       allowedLetters: letras,
       maxRounds: 5,
       roundTime: 60,
@@ -281,6 +282,6 @@ function calcularPontosComVotacao(sala) {
   });
 }
 
-// LIGAÇÃO CORRETA USANDO O HTTP + SOCKET.IO UNIDOS
+// LIGAÇÃO HTTP + SOCKET.IO CORRETA
 http.listen(PORT, () => console.log("Servidor Rodando na porta " + PORT));
-      
+        
