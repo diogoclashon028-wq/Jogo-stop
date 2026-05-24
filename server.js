@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Adicionado: Configuração de CORS para liberar conexões e Ping/Pong para estabilidade no Render
+// Configuração de CORS para liberar conexões e Ping/Pong para estabilidade no Render
 const io = new Server(server, {
     cors: {
         origin: "*", 
@@ -19,10 +19,21 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
+// Rota para a página inicial (Index)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'), (err) => {
         if (err) {
             res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        }
+    });
+});
+
+// ADICIONADO: Rota explícita para entregar o arquivo lobby.html e evitar o erro de "Não foi possível obter"
+app.get('/lobby.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lobby.html'), (err) => {
+        if (err) {
+            // Se não encontrar na raiz, tenta buscar dentro da pasta public
+            res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
         }
     });
 });
@@ -114,7 +125,7 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        amp.gameMode = data.gameMode;
+        sala.gameMode = data.gameMode;
         sala.useVoting = data.useVoting;
         sala.maxPlayers = parseInt(data.maxPlayers) || 10;
         sala.maxRounds = parseInt(data.maxRounds) || 5;
@@ -142,7 +153,7 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        text.categories = sala.categories.filter(cat => cat !== categoria);
+        sala.categories = sala.categories.filter(cat => cat !== categoria);
         io.to(sala.code).emit('roomUpdated', sala);
     });
 
@@ -336,4 +347,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor ativo na porta *:${PORT}`);
 });
-      
+              
