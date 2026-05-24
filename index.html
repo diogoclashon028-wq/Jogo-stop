@@ -156,7 +156,17 @@
     </div>
 
     <script>
-        const socket = io({ transports: ['websocket', 'polling'] });
+        // Inicialização inteligente do Socket.io apontando dinamicamente para o Render
+        const socket = io(window.location.origin, { 
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            rememberUpgrade: true,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+
         let tempoMaximoRodada = 60;
         let modoJogoAtivo = 'regressiva';
 
@@ -186,6 +196,11 @@
         socket.on('disconnect', () => {
             document.getElementById('statusBar').style.backgroundColor = '#ff4d4d';
             document.getElementById('statusText').innerText = 'Conectando ao servidor...';
+        });
+
+        socket.on('connect_error', () => {
+            document.getElementById('statusBar').style.backgroundColor = '#ff4d4d';
+            document.getElementById('statusText').innerText = 'Tentando reconectar...';
         });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
@@ -352,21 +367,4 @@
                 if(tempoRestante <= 0) {
                     clearInterval(cronometroPartida);
                     encerrarEEnviarRespostas();
-                }
-            }, 1000);
-        });
-
-        socket.on('playerPressedStop', (nomeJogador) => {
-            const banner = document.getElementById('bannerStop');
-            banner.innerText = `🛑 ${nomeJogador} fez stop`;
-            banner.style.display = 'block';
-
-            if (modoJogoAtivo === 'classico') {
-                clearInterval(cronometroPartida);
-                encerrarEEnviarRespostas();
-            }
-        });
-
-        function encerrarEEnviarRespostas() {
-            clearInterval(cronometroPartida);
-            document.g
+ 
