@@ -333,6 +333,604 @@
         });
         showScreen('screen-final');
     }
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
+    let currentPlayersData = [], activeCategories = [];
+    const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+    socket.on('connect', () => { myId = socket.id; });
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'criarSala' em vez de 'createRoom'
+    function createRoom() {
+        const name = document.getElementById('username').value.trim();
+        if(!name) return alert('Digite seu nome');
+        socket.emit('criarSala', name); 
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'joinRoom' com a estrutura esperada pelo servidor
+    function joinRoom() {
+        const name = document.getElementById('username').value.trim();
+        const roomCode = document.getElementById('room-code-input').value.trim();
+        if(!name || !roomCode) return alert('Preencha os dados');
+        socket.emit('joinRoom', { roomCode, name });
+    }
+
+    function addTheme() {
+        const input = document.getElementById('new-theme-name');
+        if(input.value.trim()) {
+            socket.emit('addCategory', input.value.trim());
+            input.value = '';
+        }
+    }
+    function toggleLetter(letter) {
+        if(!isHost) return;
+        socket.emit('toggleLetter', letter);
+    }
+    function updateSettings() {
+        if (!isHost) return;
+        socket.emit('updateSettings', {
+            maxRounds: document.getElementById('setting-rounds').value,
+            roundTime: document.getElementById('setting-time').value,
+            pointsPerCategory: document.getElementById('setting-points').value,
+            pointsPerRepeated: document.getElementById('setting-repeated').value
+        });
+    }
+    function startRound() { socket.emit('startRound'); }
+    function sendAnswers(e) {
+        if(e) e.preventDefault();
+        if(hasSubmitted) return;
+        hasSubmitted = true;
+        document.getElementById('btn-enviar-stop').disabled = true;
+        document.getElementById('status-waiting').style.display = 'block';
+        const answers = {};
+        activeCategories.forEach(c => { answers[c] = document.getElementById('ans-' + c).value; });
+        socket.emit('submitAnswers', answers);
+    }
+
+    // Escuta o evento de sala criada com sucesso enviado pelo servidor
+    socket.on('salaCriada', (nomeSala) => {
+        isHost = true;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + nomeSala;
+        document.getElementById('host-theme-inputs').style.display = 'block';
+        document.getElementById('host-settings').style.display = 'block';
+        document.getElementById('host-controls').style.display = 'block';
+        showScreen('screen-lobby');
+    });
+
+    socket.on('roomUpdated', (room) => {
+        isHost = room.host === myId;
+        activeCategories = room.categories;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
+        document.getElementById('host-theme-inputs').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
+        const isLastRound = room.currentRound >= room.maxRounds;
+        document.getElementById('host-next-btn').style.display = (isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+        document.getElementById('waiting-host-msg').style.display = (!isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+
+        if(!isHost) {
+            document.getElementById('setting-rounds').value = room.maxRounds;
+            document.getElementById('setting-time').value = room.roundTime;
+            document.getElementById('setting-points').value = room.pointsPerCategory;
+            document.getElementById('setting-repeated').value = room.pointsPerRepeated;
+        }
+
+        const themesList = document.getElementById('lobby-themes-list');
+        themesList.innerHTML = '';
+        room.categories.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'theme-tag';
+            div.innerHTML = '<span>📝 ' + c + '</span>' + (isHost ? '<button class="theme-del-btn" onclick="socket.emit(\\'removeCategory\\', \\'' + c + '\\')">X</button>' : '');
+            themesList.appendChild(div);
+        });
+
+        const lettersGrid = document.getElementById('lobby-letters-grid');
+        lettersGrid.innerHTML = '';
+        FULL_ALPHABET.forEach(letra => {
+            const isChecked = room.allowedLetters.includes(letra);
+            const div = document.createElement('div');
+            div.innerHTML = '<input type="checkbox" id="let-' + letra + '" class="letter-checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleLetter(\\'' + letra + '\\')" ' + (!isHost ? 'disabled' : '') + '><label for="let-' + letra + '" class="letter-label ' + (!isHost ? 'disabled' : '') + '">' + letra + '</label>';
+            lettersGrid.appendChild(div);
+        });
+
+        const playerList = document.getElementById('player-list');
+        playerList.innerHTML = '';
+        room.players.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'player-item';
+            div.innerHTML = '<span>' + p.name + ' ' + (p.id === room.host ? '👑' : '') + ' ' + (p.submitted && room.gameState === 'playing' ? '✅' : '') + '</span>' + (isHost && p.id !== myId ? '<button class="kick-btn" onclick="socket.emit(\\'kickPlayer\\', \\'' + p.id + '\\')">Expulsar</button>' : '');
+            playerList.appendChild(div);
+        });
+        if(room.gameState === 'lobby') showScreen('screen-lobby');
+    });
+
+    socket.on('roundStarted', (data) => {
+        clearInterval(timerInterval);
+        hasSubmitted = false;
+        closeModal();
+        activeCategories = data.categories;
+        document.getElementById('game-status').innerText = 'Rodada: ' + data.round + '/' + data.maxRounds;
+        document.getElementById('game-letter').innerText = data.letter;
+        document.getElementById('btn-enviar-stop').disabled = false;
+        document.getElementById('status-waiting').style.display = 'none';
+        
+        const container = document.getElementById('dynamic-inputs-container');
+        container.innerHTML = '';
+        activeCategories.forEach(c => {
+            container.innerHTML += '<label style="font-weight:bold; color:#4a148c; display:block; margin-top:10px;">✏️ ' + c + ':</label><input type="text" class="game-input" id="ans-' + c + '">';
+        });
+
+        timeLeft = data.roundTime;
+        document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if (!hasSubmitted) sendAnswers(); 
+                if (isHost) setTimeout(() => { socket.emit('forceRoundEnd'); }, 1200);
+            }
+        }, 1000);
+        showScreen('screen-game');
+    });
+
+    socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
+        clearInterval(timerInterval); 
+        currentPlayersData = players; 
+        activeCategories = categories;
+        const tbody = document.getElementById('review-table-body');
+        tbody.innerHTML = '';
+
+        players.forEach((p, index) => {
+            let colTime = p.timeTaken > 45 ? '#ff416c' : (p.timeTaken > 25 ? '#ffb300' : '#11998e');
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><span class="clickable-name" onclick="openPlayerWords(' + index + ')">' + p.name + '</span></td><td><span style="background: ' + colTime + '; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">' + p.timeTaken + 's</span></td><td><button style="margin:0; padding:5px 10px; width:auto; font-size:12px; background:#764ba2;" onclick="openPlayerWords(' + index + ')">👁️ Ver</button></td>';
+            tbody.appendChild(tr);
+        });
+
+        const rList = document.getElementById('ranking-list');
+        rList.innerHTML = '';
+        ranking.forEach((p, idx) => {
+            const playerIndexInData = currentPlayersData.findIndex(pData => pData.name === p.name);
+            rList.innerHTML += '<div class="player-item"><b>' + (idx+1) + '° <span class="clickable-name" onclick="openPlayerWords(' + playerIndexInData + ')">' + p.name + '</span></b><span>' + p.points + ' pts</span></div>';
+        });
+        if (isLastRound) {
+            document.getElementById('host-next-btn').style.display = 'none';
+            document.getElementById('waiting-host-msg').innerHTML = '<button class="btn-success" onclick="triggerFinalPodium()">Ver Pódio Final</button>';
+            window.finalRankingData = ranking;
+        }
+        showScreen('screen-review');
+    });
+
+    function openPlayerWords(index) {
+        if(index === -1 || !currentPlayersData[index]) return;
+        const player = currentPlayersData[index];
+        document.getElementById('modal-player-name').innerText = 'Palavras de: ' + player.name;
+        const body = document.getElementById('modal-words-body');
+        body.innerHTML = '';
+        activeCategories.forEach(c => { body.innerHTML += '<div class="modal-word-item"><b>' + c + ':</b> <span>' + (player.answers[c] || '-') + '</span></div>'; });
+        body.innerHTML += '<div class="modal-word-item" style="margin-top:10px; border:none; color:#ff416c;"><b>⏱️ Tempo:</b> <b>' + player.timeTaken + 's</b></div>';
+        document.getElementById('word-modal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('word-modal').style.display = 'none'; }
+    function triggerFinalPodium() {
+        const ranking = window.finalRankingData || [];
+        const podiumContent = document.getElementById('podium-content');
+        podiumContent.innerHTML = '';
+        ranking.slice(0, 3).forEach((p, idx) => {
+            const medalhas = ['🥇 1º Lugar', '🥈 2º Lugar', '🥉 3º Lugar'];
+            podiumContent.innerHTML += '<div class="podium-item pos-' + (idx+1) + '">' + medalhas[idx] + ': ' + p.name + ' — ' + p.points + ' pts</div>';
+        });
+        showScreen('screen-final');
+    }
+    socket.on('erro', (msg) => { alert(msg); });
 </script>
+    <script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
+    let currentPlayersData = [], activeCategories = [];
+    const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+    socket.on('connect', () => { myId = socket.id; });
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'criarSala' em vez de 'createRoom'
+    function createRoom() {
+        const name = document.getElementById('username').value.trim();
+        if(!name) return alert('Digite seu nome');
+        socket.emit('criarSala', name); 
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'joinRoom' com a estrutura esperada pelo servidor
+    function joinRoom() {
+        const name = document.getElementById('username').value.trim();
+        const roomCode = document.getElementById('room-code-input').value.trim();
+        if(!name || !roomCode) return alert('Preencha os dados');
+        socket.emit('joinRoom', { roomCode, name });
+    }
+
+    function addTheme() {
+        const input = document.getElementById('new-theme-name');
+        if(input.value.trim()) {
+            socket.emit('addCategory', input.value.trim());
+            input.value = '';
+        }
+    }
+    function toggleLetter(letter) {
+        if(!isHost) return;
+        socket.emit('toggleLetter', letter);
+    }
+    function updateSettings() {
+        if (!isHost) return;
+        socket.emit('updateSettings', {
+            maxRounds: document.getElementById('setting-rounds').value,
+            roundTime: document.getElementById('setting-time').value,
+            pointsPerCategory: document.getElementById('setting-points').value,
+            pointsPerRepeated: document.getElementById('setting-repeated').value
+        });
+    }
+    function startRound() { socket.emit('startRound'); }
+    function sendAnswers(e) {
+        if(e) e.preventDefault();
+        if(hasSubmitted) return;
+        hasSubmitted = true;
+        document.getElementById('btn-enviar-stop').disabled = true;
+        document.getElementById('status-waiting').style.display = 'block';
+        const answers = {};
+        activeCategories.forEach(c => { answers[c] = document.getElementById('ans-' + c).value; });
+        socket.emit('submitAnswers', answers);
+    }
+
+    // Escuta o evento de sala criada com sucesso enviado pelo servidor
+    socket.on('salaCriada', (nomeSala) => {
+        isHost = true;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + nomeSala;
+        document.getElementById('host-theme-inputs').style.display = 'block';
+        document.getElementById('host-settings').style.display = 'block';
+        document.getElementById('host-controls').style.display = 'block';
+        showScreen('screen-lobby');
+    });
+
+    socket.on('roomUpdated', (room) => {
+        isHost = room.host === myId;
+        activeCategories = room.categories;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
+        document.getElementById('host-theme-inputs').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
+        const isLastRound = room.currentRound >= room.maxRounds;
+        document.getElementById('host-next-btn').style.display = (isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+        document.getElementById('waiting-host-msg').style.display = (!isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+
+        if(!isHost) {
+            document.getElementById('setting-rounds').value = room.maxRounds;
+            document.getElementById('setting-time').value = room.roundTime;
+            document.getElementById('setting-points').value = room.pointsPerCategory;
+            document.getElementById('setting-repeated').value = room.pointsPerRepeated;
+        }
+
+        const themesList = document.getElementById('lobby-themes-list');
+        themesList.innerHTML = '';
+        room.categories.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'theme-tag';
+            div.innerHTML = '<span>📝 ' + c + '</span>' + (isHost ? '<button class="theme-del-btn" onclick="socket.emit(\\'removeCategory\\', \\'' + c + '\\')">X</button>' : '');
+            themesList.appendChild(div);
+        });
+
+        const lettersGrid = document.getElementById('lobby-letters-grid');
+        lettersGrid.innerHTML = '';
+        FULL_ALPHABET.forEach(letra => {
+            const isChecked = room.allowedLetters.includes(letra);
+            const div = document.createElement('div');
+            div.innerHTML = '<input type="checkbox" id="let-' + letra + '" class="letter-checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleLetter(\\'' + letra + '\\')" ' + (!isHost ? 'disabled' : '') + '><label for="let-' + letra + '" class="letter-label ' + (!isHost ? 'disabled' : '') + '">' + letra + '</label>';
+            lettersGrid.appendChild(div);
+        });
+
+        const playerList = document.getElementById('player-list');
+        playerList.innerHTML = '';
+        room.players.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'player-item';
+            div.innerHTML = '<span>' + p.name + ' ' + (p.id === room.host ? '👑' : '') + ' ' + (p.submitted && room.gameState === 'playing' ? '✅' : '') + '</span>' + (isHost && p.id !== myId ? '<button class="kick-btn" onclick="socket.emit(\\'kickPlayer\\', \\'' + p.id + '\\')">Expulsar</button>' : '');
+            playerList.appendChild(div);
+        });
+        if(room.gameState === 'lobby') showScreen('screen-lobby');
+    });
+
+    socket.on('roundStarted', (data) => {
+        clearInterval(timerInterval);
+        hasSubmitted = false;
+        closeModal();
+        activeCategories = data.categories;
+        document.getElementById('game-status').innerText = 'Rodada: ' + data.round + '/' + data.maxRounds;
+        document.getElementById('game-letter').innerText = data.letter;
+        document.getElementById('btn-enviar-stop').disabled = false;
+        document.getElementById('status-waiting').style.display = 'none';
+        
+        const container = document.getElementById('dynamic-inputs-container');
+        container.innerHTML = '';
+        activeCategories.forEach(c => {
+            container.innerHTML += '<label style="font-weight:bold; color:#4a148c; display:block; margin-top:10px;">✏️ ' + c + ':</label><input type="text" class="game-input" id="ans-' + c + '">';
+        });
+
+        timeLeft = data.roundTime;
+        document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if (!hasSubmitted) sendAnswers(); 
+                if (isHost) setTimeout(() => { socket.emit('forceRoundEnd'); }, 1200);
+            }
+        }, 1000);
+        showScreen('screen-game');
+    });
+
+    socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
+        clearInterval(timerInterval); 
+        currentPlayersData = players; 
+        activeCategories = categories;
+        const tbody = document.getElementById('review-table-body');
+        tbody.innerHTML = '';
+
+        players.forEach((p, index) => {
+            let colTime = p.timeTaken > 45 ? '#ff416c' : (p.timeTaken > 25 ? '#ffb300' : '#11998e');
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><span class="clickable-name" onclick="openPlayerWords(' + index + ')">' + p.name + '</span></td><td><span style="background: ' + colTime + '; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">' + p.timeTaken + 's</span></td><td><button style="margin:0; padding:5px 10px; width:auto; font-size:12px; background:#764ba2;" onclick="openPlayerWords(' + index + ')">👁️ Ver</button></td>';
+            tbody.appendChild(tr);
+        });
+
+        const rList = document.getElementById('ranking-list');
+        rList.innerHTML = '';
+        ranking.forEach((p, idx) => {
+            const playerIndexInData = currentPlayersData.findIndex(pData => pData.name === p.name);
+            rList.innerHTML += '<div class="player-item"><b>' + (idx+1) + '° <span class="clickable-name" onclick="openPlayerWords(' + playerIndexInData + ')">' + p.name + '</span></b><span>' + p.points + ' pts</span></div>';
+        });
+        if (isLastRound) {
+            document.getElementById('host-next-btn').style.display = 'none';
+            document.getElementById('waiting-host-msg').innerHTML = '<button class="btn-success" onclick="triggerFinalPodium()">Ver Pódio Final</button>';
+            window.finalRankingData = ranking;
+        }
+        showScreen('screen-review');
+    });
+
+    function openPlayerWords(index) {
+        if(index === -1 || !currentPlayersData[index]) return;
+        const player = currentPlayersData[index];
+        document.getElementById('modal-player-name').innerText = 'Palavras de: ' + player.name;
+        const body = document.getElementById('modal-words-body');
+        body.innerHTML = '';
+        activeCategories.forEach(c => { body.innerHTML += '<div class="modal-word-item"><b>' + c + ':</b> <span>' + (player.answers[c] || '-') + '</span></div>'; });
+        body.innerHTML += '<div class="modal-word-item" style="margin-top:10px; border:none; color:#ff416c;"><b>⏱️ Tempo:</b> <b>' + player.timeTaken + 's</b></div>';
+        document.getElementById('word-modal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('word-modal').style.display = 'none'; }
+    function triggerFinalPodium() {
+        const ranking = window.finalRankingData || [];
+        const podiumContent = document.getElementById('podium-content');
+        podiumContent.innerHTML = '';
+        ranking.slice(0, 3).forEach((p, idx) => {
+            const medalhas = ['🥇 1º Lugar', '🥈 2º Lugar', '🥉 3º Lugar'];
+            podiumContent.innerHTML += '<div class="podium-item pos-' + (idx+1) + '">' + medalhas[idx] + ': ' + p.name + ' — ' + p.points + ' pts</div>';
+  <script src="/socket.io/socket.io.js">
+                                    </script>
+<script>
+    const socket = io();
+    let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
+    let currentPlayersData = [], activeCategories = [];
+    const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+    socket.on('connect', () => { myId = socket.id; });
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'criarSala' em vez de 'createRoom'
+    function createRoom() {
+        const name = document.getElementById('username').value.trim();
+        if(!name) return alert('Digite seu nome');
+        socket.emit('criarSala', name); 
+    }
+
+    // CORREÇÃO AQUI: Mudado para emitir 'joinRoom' com a estrutura esperada pelo servidor
+    function joinRoom() {
+        const name = document.getElementById('username').value.trim();
+        const roomCode = document.getElementById('room-code-input').value.trim();
+        if(!name || !roomCode) return alert('Preencha os dados');
+        socket.emit('joinRoom', { roomCode, name });
+    }
+
+    function addTheme() {
+        const input = document.getElementById('new-theme-name');
+        if(input.value.trim()) {
+            socket.emit('addCategory', input.value.trim());
+            input.value = '';
+        }
+    }
+    function toggleLetter(letter) {
+        if(!isHost) return;
+        socket.emit('toggleLetter', letter);
+    }
+    function updateSettings() {
+        if (!isHost) return;
+        socket.emit('updateSettings', {
+            maxRounds: document.getElementById('setting-rounds').value,
+            roundTime: document.getElementById('setting-time').value,
+            pointsPerCategory: document.getElementById('setting-points').value,
+            pointsPerRepeated: document.getElementById('setting-repeated').value
+        });
+    }
+    function startRound() { socket.emit('startRound'); }
+    function sendAnswers(e) {
+        if(e) e.preventDefault();
+        if(hasSubmitted) return;
+        hasSubmitted = true;
+        document.getElementById('btn-enviar-stop').disabled = true;
+        document.getElementById('status-waiting').style.display = 'block';
+        const answers = {};
+        activeCategories.forEach(c => { answers[c] = document.getElementById('ans-' + c).value; });
+        socket.emit('submitAnswers', answers);
+    }
+
+    // Escuta o evento de sala criada com sucesso enviado pelo servidor
+    socket.on('salaCriada', (nomeSala) => {
+        isHost = true;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + nomeSala;
+        document.getElementById('host-theme-inputs').style.display = 'block';
+        document.getElementById('host-settings').style.display = 'block';
+        document.getElementById('host-controls').style.display = 'block';
+        showScreen('screen-lobby');
+    });
+
+    socket.on('roomUpdated', (room) => {
+        isHost = room.host === myId;
+        activeCategories = room.categories;
+        document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
+        document.getElementById('host-theme-inputs').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+        document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
+        const isLastRound = room.currentRound >= room.maxRounds;
+        document.getElementById('host-next-btn').style.display = (isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+        document.getElementById('waiting-host-msg').style.display = (!isHost && room.gameState === 'reviewing' && !isLastRound) ? 'block' : 'none';
+
+        if(!isHost) {
+            document.getElementById('setting-rounds').value = room.maxRounds;
+            document.getElementById('setting-time').value = room.roundTime;
+            document.getElementById('setting-points').value = room.pointsPerCategory;
+            document.getElementById('setting-repeated').value = room.pointsPerRepeated;
+        }
+
+        const themesList = document.getElementById('lobby-themes-list');
+        themesList.innerHTML = '';
+        room.categories.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'theme-tag';
+            div.innerHTML = '<span>📝 ' + c + '</span>' + (isHost ? '<button class="theme-del-btn" onclick="socket.emit(\\'removeCategory\\', \\'' + c + '\\')">X</button>' : '');
+            themesList.appendChild(div);
+        });
+
+        const lettersGrid = document.getElementById('lobby-letters-grid');
+        lettersGrid.innerHTML = '';
+        FULL_ALPHABET.forEach(letra => {
+            const isChecked = room.allowedLetters.includes(letra);
+            const div = document.createElement('div');
+            div.innerHTML = '<input type="checkbox" id="let-' + letra + '" class="letter-checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleLetter(\\'' + letra + '\\')" ' + (!isHost ? 'disabled' : '') + '><label for="let-' + letra + '" class="letter-label ' + (!isHost ? 'disabled' : '') + '">' + letra + '</label>';
+            lettersGrid.appendChild(div);
+        });
+
+        const playerList = document.getElementById('player-list');
+        playerList.innerHTML = '';
+        room.players.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'player-item';
+            div.innerHTML = '<span>' + p.name + ' ' + (p.id === room.host ? '👑' : '') + ' ' + (p.submitted && room.gameState === 'playing' ? '✅' : '') + '</span>' + (isHost && p.id !== myId ? '<button class="kick-btn" onclick="socket.emit(\\'kickPlayer\\', \\'' + p.id + '\\')">Expulsar</button>' : '');
+            playerList.appendChild(div);
+        });
+        if(room.gameState === 'lobby') showScreen('screen-lobby');
+    });
+
+    socket.on('roundStarted', (data) => {
+        clearInterval(timerInterval);
+        hasSubmitted = false;
+        closeModal();
+        activeCategories = data.categories;
+        document.getElementById('game-status').innerText = 'Rodada: ' + data.round + '/' + data.maxRounds;
+        document.getElementById('game-letter').innerText = data.letter;
+        document.getElementById('btn-enviar-stop').disabled = false;
+        document.getElementById('status-waiting').style.display = 'none';
+        
+        const container = document.getElementById('dynamic-inputs-container');
+        container.innerHTML = '';
+        activeCategories.forEach(c => {
+            container.innerHTML += '<label style="font-weight:bold; color:#4a148c; display:block; margin-top:10px;">✏️ ' + c + ':</label><input type="text" class="game-input" id="ans-' + c + '">';
+        });
+
+        timeLeft = data.roundTime;
+        document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('game-timer').innerText = 'Tempo Restante: ' + timeLeft + 's';
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if (!hasSubmitted) sendAnswers(); 
+                if (isHost) setTimeout(() => { socket.emit('forceRoundEnd'); }, 1200);
+            }
+        }, 1000);
+        showScreen('screen-game');
+    });
+
+    socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
+        clearInterval(timerInterval); 
+        currentPlayersData = players; 
+        activeCategories = categories;
+        const tbody = document.getElementById('review-table-body');
+        tbody.innerHTML = '';
+
+        players.forEach((p, index) => {
+            let colTime = p.timeTaken > 45 ? '#ff416c' : (p.timeTaken > 25 ? '#ffb300' : '#11998e');
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><span class="clickable-name" onclick="openPlayerWords(' + index + ')">' + p.name + '</span></td><td><span style="background: ' + colTime + '; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">' + p.timeTaken + 's</span></td><td><button style="margin:0; padding:5px 10px; width:auto; font-size:12px; background:#764ba2;" onclick="openPlayerWords(' + index + ')">👁️ Ver</button></td>';
+            tbody.appendChild(tr);
+        });
+
+        const rList = document.getElementById('ranking-list');
+        rList.innerHTML = '';
+        ranking.forEach((p, idx) => {
+            const playerIndexInData = currentPlayersData.findIndex(pData => pData.name === p.name);
+            rList.innerHTML += '<div class="player-item"><b>' + (idx+1) + '° <span class="clickable-name" onclick="openPlayerWords(' + playerIndexInData + ')">' + p.name + '</span></b><span>' + p.points + ' pts</span></div>';
+        });
+        if (isLastRound) {
+            document.getElementById('host-next-btn').style.display = 'none';
+            document.getElementById('waiting-host-msg').innerHTML = '<button class="btn-success" onclick="triggerFinalPodium()">Ver Pódio Final</button>';
+            window.finalRankingData = ranking;
+        }
+        showScreen('screen-review');
+    });
+
+    function openPlayerWords(index) {
+        if(index === -1 || !currentPlayersData[index]) return;
+        const player = currentPlayersData[index];
+        document.getElementById('modal-player-name').innerText = 'Palavras de: ' + player.name;
+        const body = document.getElementById('modal-words-body');
+        body.innerHTML = '';
+        activeCategories.forEach(c => { body.innerHTML += '<div class="modal-word-item"><b>' + c + ':</b> <span>' + (player.answers[c] || '-') + '</span></div>'; });
+        body.innerHTML += '<div class="modal-word-item" style="margin-top:10px; border:none; color:#ff416c;"><b>⏱️ Tempo:</b> <b>' + player.timeTaken + 's</b></div>';
+        document.getElementById('word-modal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('word-modal').style.display = 'none'; }
+    function triggerFinalPodium() {
+        const ranking = window.finalRankingData || [];
+        const podiumContent = document.getElementById('podium-content');
+        podiumContent.innerHTML = '';
+        ranking.slice(0, 3).forEach((p, idx) => {
+            const medalhas = ['🥇 1º Lugar', '🥈 2º Lugar', '🥉 3º Lugar'];
+            podiumContent.innerHTML += '<div class="podium-item pos-' + (idx+1) + '">' + medalhas[idx] + ': ' + p.name + ' — ' + p.points + ' pts</div>';
+        });
+        showScreen('screen-final');
+    }
+    socket.on('erro', (msg) => { alert(msg); });
+</script>
+    });
+        showScreen('screen-final');
+    }
+    socket.on('erro', (msg) => { alert(msg); });
+            </script>
+    
 </body>
 </html>
