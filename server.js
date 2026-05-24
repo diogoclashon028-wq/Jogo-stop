@@ -7,8 +7,21 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// CORREÇÃO DE ROTAS: Garante que o servidor encontre o arquivo se estiver em 'public' ou na raiz
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
+app.get('/', (req, res) => {
+    // Tenta enviar o arquivo index.html da raiz por padrão para evitar o erro "Cannot GET /"
+    res.sendFile(path.join(__dirname, 'index.html'), (err) => {
+        if (err) {
+            // Se não achar na raiz, tenta buscar dentro da pasta public
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        }
+    });
+});
+
+// Banco de dados em memória para armazenar as salas de jogo
 const salas = {};
 
 function gerarCodigoSala() {
@@ -33,7 +46,7 @@ io.on('connection', (socket) => {
             gameState: 'lobby',
             gameMode: 'classico',
             useVoting: 'sim',
-            maxPlayers: 10, // Define o limite inicial padrão como 10 pessoas
+            maxPlayers: 10, // Limite padrão inicial
             maxRounds: 5,
             roundTime: 60,
             ptsAcerto: 10,
@@ -73,7 +86,7 @@ io.on('connection', (socket) => {
             return socket.emit('erro', 'O jogo nesta sala já começou!');
         }
 
-        // BLOQUEIO DE CAPACIDADE: Confere se o número atual de players bateu o limite
+        // Validação do limite de vagas configurado pelo Host
         if (sala.players.length >= sala.maxPlayers) {
             return socket.emit('erro', `A sala está cheia! Limite máximo de ${sala.maxPlayers} jogadores.`);
         }
@@ -97,7 +110,7 @@ io.on('connection', (socket) => {
 
         sala.gameMode = data.gameMode;
         sala.useVoting = data.useVoting;
-        sala.maxPlayers = parseInt(data.maxPlayers) || 10; // Atualiza o limite escolhido na caixinha
+        sala.maxPlayers = parseInt(data.maxPlayers) || 10;
         sala.maxRounds = parseInt(data.maxRounds) || 5;
         sala.roundTime = parseInt(data.roundTime) || 60;
         sala.ptsAcerto = parseInt(data.ptsAcerto) || 10;
@@ -315,6 +328,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Servidor rodando liso na porta *:${PORT}`);
+    console.log(`Servidor ativo na porta *:${PORT}`);
 });
-      
