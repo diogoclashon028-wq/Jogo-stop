@@ -6,1160 +6,247 @@
     <title>Stop! Online</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #4e54c8, #8f94fb);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: #333;
-        }
-
-        /* Barra de Status superior */
-        #status-bar {
-            width: 100%;
-            max-width: 400px;
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-
-        .status-disconnected {
-            background-color: #ff4b4b;
-            color: white;
-        }
-
-        .status-connected {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        /* Container de Telas do Jogo */
-        .card {
-            background: white;
-            width: 100%;
-            max-width: 400px;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            text-align: center;
-        }
-
-        .screen {
-            display: none;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        h2 {
-            color: #4e54c8;
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        h3 {
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        /* Inputs e Botões Estilizados */
-        input[type="text"] {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: #4e54c8;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            margin-bottom: 12px;
-            transition: transform 0.1s, filter 0.2s;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .btn-green {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-        }
-
-        .btn-red {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        /* Estilos do Lobby */
-        .room-code-box {
-            background: #f1f2f6;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: #4e54c8;
-            margin-bottom: 20px;
-        }
-
-        ul {
-            list-style: none;
-            text-align: left;
-            margin-bottom: 20px;
-            background: #fafafa;
-            padding: 10px;
-            border-radius: 8px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        li {
-            padding: 8px 12px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        li:last-child {
-            border-bottom: none;
-        }
-
-        .btn-remove-cat {
-            background: none;
-            color: #ff4b4b;
-            width: auto;
-            padding: 0;
-            margin: 0;
-            font-size: 14px;
-        }
-
-        /* Estilos da Tela de Jogo Activa */
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .letter-big {
-            font-size: 36px;
-            color: #ff416c;
-            font-weight: 900;
-            margin: 10px 0;
-        }
-
-        .input-group {
-            text-align: left;
-            margin-bottom: 12px;
-        }
-
-        .input-group label {
-            font-weight: bold;
-            font-size: 14px;
-            color: #666;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        /* Estilos de Revisão / Votação */
-        .review-block {
-            text-align: left;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 5px solid #4e54c8;
-        }
-
-        .vote-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px dashed #ddd;
-        }
-
-        .vote-btns {
-            display: flex;
-            gap: 5px;
-        }
-
-        .vote-btns button {
-            width: auto;
-            padding: 6px 12px;
-            font-size: 12px;
-            margin: 0;
-        }
-
-        /* Tabela de Resultados */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-        }
-
-        th {
-            background-color: #4e54c8;
-            color: white;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 500px; text-align: center; }
+        .status-bar { background: #ff4757; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; display: block; }
+        .status-bar.connected { background: #2ed573; }
+        h1 { color: #6f42c1; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
+        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .btn-success { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .btn-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .grid-inputs { text-align: left; margin-top: 15px; }
+        .row-vote { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .vote-btns { display: flex; gap: 10px; }
+        .vote-btns button { width: auto; padding: 8px 15px; margin: 0; }
     </style>
 </head>
 <body>
 
-    <div id="status-bar" class="status-disconnected">🔴 Conectando ao servidor...</div>
-
     <div class="card">
-        
-        <div id="screen-login" class="screen active">
-            <h2>Stop! Online</h2>
-            <input type="text" id="input-name" placeholder="Seu Nome">
-            <button class="btn-purple" id="btn-create">CRIAR NOVA SALA</button>
-            <div style="margin: 15px 0; color: #aaa;">—— OU ——</div>
-            <input type="text" id="input-code" placeholder="Código da Sala" style="text-transform: uppercase;">
-            <button class="btn-green" id="btn-join">ENTRAR EM SALA</button>
+        <div id="statusBar" class="status-bar">🔴 Conectando ao servidor...</div>
+
+        <div id="screenLogin" class="screen active">
+            <h1>Stop! Online</h1>
+            <input type="text" id="inputNome" placeholder="Seu Nome" maxlength="15">
+            <button class="btn-primary" onclick="criarSala()">CRIAR NOVA SALA</button>
+            <div style="margin: 15px 0; color: #aaa;">-- OU --</div>
+            <input type="text" id="inputCodigo" placeholder="CÓDIGO DA SALA">
+            <button class="btn-success" onclick="entrarSala()">ENTRAR EM SALA</button>
         </div>
 
-        <div id="screen-lobby" class="screen">
-            <h2>Sala de Espera</h2>
-            <div class="room-code-box" id="lobby-code">-----</div>
+        <div id="screenLobby" class="screen">
+            <h2 style="color: #4a00e0;">Lobby da Sala: <span id="labelCodigoSala" style="color:#ff4757;"></span></h2>
+            <p style="margin: 10px 0;">Jogadores na sala:</p>
+            <ul id="listaJogadores" style="list-style: none; margin-bottom: 20px; font-weight: bold;"></ul>
             
-            <h3>Jogadores Conectados:</h3>
-            <ul id="lobby-players"></ul>
-
-            <h3>Categorias:</h3>
-            <ul id="lobby-categories"></ul>
-
-            <div id="host-controls" style="display: none; border-top: 1px solid #eee; padding-top: 15px;">
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="input-category" placeholder="Nova Categoria" style="margin-bottom: 10px;">
-                    <button class="btn-purple" id="btn-add-cat" style="width: auto; height: 48px; padding: 0 15px;">+</button>
-                </div>
-                <button class="btn-green" id="btn-start">COMEÇAR JOGO</button>
+            <div id="painelHost" style="display: none; border-top: 2px dashed #eee; padding-top: 15px;">
+                <h3>Configurações do Host</h3>
+                <input type="text" id="inputNovaCategoria" placeholder="Nova Categoria">
+                <button class="btn-primary" onclick="adicionarCategoria()">+ Adicionar Categoria</button>
+                <select id="selectModo" onchange="alterarConfiguracoes()">
+                    <option value="classico">Modo Clássico</option>
+                    <option value="competitive">Modo Competitivo (Stop Imediato)</option>
+                </select>
+                <button class="btn-success" style="margin-top: 15px;" onclick="iniciarRodada()">START ROUND</button>
             </div>
-            <div id="player-message" style="color: #666; font-style: italic;">Aguardando o dono iniciar...</div>
+            <div id="playerWaitingMsg" style="color: #666; font-style: italic;">Aguardando o host iniciar o jogo...</div>
         </div>
 
-        <div id="screen-playing" class="screen">
-            <div class="game-header">
-                <span id="game-round">Round: 1/5</span>
-                <span id="game-timer" style="color: #ff416c;">Tempo: --s</span>
+        <div id="screenJogo" class="screen">
+            <h2>Letra do Round: <span id="labelLetra" style="font-size: 36px; color: #ff4757;">-</span></h2>
+            <div id="containerCategorias" class="grid-inputs"></div>
+            <button class="btn-danger" style="margin-top: 20px; font-size: 20px;" onclick="pressionarStop()">STOOOP!</button>
+        </div>
+
+        <div id="screenRevisao" class="screen">
+            <h2>Votação de Palavras</h2>
+            <p style="margin-bottom: 15px; font-style: italic;">Vote se a palavra é válida para a categoria!</p>
+            <div id="containerVotacao"></div>
+            <div id="painelAvancarHost" style="display: none; margin-top: 20px;">
+                <button class="btn-success" onclick="aplicarVotos()">Aplicar Votos e Avançar</button>
             </div>
-            <p>Letra da Rodada:</p>
-            <div class="letter-big" id="game-letter">-</div>
-            
-            <div id="dynamic-inputs"></div>
-
-            <button class="btn-red" id="btn-stop" style="margin-top: 15px;">STOP!</button>
         </div>
 
-        <div id="screen-waiting" class="screen">
-            <h2>Aguardando...</h2>
-            <p style="margin: 20px 0; color: #666;">Alguém bateu STOP ou o tempo acabou! Enviando respostas para o servidor...</p>
-        </div>
-
-        <div id="screen-review" class="screen">
-            <h2>Votação das Palavras</h2>
-            <p style="margin-bottom: 15px; color: #666;">Avalie as respostas enviadas:</p>
-            
-            <div id="review-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;"></div>
-
-            <button class="btn-green" id="btn-advance-round" style="display: none;">APLICAR VOTOS E AVANÇAR</button>
-            <p id="wait-advance-msg" style="color: #666; font-style: italic;">Aguardando o dono fechar os votos...</p>
-        </div>
-
-        <div id="screen-results" class="screen">
-            <h2>Classificação</h2>
-            <table>
+        <div id="screenRanking" class="screen">
+            <h2>Pontuação Geral</h2>
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
                 <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Jogador</th>
-                        <th>Pontos</th>
+                    <tr style="background: #eee;">
+                        <th style="padding: 10px;">Jogador</th>
+                        <th style="padding: 10px;">Pontos</th>
                     </tr>
                 </thead>
-                <tbody id="results-tbody"></tbody>
+                <tbody id="tabelaRanking"></tbody>
             </table>
-
-            <button class="btn-purple" id="btn-results-action">PRÓXIMA RODADA</button>
+            <div id="painelProximaRodadaHost" style="display: none;">
+                <button class="btn-primary" onclick="iniciarRodada()">Próxima Rodada</button>
+            </div>
         </div>
-
     </div>
 
     <script>
-        // LIGAÇÃO CORRIGIDA AUTOMÁTICA PARA O RENDER!
-        const socket = io(); 
+        const socket = io();
+        let meuId = "";
+        let salaAtual = null;
 
-        // Elementos Globais de Controle de Tela
-        let isHost = false;
-        let categoriasAtuais = [];
-        let tempoInicialRodada = 60;
-        let tempoRestante = 60;
-        let intervaloTimer = null;
-
-        // Gerenciador de Mudança de Telas
-        function alternarTela(screenId) {
+        // Gerenciamento de Telas
+        function alternarTela(idTela) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+            document.getElementById(idTela).classList.add('active');
         }
 
-        // Monitor de Conexão do Servidor para Atualizar a Barra Superior
+        // Status de Conexão Física
         socket.on('connect', () => {
-            const bar = document.getElementById('status-bar');
-            bar.className = 'status-connected';
-            bar.innerText = '🟢 Conectado ao Servidor';
+            meuId = socket.id;
+            const bar = document.getElementById('statusBar');
+            bar.innerText = "🟢 Conectado ao Servidor";
+            bar.classList.add('connected');
         });
 
         socket.on('disconnect', () => {
-            const bar = document.getElementById('status-bar');
-            bar.className = 'status-disconnected';
-            bar.innerText = '🔴 Conectando ao servidor...';
+            const bar = document.getElementById('statusBar');
+            bar.innerText = "🔴 Conectando ao servidor...";
+            bar.classList.remove('connected');
         });
 
-        socket.on('erro', (msg) => { alert(msg); });
+        // Ações do Usuário
+        function criarSala() {
+            const nome = document.getElementById('inputNome').value.trim();
+            if(!nome) return alert("Digite seu nome!");
+            socket.emit('criarSala', nome);
+        }
 
-        /* --- EVENTOS DA TELA DE LOGIN --- */
-        document.getElementById('btn-create').addEventListener('click', () => {
-            const name = document.getElementById('input-name').value.trim();
-            if(!name) return alert('Digite seu nome!');
-            socket.emit('criarSala', name);
-        });
+        function entrarSala() {
+            const nome = document.getElementById('inputNome').value.trim();
+            const codigo = document.getElementById('inputCodigo').value.trim().toUpperCase();
+            if(!nome || !codigo) return alert("Preencha nome e código da sala!");
+            socket.emit('joinRoom', { roomCode: codigo, name: nome });
+        }
 
-        document.getElementById('btn-join').addEventListener('click', () => {
-            const name = document.getElementById('input-name').value.trim();
-            const code = document.getElementById('input-code').value.trim().toUpperCase();
-            if(!name || !code) return alert('Preencha nome e código da sala!');
-            socket.emit('joinRoom', { roomCode: code, name: name });
-        });
-
-        socket.on('salaCriada', (codigo) => {
-            document.getElementById('lobby-code').innerText = codigo;
-            alternarTela('screen-lobby');
-        });
-
-        /* --- MONITORAMENTO E ATUALIZAÇÃO DO LOBBY --- */
-        socket.on('roomUpdated', (sala) => {
-            // Se estamos na tela de login, migra para o lobby
-            if(document.getElementById('screen-login').classList.contains('active')) {
-                document.getElementById('lobby-code').innerText = sala.code;
-                alternarTela('screen-lobby');
-            }
-
-            isHost = (socket.id === sala.host);
-            categoriasAtuais = sala.categories || [];
-            tempoInicialRodada = sala.roundTime || 60;
-
-            // Renderiza Jogadores
-            const pList = document.getElementById('lobby-players');
-            pList.innerHTML = '';
-            sala.players.forEach(p => {
-                const li = document.createElement('li');
-                li.innerText = p.name + (p.id === sala.host ? ' 👑' : '');
-                pList.appendChild(li);
-            });
-
-            // Renderiza Categorias
-            const cList = document.getElementById('lobby-categories');
-            cList.innerHTML = '';
-            categoriasAtuais.forEach(cat => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>${cat}</span>`;
-                if(isHost) {
-                    const btn = document.createElement('button');
-                    btn.innerText = '❌';
-                    btn.className = 'btn-remove-cat';
-                    btn.onclick = () => socket.emit('removeCategory', cat);
-                    li.appendChild(btn);
-                }
-                cList.appendChild(li);
-            });
-
-            // Ajusta permissões visuais do Dono da Sala
-            if(isHost) {
-                document.getElementById('host-controls').style.display = 'block';
-                document.getElementById('player-message').style.display = 'none';
-            } else {
-                document.getElementById('host-controls').style.display = 'none';
-                document.getElementById('player-message').style.display = 'block';
-            }
-        });
-
-        // Adicionar nova categoria pelo Host
-        document.getElementById('btn-add-cat').addEventListener('click', () => {
-            const input = document.getElementById('input-category');
-            const cat = input.value.trim();
+        function adicionarCategoria() {
+            const cat = document.getElementById('inputNovaCategoria').value.trim();
             if(cat) {
                 socket.emit('addCategory', cat);
-                input.value = '';
+                document.getElementById('inputNovaCategoria').value = "";
             }
-        });
+        }
 
-        // Iniciar Partida pelo Host
-        document.getElementById('btn-start').addEventListener('click', () => {
+        function alterarConfiguracoes() {
+            const modo = document.getElementById('selectModo').value;
+            socket.emit('updateSettings', { gameMode: modo });
+        }
+
+        function iniciarRodada() {
             socket.emit('startRound');
-        });
+        }
 
-        /* --- TELA DE JOGO ATIVO (RODADA INICIADA) --- */
-        socket.on('roundStarted', (data) => {
-            alternarTela('screen-playing');
-            document.getElementById('game-round').innerText = `Round: ${data.round}/${data.maxRounds}`;
-            document.getElementById('game-letter').innerText = data.letter;
-            
-            // Cria os inputs na tela dinamicamente conforme as categorias
-            const box = document.getElementById('dynamic-inputs');
-            box.innerHTML = '';
-            data.categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.className = 'input-group';
-                div.innerHTML = `
-                    <label>${cat}</label>
-                    <input type="text" id="game-input-${cat}" placeholder="Palavra com ${data.letter}...">
-                `;
-                box.appendChild(div);
-            });
-
-            // Iniciar o Timer local de contagem regressiva
-            tempoRestante = data.roundTime;
-            document.getElementById('game-timer').innerText = `Tempo: ${tempoRestante}s`;
-            clearInterval(intervaloTimer);
-            intervaloTimer = setInterval(() => {
-                tempoRestante--;
-                document.getElementById('game-timer').innerText = `Tempo: ${tempoRestante}s`;
-                if(tempoRestante <= 0) {
-                    clearInterval(intervaloTimer);
-                    coletarEEnviarRespostas(false);
-                }
-            }, 1000);
-        });
-
-        // Botão de STOP pressionado por alguém
-        document.getElementById('btn-stop').addEventListener('click', () => {
-            coletarEEnviarRespostas(true);
-        });
-
-        socket.on('stopPressionado', (nome) => {
-            clearInterval(intervaloTimer);
-            coletarEEnviarRespostas(false);
-        });
-
-        socket.on('stopImediato', (nome) => {
-            clearInterval(intervaloTimer);
-            coletarEEnviarRespostas(false);
-        });
-
-        function coletarEEnviarRespostas(pressionouStop) {
-            clearInterval(intervaloTimer);
-            if(document.getElementById('screen-waiting').classList.contains('active')) return;
-
+        function pressionarStop() {
             const respostas = {};
-            categoriasAtuais.forEach(cat => {
-                const el = document.getElementById(`game-input-${cat}`);
-                respostas[cat] = el ? el.value.trim() : '';
+            salaAtual.categories.forEach(cat => {
+                respostas[cat] = document.getElementById(`input-cat-${cat}`).value.trim();
             });
-
-            const tempoGasto = tempoInicialRodada - tempoRestante;
-            alternarTela('screen-waiting');
-
-            if(pressionouStop) {
-                socket.emit('pressStop', respostas, tempoGasto);
-            } else {
-                socket.emit('submitAnswers', respostas, tempoGasto);
-            }
+            socket.emit('pressStop', { respostas, tempoGasto: 0 });
         }
 
-        /* --- TELA DE REVISÃO E VOTAÇÃO --- */
-        socket.on('abrirRevisao', (data) => {
-            alternarTela('screen-review');
-            const list = document.getElementById('review-list');
-            list.innerHTML = '';
-
-            data.categories.forEach(cat => {
-                const block = document.createElement('div');
-                block.className = 'review-block';
-                block.innerHTML = `<strong>📁 Categoria: ${cat}</strong>`;
-
-                data.players.forEach(p => {
-                    if(p.waiting) return;
-                    const palavra = p.answers[cat] || '---';
-                    const isMe = (p.id === socket.id);
-
-                    const row = document.createElement('div');
-                    row.className = 'vote-row';
-                    row.innerHTML = `
-                        <div>👤 <span>${p.name}</span>: <em style="color:#4e54c8;">"${palavra}"</em></div>
-                        <div class="vote-btns" id="box-vote-${p.id}-${cat}">
-                            <button class="btn-green" onclick="votar('${p.id}', '${cat}', 'sim')" ${isMe ? 'disabled' : ''}>👍</button>
-                            <button class="btn-red" onclick="votar('${p.id}', '${cat}', 'nao')" ${isMe ? 'disabled' : ''}>👎</button>
-                        </div>
-                    `;
-                    block.appendChild(row);
-                });
-                list.appendChild(block);
-            });
-
-            if(isHost) {
-                document.getElementById('btn-advance-round').style.display = 'block';
-                document.getElementById('wait-advance-msg').style.display = 'none';
-            } else {
-                document.getElementById('btn-advance-round').style.display = 'none';
-                document.getElementById('wait-advance-msg').style.display = 'block';
-            }
-        });
-
-        window.votar = function(playerTargetId, categoria, voto) {
+        function enviarVoto(playerTargetId, categoria, voto) {
             socket.emit('votarPalavra', { playerTargetId, categoria, voto });
-            const box = document.getElementById(`box-vote-${playerTargetId}-${categoria}`);
-            if(box) {
-                box.innerHTML = `<span style="font-size:12px; color:#2ecc71;">Voto enviado!</span>`;
-            }
-        };
+        }
 
-        document.getElementById('btn-advance-round').addEventListener('click', () => {
+        function aplicarVotos() {
             socket.emit('aplicarVotosEAvancar');
+        }
+
+        // Eventos vindos do Servidor (Socket.io)
+        socket.on('salaCriado', (codigo) => {
+            document.getElementById('labelCodigoSala').innerText = codigo;
+            alternarTela('screenLobby');
         });
 
-        /* --- TELA DE RANKING FINAL / PARCIAL --- */
-        socket.on('showReviewTable', (data) => {
-            alternarTela('screen-results');
-            const tbody = document.getElementById('results-tbody');
-            tbody.innerHTML = '';
+        socket.on('roomUpdated', (sala) => {
+            salaAtual = sala;
+            document.getElementById('labelCodigoSala').innerText = sala.code;
+            alternarTela('screenLobby');
 
-            data.ranking.forEach((p, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}º</td>
-                    <td>${p.name}</td>
-                    <td>${p.points} pts</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            // Atualiza lista de jogadores
+            const lista = document.getElementById('listaJogadores');
+            lista.innerHTML = sala.players.map(p => `<li>👤 ${p.name} (${p.points} pts) ${p.id === sala.host ? '👑' : ''}</li>`).join('');
 
-            const actionBtn = document.getElementById('btn-results-action');
-            if(data.isLastRound) {
-                actionBtn.innerText = 'FIM DE JOGO! REINICIAR';
-    <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+            // Mostra controles se for o host
+            if(socket.id === sala.host) {
+                document.getElementById('painelHost').style.display = 'block';
+                document.getElementById('playerWaitingMsg').style.display = 'none';
+            } else {
+                document.getElementById('painelHost').style.display = 'none';
+                document.getElementById('playerWaitingMsg').style.display = 'block';
+            }
+        });
 
-        body {
-            background: linear-gradient(135deg, #4e54c8, #8f94fb);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: #333;
-        }
-
-        /* Barra de Status superior */
-        #status-bar {
-            width: 100%;
-            max-width: 400px;
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-
-        .status-disconnected {
-            background-color: #ff4b4b;
-            color: white;
-        }
-
-        .status-connected {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        /* Container de Telas do Jogo */
-        .card {
-            background: white;
-            width: 100%;
-            max-width: 400px;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            text-align: center;
-        }
-
-        .screen {
-            display: none;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        h2 {
-            color: #4e54c8;
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        h3 {
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        /* Inputs e Botões Estilizados */
-        input[type="text"] {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: #4e54c8;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            margin-bottom: 12px;
-            transition: transform 0.1s, filter 0.2s;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .btn-green {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-        }
-
-        .btn-red {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        /* Estilos do Lobby */
-        .room-code-box {
-            background: #f1f2f6;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: #4e54c8;
-            margin-bottom: 20px;
-        }
-
-        ul {
-            list-style: none;
-            text-align: left;
-            margin-bottom: 20px;
-            background: #fafafa;
-            padding: 10px;
-            border-radius: 8px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        li {
-            padding: 8px 12px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        li:last-child {
-            border-bottom: none;
-        }
-
-        .btn-remove-cat {
-            background: none;
-            color: #ff4b4b;
-            width: auto;
-            padding: 0;
-            margin: 0;
-            font-size: 14px;
-        }
-
-        /* Estilos da Tela de Jogo Activa */
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .letter-big {
-            font-size: 36px;
-            color: #ff416c;
-            font-weight: 900;
-            margin: 10px 0;
-        }
-
-        .input-group {
-            text-align: left;
-            margin-bottom: 12px;
-        }
-
-        .input-group label {
-            font-weight: bold;
-            font-size: 14px;
-            color: #666;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        /* Estilos de Revisão / Votação */
-        .review-block {
-            text-align: left;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 5px solid #4e54c8;
-        }
-
-        .vote-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px dashed #ddd;
-        }
-
-        .vote-btns {
-            display: flex;
-            gap: 5px;
-        }
-
-        .vote-btns button {
-            width: auto;
-            padding: 6px 12px;
-            font-size: 12px;
-            margin: 0;
-        }
-
-        /* Tabela de Resultados */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-        }
-
-        th {
-            background-color: #4e54c8;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-
-    <div id="status-bar" class="status-disconnected">🔴 Conectando ao servidor...</div>
-
-    <div class="card">
-        
-        <div id="screen-login" class="screen active">
-            <h2>Stop! Online</h2>
-            <input type="text" id="input-name" placeholder="Seu Nome">
-            <button class="btn-purple" id="btn-create">CRIAR NOVA SALA</button>
-            <div style="margin: 15px 0; color: #aaa;">—— OU ——</div>
-            <input type="text" id="input-code" placeholder="Código da Sala" style="text-transform: uppercase;">
-            <button class="btn-green" id="btn-join">ENTRAR EM SALA</button>
-        </div>
-
-        <div id="screen-lobby" class="screen">
-            <h2>Sala de Espera</h2>
-            <div class="room-code-box" id="lobby-code">-----</div>
-            
-            <h3>Jogadores Conectados:</h3>
-            <ul id="lobby-players"></ul>
-
-            <h3>Categorias:</h3>
-            <ul id="lobby-categories"></ul>
-
-            <div id="host-controls" style="display: none; border-top: 1px solid #eee; padding-top: 15px;">
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="input-category" placeholder="Nova Categoria" style="margin-bottom: 10px;">
-                    <button class="btn-purple" id="btn-add-cat" style="width: auto; height: 48px; padding: 0 15px;">+</button>
+        socket.on('roundStarted', (data) => {
+            document.getElementById('labelLetra').innerText = data.letter;
+            const container = document.getElementById('containerCategorias');
+            container.innerHTML = data.categories.map(cat => `
+                <div style="margin-bottom: 12px;">
+                    <label><b>${cat}:</b></label>
+                    <input type="text" id="input-cat-${cat}" placeholder="Palavra com ${data.letter}...">
                 </div>
-                <button class="btn-green" id="btn-start">COMEÇAR JOGO</button>
-            </div>
-            <div id="player-message" style="color: #666; font-style: italic;">Aguardando o dono iniciar...</div>
-        </div>
-
-        <div id="screen-playing" class="screen">
-            <div class="game-header">
-                <span id="game-round">Round: 1/5</span>
-                <span id="game-timer" style="color: #ff416c;">Tempo: --s</span>
-            </div>
-            <p>Letra da Rodada:</p>
-            <div class="letter-big" id="game-letter">-</div>
-            
-            <div id="dynamic-inputs"></div>
-
-            <button class="btn-red" id="btn-stop" style="margin-top: 15px;">STOP!</button>
-        </div>
-
-        <div id="screen-waiting" class="screen">
-            <h2>Aguardando...</h2>
-            <p style="margin: 20px 0; color: #666;">Alguém bateu STOP ou o tempo acabou! Enviando respostas para o servidor...</p>
-        </div>
-
-        <div id="screen-review" class="screen">
-            <h2>Votação das Palavras</h2>
-            <p style="margin-bottom: 15px; color: #666;">Avalie as respostas enviadas:</p>
-            
-            <div id="review-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;"></div>
-
-            <button class="btn-green" id="btn-advance-round" style="display: none;">APLICAR VOTOS E AVANÇAR</button>
-            <p id="wait-advance-msg" style="color: #666; font-style: italic;">Aguardando o dono fechar os votos...</p>
-        </div>
-
-        <div id="screen-results" class="screen">
-            <h2>Classificação</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Jogador</th>
-                        <th>Pontos</th>
-                    </tr>
-                </thead>
-                <tbody id="results-tbody"></tbody>
-            </table>
-
-            <button class="btn-purple" id="btn-results-action">PRÓXIMA RODADA</button>
-        </div>
-
-    </div>
-
-    <script>
-        // LIGAÇÃO CORRIGIDA AUTOMÁTICA PARA O RENDER!
-        const socket = io(); 
-
-        // Elementos Globais de Controle de Tela
-        let isHost = false;
-        let categoriasAtuais = [];
-        let tempoInicialRodada = 60;
-        let tempoRestante = 60;
-        let intervaloTimer = null;
-
-        // Gerenciador de Mudança de Telas
-        function alternarTela(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-        }
-
-        // Monitor de Conexão do Servidor para Atualizar a Barra Superior
-        socket.on('connect', () => {
-            const bar = document.getElementById('status-bar');
-            bar.className = 'status-connected';
-            bar.innerText = '🟢 Conectado ao Servidor';
+            `).join('');
+            alternarTela('screenJogo');
         });
 
-        socket.on('disconnect', () => {
-            const bar = document.getElementById('status-bar');
-            bar.className = 'status-disconnected';
-            bar.innerText = '🔴 Conectando ao servidor...';
-        });
-
-        socket.on('erro', (msg) => { alert(msg); });
-
-        /* --- EVENTOS DA TELA DE LOGIN --- */
-        document.getElementById('btn-create').addEventListener('click', () => {
-            const name = document.getElementById('input-name').value.trim();
-            if(!name) return alert('Digite seu nome!');
-            socket.emit('criarSala', name);
-        });
-
-        document.getElementById('btn-join').addEventListener('click', () => {
-            const name = document.getElementById('input-name').value.trim();
-            const code = document.getElementById('input-code').value.trim().toUpperCase();
-            if(!name || !code) return alert('Preencha nome e código da sala!');
-            socket.emit('joinRoom', { roomCode: code, name: name });
-        });
-
-        socket.on('salaCriada', (codigo) => {
-            document.getElementById('lobby-code').innerText = codigo;
-            alternarTela('screen-lobby');
-        });
-
-        /* --- MONITORAMENTO E ATUALIZAÇÃO DO LOBBY --- */
-        socket.on('roomUpdated', (sala) => {
-            // Se estamos na tela de login, migra para o lobby
-            if(document.getElementById('screen-login').classList.contains('active')) {
-                document.getElementById('lobby-code').innerText = sala.code;
-                alternarTela('screen-lobby');
-            }
-
-            isHost = (socket.id === sala.host);
-            categoriasAtuais = sala.categories || [];
-            tempoInicialRodada = sala.roundTime || 60;
-
-            // Renderiza Jogadores
-            const pList = document.getElementById('lobby-players');
-            pList.innerHTML = '';
-            sala.players.forEach(p => {
-                const li = document.createElement('li');
-                li.innerText = p.name + (p.id === sala.host ? ' 👑' : '');
-                pList.appendChild(li);
-            });
-
-            // Renderiza Categorias
-            const cList = document.getElementById('lobby-categories');
-            cList.innerHTML = '';
-            categoriasAtuais.forEach(cat => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>${cat}</span>`;
-                if(isHost) {
-                    const btn = document.createElement('button');
-                    btn.innerText = '❌';
-                    btn.className = 'btn-remove-cat';
-                    btn.onclick = () => socket.emit('removeCategory', cat);
-                    li.appendChild(btn);
-                }
-                cList.appendChild(li);
-            });
-
-            // Ajusta permissões visuais do Dono da Sala
-            if(isHost) {
-                document.getElementById('host-controls').style.display = 'block';
-                document.getElementById('player-message').style.display = 'none';
-            } else {
-                document.getElementById('host-controls').style.display = 'none';
-                document.getElementById('player-message').style.display = 'block';
-            }
-        });
-
-        // Adicionar nova categoria pelo Host
-        document.getElementById('btn-add-cat').addEventListener('click', () => {
-            const input = document.getElementById('input-category');
-            const cat = input.value.trim();
-            if(cat) {
-                socket.emit('addCategory', cat);
-                input.value = '';
-            }
-        });
-
-        // Iniciar Partida pelo Host
-        document.getElementById('btn-start').addEventListener('click', () => {
-            socket.emit('startRound');
-        });
-
-        /* --- TELA DE JOGO ATIVO (RODADA INICIADA) --- */
-        socket.on('roundStarted', (data) => {
-            alternarTela('screen-playing');
-            document.getElementById('game-round').innerText = `Round: ${data.round}/${data.maxRounds}`;
-            document.getElementById('game-letter').innerText = data.letter;
-            
-            // Cria os inputs na tela dinamicamente conforme as categorias
-            const box = document.getElementById('dynamic-inputs');
-            box.innerHTML = '';
-            data.categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.className = 'input-group';
-                div.innerHTML = `
-                    <label>${cat}</label>
-                    <input type="text" id="game-input-${cat}" placeholder="Palavra com ${data.letter}...">
-                `;
-                box.appendChild(div);
-            });
-
-            // Iniciar o Timer local de contagem regressiva
-            tempoRestante = data.roundTime;
-            document.getElementById('game-timer').innerText = `Tempo: ${tempoRestante}s`;
-            clearInterval(intervaloTimer);
-            intervaloTimer = setInterval(() => {
-                tempoRestante--;
-                document.getElementById('game-timer').innerText = `Tempo: ${tempoRestante}s`;
-                if(tempoRestante <= 0) {
-                    clearInterval(intervaloTimer);
-                    coletarEEnviarRespostas(false);
-                }
-            }, 1000);
-        });
-
-        // Botão de STOP pressionado por alguém
-        document.getElementById('btn-stop').addEventListener('click', () => {
-            coletarEEnviarRespostas(true);
-        });
-
-        socket.on('stopPressionado', (nome) => {
-            clearInterval(intervaloTimer);
-            coletarEEnviarRespostas(false);
-        });
-
-        socket.on('stopImediato', (nome) => {
-            clearInterval(intervaloTimer);
-            coletarEEnviarRespostas(false);
-        });
-
-        function coletarEEnviarRespostas(pressionouStop) {
-            clearInterval(intervaloTimer);
-            if(document.getElementById('screen-waiting').classList.contains('active')) return;
-
-            const respostas = {};
-            categoriasAtuais.forEach(cat => {
-                const el = document.getElementById(`game-input-${cat}`);
-                respostas[cat] = el ? el.value.trim() : '';
-            });
-
-            const tempoGasto = tempoInicialRodada - tempoRestante;
-            alternarTela('screen-waiting');
-
-            if(pressionouStop) {
-                socket.emit('pressStop', respostas, tempoGasto);
-            } else {
-                socket.emit('submitAnswers', respostas, tempoGasto);
-            }
-        }
-
-        /* --- TELA DE REVISÃO E VOTAÇÃO --- */
         socket.on('abrirRevisao', (data) => {
-            alternarTela('screen-review');
-            const list = document.getElementById('review-list');
-            list.innerHTML = '';
+            alternarTela('screenRevisao');
+            document.getElementById('painelAvancarHost').style.display = socket.id === data.hostId ? 'block' : 'none';
 
-            data.categories.forEach(cat => {
-                const block = document.createElement('div');
-                block.className = 'review-block';
-                block.innerHTML = `<strong>📁 Categoria: ${cat}</strong>`;
+            const container = document.getElementById('containerVotacao');
+            container.innerHTML = "";
 
-                data.players.forEach(p => {
-                    if(p.waiting) return;
-                    const palavra = p.answers[cat] || '---';
-                    const isMe = (p.id === socket.id);
-
+            data.players.forEach(p => {
+                if(p.id === socket.id) return; // Não vota em si mesmo
+                data.categories.forEach(cat => {
+                    const palavra = p.answers[cat] || "Não respondeu";
                     const row = document.createElement('div');
-                    row.className = 'vote-row';
+                    row.className = "row-vote";
                     row.innerHTML = `
-                        <div>👤 <span>${p.name}</span>: <em style="color:#4e54c8;">"${palavra}"</em></div>
-                        <div class="vote-btns" id="box-vote-${p.id}-${cat}">
-                            <button class="btn-green" onclick="votar('${p.id}', '${cat}', 'sim')" ${isMe ? 'disabled' : ''}>👍</button>
-                            <button class="btn-red" onclick="votar('${p.id}', '${cat}', 'nao')" ${isMe ? 'disabled' : ''}>👎</button>
+                        <div style="text-align:left;">
+                            <div><b>${p.name}</b> em <i>${cat}</i></div>
+                            <div style="font-size:18px; color:#4a00e0; font-weight:bold;">${palavra}</div>
+                        </div>
+                        <div class="vote-btns">
+                            <button class="btn-success" onclick="enviarVoto('${p.id}', '${cat}', 'sim')">👍</button>
+                            <button class="btn-danger" onclick="enviarVoto('${p.id}', '${cat}', 'nao')">👎</button>
                         </div>
                     `;
-                    block.appendChild(row);
+                    container.appendChild(row);
                 });
-                list.appendChild(block);
             });
-
-            if(isHost) {
-                document.getElementById('btn-advance-round').style.display = 'block';
-                document.getElementById('wait-advance-msg').style.display = 'none';
-            } else {
-                document.getElementById('btn-advance-round').style.display = 'none';
-                document.getElementById('wait-advance-msg').style.display = 'block';
-            }
         });
 
-        window.votar = function(playerTargetId, categoria, voto) {
-            socket.emit('votarPalavra', { playerTargetId, categoria, voto });
-            const box = document.getElementById(`box-vote-${playerTargetId}-${categoria}`);
-            if(box) {
-                box.innerHTML = `<span style="font-size:12px; color:#2ecc71;">Voto enviado!</span>`;
-            }
-        };
-
-        document.getElementById('btn-advance-round').addEventListener('click', () => {
-            socket.emit('aplicarVotosEAvancar');
-        });
-
-        /* --- TELA DE RANKING FINAL / PARCIAL --- */
         socket.on('showReviewTable', (data) => {
-            alternarTela('screen-results');
-            const tbody = document.getElementById('results-tbody');
-            tbody.innerHTML = '';
+            alternarTela('screenRanking');
+            const tabela = document.getElementById('tabelaRanking');
+            tabela.innerHTML = data.ranking.map(p => `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding:10px;">${p.name}</td>
+                    <td style="padding:10px; font-weight:bold;">${p.points}</td>
+                </tr>
+            `).join('');
 
-            data.ranking.forEach((p, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}º</td>
-                    <td>${p.name}</td>
-                    <td>${p.points} pts</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            if(salaAtual && socket.id === salaAtual.host && !data.isLastRound) {
+                document.getElementById('painelProximaRodadaHost').style.display = 'block';
+            } else {
+                document.getElementById('painelProximaRodadaHost').style.display = 'none';
+            }
+        });
 
-            const actionBtn = document.getElementById('btn-results-action');
-            if(data.isLastRound) {
-                actionBtn.innerText = 'FIM DE JOGO! REINICIAR';
-    
+        socket.on('erro', (msg) => {
+            alert(msg);
+        });
+    </script>
+</body>
+</html>
