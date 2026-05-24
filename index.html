@@ -327,6 +327,8 @@
             document.getElementById('letraSorteada').innerText = dadosRodada.letter;
             modoJogoAtivo = dadosRodada.gameMode || 'regressiva';
             
+            tempoMaximoRodada = parseInt(dadosRodada.roundTime) || 60;
+            
             const containerInputs = document.getElementById('inputsContainerJogo');
             containerInputs.innerHTML = '';
             
@@ -367,5 +369,4 @@
 
         function encerrarEEnviarRespostas() {
             clearInterval(cronometroPartida);
-            document.getElementById('btnStop').disabled = true;
-            document.getElementById('btnStop').style.opacity 
+            document.getElementById('btnS
