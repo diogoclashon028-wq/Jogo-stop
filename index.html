@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
@@ -177,8 +177,8 @@
     </div>
 
     <script>
-        const socket = io(window.location.origin, {
-            transports: ['websocket', 'polling']
+        const socket = io({
+            transports: ['polling', 'websocket']
         });
         
         let tempoMaximoRodada = 60;
@@ -355,5 +355,4 @@
             const containerInputs = document.getElementById('inputsContainerJogo');
             containerInputs.innerHTML = '';
             
-            dadosRodada.categories.forEach(cat => {
-                const d
+            dadosRodada.categories.forEach(cat =>
