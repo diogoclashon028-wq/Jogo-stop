@@ -179,7 +179,10 @@
     </div>
 
     <script>
-        const socket = io();
+        const socket = io(window.location.origin, {
+    transports: ['websocket', 'polling']
+});
+        
         let tempoMaximoRodada = 60;
         let modoJogoAtivo = 'regressiva';
         let tempoInicioRodada = 0;
