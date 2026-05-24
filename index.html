@@ -144,13 +144,18 @@
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-    const socket = io();
+    const socket = io({ transports: ['websocket', 'polling'] });
     let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
     let currentPlayersData = [], activeCategories = [];
     const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
-    socket.on('connect', () => { myId = socket.id; });
-    socket.on('connect_error', (err) => { alert("Aviso: Tentando conectar ao servidor..."); });
+    socket.on('connect', () => { 
+        myId = socket.id; 
+        console.log("Conectado! ID:", myId);
+    });
+    socket.on('connect_error', (err) => { 
+        console.log("Erro de conexão temporário:", err); 
+    });
 
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
