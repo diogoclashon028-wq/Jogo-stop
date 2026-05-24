@@ -1,3 +1,4 @@
+            
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -13,16 +14,36 @@ app.get('/', (req, res) => {
 let salas = {};
 
 io.on('connection', (socket) => {
+    
+    // EVENTO ATUALIZADO: Cria a sala e embaralha as letras do alfabeto
     socket.on('criarSala', (nomeJogador) => {
         const codigoSala = Math.random().toString(36).substring(2, 7).toUpperCase();
+        
+        // 1. Criamos a lista com o alfabeto padrão completo
+        let letras = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+        
+        // 2. ALGORITMO DE EMBARALHAMENTO (Fisher-Yates): Mistura as letras completamente
+        for (let i = letras.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [letras[i], letras[letras[j]]] = [letras[j], letras[i]];
+        }
+
+        // 3. Montamos o objeto da sala com as letras já misturadas
         salas[codigoSala] = {
-            code: codigoSala, host: socket.id,
+            code: codigoSala, 
+            host: socket.id,
             players: [{ id: socket.id, name: nomeJogador, points: 0, submitted: false, answers: {}, timeTaken: 0 }],
             categories: ['Nome', 'CEP', 'Cor', 'Fruta'],
-            allowedLetters: ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
-            maxRounds: 5, roundTime: 60, currentRound: 0, gameState: 'lobby', currentLetter: '',
-            ptsAcerto: 10, ptsRepetido: 5
+            allowedLetters: letras, // Salva o alfabeto embaralhado
+            maxRounds: 5, 
+            roundTime: 60, 
+            currentRound: 0, 
+            gameState: 'lobby', 
+            currentLetter: '',
+            ptsAcerto: 10, 
+            ptsRepetido: 5
         };
+        
         socket.join(codigoSala);
         socket.emit('salaCriada', codigoSala);
         io.to(codigoSala).emit('roomUpdated', salas[codigoSala]);
@@ -88,9 +109,9 @@ io.on('connection', (socket) => {
             sala.currentRound++;
             sala.gameState = 'playing';
             
-            const indice = Math.floor(Math.random() * sala.allowedLetters.length);
-            sala.currentLetter = sala.allowedLetters[indice];
-            sala.allowedLetters.splice(indice, 1);
+            // Como a lista já está embaralhada, pegar a primeira letra (índice 0) já é 100% aleatório!
+            sala.currentLetter = sala.allowedLetters[0];
+            sala.allowedLetters.splice(0, 1); // Remove a letra usada para não repetir
             
             sala.players.forEach(p => { p.submitted = false; p.answers = {}; p.timeTaken = 0; });
             
@@ -146,6 +167,7 @@ function calcularPontuacaoERevisao(sala) {
     sala.categories.forEach(cat => {
         let contagemRespostas = {};
         
+        // Validação: Só aceita palavras que comecem com a letra sorteada
         sala.players.forEach(p => {
             let ans = (p.answers[cat] || '').trim().toUpperCase();
             if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
@@ -153,6 +175,7 @@ function calcularPontuacaoERevisao(sala) {
             }
         });
 
+        // Distribuição dos pontos configurados no painel do host
         sala.players.forEach(p => {
             let ans = (p.answers[cat] || '').trim().toUpperCase();
             if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
@@ -174,5 +197,5 @@ function calcularPontuacaoERevisao(sala) {
     });
 }
 
-http.listen(PORT, () => console.log("Servidor ativo"));
-            
+http.listen(PORT, () => console.log("Servidor ativo e rodando perfeitamente!"));
+                    
