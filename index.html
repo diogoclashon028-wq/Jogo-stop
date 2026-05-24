@@ -359,7 +359,6 @@
             banner.innerText = `🛑 ${nomeJogador} fez stop`;
             banner.style.display = 'block';
 
-            // Se for modo clássico, trava e encerra IMEDIATAMENTE para todos
             if (modoJogoAtivo === 'classico') {
                 clearInterval(cronometroPartida);
                 encerrarEEnviarRespostas();
@@ -368,4 +367,5 @@
 
         function encerrarEEnviarRespostas() {
             clearInterval(cronometroPartida);
-            document.getElementById('btnStop').
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnStop').style.opacity 
