@@ -1,347 +1,190 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: { origin: "*" }
+});
 const path = require('path');
 
-const app = express();
-const server = http.createServer(app);
+app.use(express.static(path.join(__dirname, '')));
 
-// Configuração de CORS para liberar conexões e Ping/Pong para estabilidade no Render
-const io = new Server(server, {
-    cors: {
-        origin: "*", 
-        methods: ["GET", "POST"]
-    },
-    pingTimeout: 60000,
-    pingInterval: 25000
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
-
-// Rota para a página inicial (Index)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'), (err) => {
-        if (err) {
-            res.sendFile(path.join(__dirname, 'public', 'index.html'));
-        }
-    });
-});
-
-// Suporte total para carregar o lobby com ou sem .html na URL
-app.get(['/lobby', '/lobby.html'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'lobby.html'), (err) => {
-        if (err) {
-            res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
-        }
-    });
-});
-
-// Banco de dados em memória para armazenar as salas de jogo
 const salas = {};
 
-function gerarCodigoSala() {
-    const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let codigo = '';
+function gerarCodigo() {
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let resultado = '';
     for (let i = 0; i < 4; i++) {
-        codigo += letras.charAt(Math.floor(Math.random() * letras.length));
+        resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
     }
-    return codigo;
+    return resultado;
 }
 
 io.on('connection', (socket) => {
-    console.log(`Usuário conectado: ${socket.id}`);
+    console.log('Usuário conectado:', socket.id);
 
-    // --- EVENTO: CRIAR SALA ---
-    socket.on('criarSala', (nomeJogador) => {
-        const codigoSala = gerarCodigoSala();
-        
-        salas[codigoSala] = {
-            code: codigoSala,
+    socket.on('criarSala', (nomeHost) => {
+        const codigo = gerarCodigo();
+        salas[codigo] = {
+            code: codigo,
             host: socket.id,
-            gameState: 'lobby',
-            gameMode: 'classico',
-            useVoting: 'sim',
-            maxPlayers: 10,
-            maxRounds: 5,
-            roundTime: 60,
-            ptsAcerto: 10,
-            ptsRepetido: 5,
-            currentRound: 0,
-            currentLetter: '',
+            players: [{ id: socket.id, name: nomeHost, points: 0 }],
             categories: ['Nome', 'Animal', 'Objeto', 'Fruta'],
             allowedLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
-            players: [],
-            votes: {}
+            usedLetters: [],
+            currentLetter: '',
+            roundTime: 60,
+            maxRounds: 5,
+            currentRound: 0,
+            ptsAcerto: 10,
+            ptsRepetido: 5,
+            maxPlayers: 8,
+            gameMode: 'regressiva', // 'regressiva' (Normal) ou 'classico' (Para na hora)
+            useVoting: 'sim',
+            status: 'lobby',
+            respostasRodada: {}
         };
-
-        const sala = salas[codigoSala];
-        
-        sala.players.push({
-            id: socket.id,
-            name: nomeJogador,
-            points: 0,
-            answers: {},
-            tempoGasto: 0
-        });
-
-        socket.join(codigoSala);
-        socket.emit('salaCriado', codigoSala);
-        io.to(codigoSala).emit('roomUpdated', sala);
+        socket.join(codigo);
+        socket.emit('salaCriado', codigo);
+        io.to(codigo).emit('roomUpdated', salas[codigo]);
     });
 
-    // --- EVENTO: ENTRAR EM SALA EXISTENTE ---
-    socket.on('joinRoom', (data) => {
-        const { roomCode, name } = data;
-        const sala = salas[roomCode];
+    socket.on('joinRoom', ({ roomCode, name }) => {
+        const codigo = roomCode.toUpperCase();
+        const sala = salas[codigo];
+        if (!sala) return socket.emit('erro', 'Sala não encontrada!');
+        if (sala.status !== 'lobby') return socket.emit('erro', 'O jogo já começou nesta sala!');
+        if (sala.players.length >= (sala.maxPlayers || 8)) return socket.emit('erro', 'A sala está lotada!');
 
-        if (!sala) {
-            return socket.emit('erro', 'Sala não encontrada!');
-        }
-        if (sala.gameState !== 'lobby') {
-            return socket.emit('erro', 'O jogo nesta sala já começou!');
-        }
-
-        if (sala.players.length >= sala.maxPlayers) {
-            return socket.emit('erro', `A sala está cheia! Limite máximo de ${sala.maxPlayers} jogadores.`);
-        }
-
-        sala.players.push({
-            id: socket.id,
-            name: name,
-            points: 0,
-            answers: {},
-            tempoGasto: 0
-        });
-
-        socket.join(roomCode);
-        io.to(roomCode).emit('roomUpdated', sala);
+        sala.players.push({ id: socket.id, name: name, points: 0 });
+        socket.join(codigo);
+        io.to(codigo).emit('roomUpdated', sala);
     });
 
-    // --- EVENTO: ATUALIZAR CONFIGURAÇÕES DA SALA (HOST) ---
-    socket.on('updateSettings', (data) => {
+    socket.on('updateSettings', (config) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        sala.gameMode = data.gameMode;
-        sala.useVoting = data.useVoting;
-        sala.maxPlayers = parseInt(data.maxPlayers) || 10;
-        sala.maxRounds = parseInt(data.maxRounds) || 5;
-        sala.roundTime = parseInt(data.roundTime) || 60;
-        sala.ptsAcerto = parseInt(data.ptsAcerto) || 10;
-        sala.ptsRepetido = parseInt(data.ptsRepetido) || 5;
+        sala.roundTime = parseInt(config.roundTime) || 60;
+        sala.maxRounds = parseInt(config.maxRounds) || 5;
+        sala.ptsAcerto = parseInt(config.ptsAcerto) || 10;
+        sala.ptsRepetido = parseInt(config.ptsRepetido) || 5;
+        sala.maxPlayers = parseInt(config.maxPlayers) || 8;
+        sala.gameMode = config.gameMode || 'regressiva';
+        sala.useVoting = config.useVoting || 'sim';
 
         io.to(sala.code).emit('roomUpdated', sala);
     });
 
-    // --- EVENTO: EDITOR DE TEMAS - ADICIONAR CATEGORIA (HOST) ---
     socket.on('addCategory', (categoria) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala || !categoria) return;
-
-        const formatada = categoria.trim();
-        if (formatada && !sala.categories.includes(formatada)) {
-            sala.categories.push(formatada);
+        if (sala && categoria && !sala.categories.includes(categoria)) {
+            sala.categories.push(categoria);
             io.to(sala.code).emit('roomUpdated', sala);
         }
     });
 
-    // --- EVENTO: EDITOR DE TEMAS - REMOVER CATEGORIA (HOST) ---
     socket.on('removeCategory', (categoria) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala) return;
-
-        sala.categories = sala.categories.filter(cat => cat !== categoria);
-        io.to(sala.code).emit('roomUpdated', sala);
+        if (sala) {
+            sala.categories = sala.categories.filter(c => c !== categoria);
+            io.to(sala.code).emit('roomUpdated', sala);
+        }
     });
 
-    // --- EVENTO: GERENCIADOR DO ALFABETO - ATIVAR/DESATIVAR LETRA (HOST) ---
     socket.on('toggleLetter', (letra) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala) return;
-
-        if (sala.allowedLetters.includes(letra)) {
-            if (sala.allowedLetters.length > 1) {
-                sala.allowedLetters = sala.allowedLetters.filter(l => l !== letra);
+        if (sala) {
+            if (sala.allowedLetters.includes(letra)) {
+                if (sala.allowedLetters.length > 1) {
+                    sala.allowedLetters = sala.allowedLetters.filter(l => l !== letra);
+                }
             } else {
-                return socket.emit('erro', 'Você precisa deixar ao menos uma letra ativa!');
+                sala.allowedLetters.push(letra);
             }
-        } else {
-            sala.allowedLetters.push(letra);
+            io.to(sala.code).emit('roomUpdated', sala);
         }
+    });
+
+    socket.on('kickPlayer', (idAlvo) => {
+        const sala = Object.values(salas).find(s => s.host === socket.id);
+        if (!sala) return;
+        
+        sala.players = sala.players.filter(p => p.id !== idAlvo);
+        io.to(idAlvo).emit('playerKicked');
+        
+        const socketAlvo = io.sockets.sockets.get(idAlvo);
+        if (socketAlvo) socketAlvo.leave(sala.code);
+
         io.to(sala.code).emit('roomUpdated', sala);
     });
 
-    // --- EVENTO: INICIAR RODADA ---
     socket.on('startRound', () => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (!sala) return;
 
-        if (sala.allowedLetters.length === 0) {
-            return socket.emit('erro', 'Nenhuma letra disponível no alfabeto selecionado!');
-        }
-
-        const indexSorteado = Math.floor(Math.random() * sala.allowedLetters.length);
-        sala.currentLetter = sala.allowedLetters[indexSorteado];
-
+        const letrasDisponiveis = sala.allowedLetters.filter(l => !sala.usedLetters.includes(l));
+        if (letrasDisponiveis.length === 0) sala.usedLetters = []; 
+        
+        const listaSorteio = letrasDisponiveis.length > 0 ? letrasDisponiveis : sala.allowedLetters;
+        const letraEscolhida = listaSorteio[Math.floor(Math.random() * listaSorteio.length)];
+        
+        sala.usedLetters.push(letraEscolhida);
+        sala.currentLetter = letraEscolhida;
         sala.currentRound++;
-        sala.gameState = 'jogando';
-        sala.votes = {};
-
-        sala.players.forEach(p => {
-            p.answers = {};
-            p.tempoGasto = 0;
-        });
+        sala.status = 'jogando';
+        sala.respostasRodada = {};
 
         io.to(sala.code).emit('roundStarted', {
+            round: sala.currentRound,
+            maxRounds: sala.maxRounds,
             letter: sala.currentLetter,
             categories: sala.categories,
-            round: sala.currentRound,
-            maxRounds: sala.maxRounds
+            gameMode: sala.gameMode
         });
-        io.to(sala.code).emit('roomUpdated', sala);
     });
 
-    // --- EVENTO: PRESSIONAR STOP / FIM DA RODADA ---
-    socket.on('pressStop', (data) => {
+    // Alguém clicou no STOP
+    socket.on('notifyStop', () => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
-        if (!sala || sala.gameState !== 'jogando') return;
+        if (!sala || sala.status !== 'jogando') return;
 
-        const jogadorQueEnviou = sala.players.find(p => p.id === socket.id);
-        if (jogadorQueEnviou) {
-            jogadorQueEnviou.answers = data.respostas || {};
-            jogadorQueEnviou.tempoGasto = data.tempoGasto || 0;
-        }
-
-        if (sala.useVoting === 'nao') {
-            sala.players.forEach(p => {
-                sala.categories.forEach(cat => {
-                    let resposta = (p.answers && p.answers[cat]) ? p.answers[cat].trim() : "";
-                    
-                    if (resposta !== "" && resposta.toLowerCase().startsWith(sala.currentLetter.toLowerCase())) {
-                        
-                        let repetido = sala.players.some(outro => 
-                            outro.id !== p.id && 
-                            outro.answers && 
-                            outro.answers[cat] && 
-                            outro.answers[cat].trim().toLowerCase() === resposta.toLowerCase()
-                        );
-                        
-                        let ptsAcerto = parseInt(sala.ptsAcerto) || 10;
-                        let ptsRepetido = parseInt(sala.ptsRepetido) || 5;
-                        
-                        p.points += repetido ? ptsRepetido : ptsAcerto;
-                    }
-                });
-            });
-
-            sala.gameState = 'ranking';
-
-            let rankingEnvio = sala.players.map(p => ({
-                id: p.id,
-                name: p.name,
-                points: p.points,
-                tempoGasto: p.tempoGasto,
-                answers: p.answers
-            })).sort((a, b) => b.points - a.points);
-
-            io.to(sala.code).emit('showReviewTable', { 
-                ranking: rankingEnvio, 
-                isLastRound: sala.currentRound >= sala.maxRounds 
-            });
-            io.to(sala.code).emit('roomUpdated', sala);
-
-        } else {
-            sala.gameState = 'revisao';
-            io.to(sala.code).emit('abrirRevisao', {
-                hostId: sala.host,
-                categories: sala.categories,
-                players: sala.players.map(p => ({ id: p.id, name: p.name, answers: p.answers }))
-            });
-            io.to(sala.code).emit('roomUpdated', sala);
+        const jogador = sala.players.find(p => p.id === socket.id);
+        if (jogador) {
+            // Emite para toda a sala quem apertou o botão
+            io.to(sala.code).emit('playerPressedStop', jogador.name);
         }
     });
 
-    // --- EVENTO: PROCESSAR VOTO MANUAL RECEBIDO ---
-    socket.on('votarPalavra', (data) => {
-        const { playerTargetId, categoria, voto } = data;
+    socket.on('pressStop', (dados) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (!sala) return;
 
-        if (!sala.votes[playerTargetId]) sala.votes[playerTargetId] = {};
-        if (!sala.votes[playerTargetId][categoria]) sala.votes[playerTargetId][categoria] = { sim: 0, nao: 0 };
+        sala.respostasRodada[socket.id] = dados.respostas;
 
-        sala.votes[playerTargetId][categoria][voto]++;
+        // Se todos responderam ou se o modo clássico for acionado
+        if (Object.keys(sala.respostasRodada).length === sala.players.length || sala.gameMode === 'classico') {
+            sala.status = 'lobby'; // Retorna temporariamente ao lobby (pode direcionar para tela de pontos futuramente)
+            io.to(sala.code).emit('roundEnded', sala.respostasRodada);
+            io.to(sala.code).emit('roomUpdated', sala);
+        }
     });
 
-    // --- EVENTO: CALCULAR VOTOS E AVANÇAR PARA O RANKING (HOST) ---
-    socket.on('aplicarVotosEAvancar', () => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala || sala.gameState !== 'revisao') return;
-
-        sala.players.forEach(p => {
-            sala.categories.forEach(cat => {
-                let resposta = p.answers[cat] ? p.answers[cat].trim() : "";
-                if (!resposta) return;
-
-                if (!resposta.toLowerCase().startsWith(sala.currentLetter.toLowerCase())) return;
-
-                let apuracao = (sala.votes[p.id] && sala.votes[p.id][cat]) ? sala.votes[p.id][cat] : { sim: 1, nao: 0 };
-                
-                if (apuracao.nao >= apuracao.sim) return;
-
-                let repetido = sala.players.some(outro => 
-                    outro.id !== p.id && 
-                    outro.answers && 
-                    outro.answers[cat] && 
-                    outro.answers[cat].trim().toLowerCase() === resposta.toLowerCase()
-                );
-
-                let ptsAcerto = parseInt(sala.ptsAcerto) || 10;
-                let ptsRepetido = parseInt(sala.ptsRepetido) || 5;
-
-                p.points += repetido ? ptsRepetido : ptsAcerto;
-            });
-        });
-
-        sala.gameState = 'ranking';
-
-        let rankingEnvio = sala.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            points: p.points,
-            tempoGasto: p.tempoGasto,
-            answers: p.answers
-        })).sort((a, b) => b.points - a.points);
-
-        io.to(sala.code).emit('showReviewTable', { 
-            ranking: rankingEnvio, 
-            isLastRound: sala.currentRound >= sala.maxRounds 
-        });
-        io.to(sala.code).emit('roomUpdated', sala);
-    });
-
-    // --- EVENTO: QUANDO UM JOGADOR SE DESCONECTA ---
     socket.on('disconnect', () => {
-        console.log(`Usuário desconectado: ${socket.id}`);
-        
-        Object.keys(salas).forEach(codigoSala => {
-            const sala = salas[codigoSala];
+        console.log('Usuário desconectado:', socket.id);
+        Object.keys(salas).forEach(codigo => {
+            const sala = salas[codigo];
             sala.players = sala.players.filter(p => p.id !== socket.id);
-
             if (sala.players.length === 0) {
-                delete salas[codigoSala];
+                delete salas[codigo];
+            } else if (sala.host === socket.id) {
+                sala.host = sala.players[0].id;
+                io.to(codigo).emit('roomUpdated', sala);
             } else {
-                if (sala.host === socket.id) {
-                    sala.host = sala.players[0].id;
-                }
-                io.to(codigoSala).emit('roomUpdated', sala);
+                io.to(codigo).emit('roomUpdated', sala);
             }
         });
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor ativo na porta *:${PORT}`);
-});
+const PORT = process.env.PORT || 10000;
+http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
