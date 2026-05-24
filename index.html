@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online</title>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -156,7 +156,7 @@
     </div>
 
     <script>
-        const socket = io();
+        const socket = io({ transports: ['websocket', 'polling'] });
         let tempoMaximoRodada = 60;
         let modoJogoAtivo = 'regressiva';
 
@@ -369,4 +369,4 @@
 
         function encerrarEEnviarRespostas() {
             clearInterval(cronometroPartida);
-            document.getElementById('btnS
+            document.g
