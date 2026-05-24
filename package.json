@@ -1,7 +1,7 @@
 {
-  "name": "stop-online",
+  "name": "stop-online-supremo",
   "version": "1.0.0",
-  "description": "Jogo de Stop Online Customizado",
+  "description": "Jogo de Stop com Painel de Controle Avançado",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
