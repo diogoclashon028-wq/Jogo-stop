@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Avançado</title>
+    <title>Stop! Online</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;}
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
@@ -28,7 +28,6 @@
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
         .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
         
-        /* ESTILOS DOS NOVOS RECURSOS */
         .chat-container { background: #fff3e0; padding: 10px; border-radius: 12px; margin-top: 15px; border: 2px solid #ffb74d; }
         .chat-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px; }
         .btn-chat { background: #ff9800; color: white; padding: 8px; font-size: 12px; margin: 0; }
@@ -49,7 +48,7 @@
 </head>
 <body>
 <div class="container">
-    <div id="status-conexao">🔴 Conectando ao servidor backend...</div>
+    <div id="status-conexao">🔴 Conectando ao servidor...</div>
     <div id="toast-alerta" class="alert-toast"></div>
 
     <div id="screen-login" class="screen active">
@@ -116,7 +115,7 @@
         <div class="waiting-box">
             <div class="spinner"></div>
             <p style="font-size: 18px; font-weight: bold; color: #4a148c;">Você entrou no meio da partida!</p>
-            <p>Aguarde a rodada terminar. Você entrará na próxima automaticamente.</p>
+            <p>Aguarde a rodada terminar.</p>
         </div>
     </div>
 
@@ -166,9 +165,9 @@
     </div>
 </div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io("https://jogo-stop.onrender.com");
+    const socket = io();
     let myId = null, timerInterval = null, activeCategories = [], isHost = false;
     let tempoTotalRodada = 60, milissegundosPassados = 0, euJaDeiStop = false;
     const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -229,7 +228,6 @@
         });
         socket.emit('pressStop', { respostas: answers, tempoGasto: (milissegundosPassados / 1000).toFixed(1) + "s" });
         document.getElementById('btn-main-action').disabled = true;
-        document.getElementById('btn-main-action').innerText = "STOP!";
     }
 
     function enviarPorFimDeTempo() {
@@ -247,7 +245,6 @@
 
     function aplicarVotos() { socket.emit('aplicarVotosEAvancar'); }
 
-    // RENDERIZAÇÃO DA NOTIFICAÇÃO DO CHAT RÁPIDO
     socket.on('receberProvocacao', (data) => {
         const toast = document.getElementById('toast-alerta');
         toast.innerText = `${data.nome}: "${data.mensagem}"`;
@@ -258,10 +255,10 @@
     socket.on('salaCriada', () => { showScreen('screen-lobby'); });
     socket.on('forcarEspera', () => { showScreen('screen-wait-round'); });
     socket.on('stopPressionado', (nome) => {
-        document.getElementById('stop-alert').innerText = `🚨 ${nome} deu STOP! Corra!`;
+        document.getElementById('stop-alert').innerText = `🚨 ${nome} deu STOP!`;
         document.getElementById('stop-alert').style.display = 'block';
     });
-    socket.on('stopImediato', (nome) => { clearInterval(timerInterval); alert(`🚨 STOP IMEDIATO por ${nome}! Acabou o tempo!`); });
+    socket.on('stopImediato', (nome) => { clearInterval(timerInterval); alert(`🚨 STOP IMEDIATO por ${nome}!`); });
 
     socket.on('roomUpdated', (room) => {
         activeCategories = room.categories; isHost = room.host === myId;
@@ -296,14 +293,14 @@
 
         const playerList = document.getElementById('player-list'); playerList.innerHTML = '';
         room.players.forEach(p => {
-            playerList.innerHTML += `<div class="player-item">${p.name} ${p.id === room.host ? '👑' : ''} ${p.waiting ? '⏳' : (p.submitted ? '✅' : '⏳')}</div>`;
+            playerList.innerHTML += `<div class="player-item">${p.name} ${p.id === room.host ? '👑' : ''}</div>`;
         });
     });
 
     socket.on('roundStarted', (data) => {
         clearInterval(timerInterval); activeCategories = data.categories; tempoTotalRodada = data.roundTime; milissegundosPassados = 0; euJaDeiStop = false;
         document.getElementById('stop-alert').style.display = 'none';
-        document.getElementById('btn-main-action').disabled = false; document.getElementById('btn-main-action').innerText = "STOP!";
+        document.getElementById('btn-main-action').disabled = false;
         document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
         document.getElementById('game-letter').innerText = data.letter;
         
@@ -319,7 +316,6 @@
         showScreen('screen-game');
     });
 
-    // CRIA A TELA DE VOTAÇÃO
     socket.on('abrirRevisao', ({ hostId, players, categories, letter }) => {
         clearInterval(timerInterval);
         isHost = hostId === myId;
@@ -330,7 +326,7 @@
 
         players.forEach(p => {
             if (p.waiting) return;
-            container.innerHTML += `<h4 style="color:#6a11cb; margin:10px 0 5px 0;">👤 Folha de: ${p.name} <small style="color:#999">(${p.timeTaken || 'Tempo esgotado'})</small></h4>`;
+            container.innerHTML += `<h4 style="color:#6a11cb; margin:10px 0 5px 0;">👤 Folha de: ${p.name}</h4>`;
             categories.forEach(cat => {
                 const palavra = (p.answers[cat] || '').trim();
                 if(!palavra) return;
@@ -345,4 +341,21 @@
                         ${p.id !== myId ? `
                         <div class="vote-actions">
                             <button class="btn-vote-yes" onclick="computarVoto('${p.id}', '${cat}', 'sim')">✅ Aceitar</button>
-                            <button class="btn-vote-no" onclick="computarVoto('${p.id}', '${cat}', 'nao')"
+                            <button class="btn-vote-no" onclick="computarVoto('${p.id}', '${cat}', 'nao')">❌ Rejeitar</button>
+                        </div>` : ''}
+                    </div>`;
+            });
+        });
+        showScreen('screen-voting');
+    });
+
+    socket.on('votosAtualizados', (votes) => {
+        Object.keys(votes).forEach(chave => {
+            const countEl = document.getElementById(`count-${chave}`);
+            if (countEl) {
+                countEl.innerText = `Aceitos: ${votes[chave].aceitos} | Rejeitados: ${votes[chave].rejeitados}`;
+            }
+        });
+    });
+
+    sock
