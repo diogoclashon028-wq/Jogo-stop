@@ -31,6 +31,9 @@
         .btn-close-review { position: absolute; top: 10px; right: 10px; background: #ff4b2b; color: white; border: none; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer; line-height: 30px; text-align: center; font-weight: bold;}
         .row-config { display: flex; gap: 10px; }
         .row-config div { flex: 1; }
+        .waiting-box { text-align: center; padding: 30px 10px; color: #555; }
+        .spinner { margin: 20px auto; width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #6a11cb; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -89,6 +92,15 @@
         <div id="player-list"></div>
         
         <button id="btn-start-game" class="btn-success" onclick="startRound()" style="display: none;">Começar Jogo</button>
+    </div>
+
+    <div id="screen-wait-round" class="screen">
+        <h2>Partida em Andamento</h2>
+        <div class="waiting-box">
+            <div class="spinner"></div>
+            <p style="font-size: 18px; font-weight: bold; color: #4a148c;">Você entrou no meio da partida!</p>
+            <p>Por favor, aguarde a rodada atual terminar. Você entrará na próxima automaticamente com os seus amigos.</p>
+        </div>
     </div>
 
     <div id="screen-game" class="screen">
@@ -214,11 +226,16 @@
     }
 
     socket.on('salaCriada', () => { showScreen('screen-lobby'); });
+    
+    // Força o jogador atrasado a ver a tela de espera estilizada
+    socket.on('forcarEspera', () => { showScreen('screen-wait-round'); });
 
     socket.on('stopPressionado', (nome) => {
         const alerta = document.getElementById('stop-alert');
-        alerta.innerText = `🚨 ${nome} deu STOP! Digite rápido até o tempo acabar!`;
-        alerta.style.display = 'block';
+        if(alerta) {
+            alerta.innerText = `🚨 ${nome} deu STOP! Digite rápido até o tempo acabar!`;
+            alerta.style.display = 'block';
+        }
     });
 
     socket.on('roomUpdated', (room) => {
@@ -251,7 +268,8 @@
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = '';
         room.players.forEach(p => {
-            playerList.innerHTML += `<div class="player-item" style="cursor:default">${p.name} ${p.id === room.host ? '👑' : ''} ${p.submitted ? '✅' : '⏳'}</div>`;
+            let statusIcon = p.waiting ? '⏳ (Em Espera)' : (p.submitted ? '✅' : '⏳');
+            playerList.innerHTML += `<div class="player-item" style="cursor:default">${p.name} ${p.id === room.host ? '👑' : ''} ${statusIcon}</div>`;
         });
     });
 
@@ -270,7 +288,6 @@
         document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
         document.getElementById('game-letter').innerText = data.letter;
         
-        // CORREÇÃO ESSENCIAL: Recria caixas limpas, ativas e remove o autocomplete para não sugerir respostas antigas
         const container = document.getElementById('dynamic-inputs-container');
         container.innerHTML = '';
         activeCategories.forEach(c => {
@@ -304,10 +321,12 @@
         const rList = document.getElementById('ranking-list');
         rList.innerHTML = '';
         ranking.forEach((p, idx) => {
+            // Se o jogador estava esperando, exibe aviso na tabela
+            let infoTexto = p.waiting ? 'Aguardando próxima' : `${p.points} pts`;
             rList.innerHTML += `
-                <div class="player-item" onclick="mostrarDetalhesJogador('${p.id}')">
+                <div class="player-item" onclick="${p.waiting ? '' : `mostrarDetalhesJogador('${p.id}')`}">
                     <b>${idx+1}° ${p.name}</b> 
-                    <span>🔍 Ver Folha | ${p.points} pts</span>
+                    <span>${p.waiting ? '⏳' : '🔍 Ver Folha'} | ${infoTexto}</span>
                 </div>`;
         });
 
@@ -333,7 +352,7 @@
 
     function mostrarDetalhesJogador(idJogador) {
         const player = guardouPlayersReview.find(p => p.id === idJogador);
-        if(!player) return;
+        if(!player || player.waiting) return;
 
         document.getElementById('review-player-name').innerText = `Folha de: ${player.name}`;
         document.getElementById('review-player-time').innerText = `⏱️ Tempo de envio: ${player.timeTaken || "Não finalizou"}`;
@@ -348,8 +367,6 @@
 
         const boxDetalhes = document.getElementById('review-details-box');
         boxDetalhes.style.display = 'block';
-        
-        // CORREÇÃO: Rolagem confortável de tela para o usuário ver as notas abertas
         boxDetalhes.scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -360,5 +377,5 @@
     socket.on('erro', (msg) => alert(msg));
 </script>
 </body>
-</html>
-
+    </html>
+    
