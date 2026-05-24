@@ -5,23 +5,24 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-// CORREÇÃO DE ROTAS: Garante que o servidor encontre o arquivo se estiver em 'public' ou na raiz
+// Configuração de Ping/Pong para evitar quedas prematuras no plano gratuito do Render
+const io = new Server(server, {
+    pingTimeout: 60000,  // Aguarda até 60s por resposta antes de considerar queda
+    pingInterval: 25000  // Envia um sinal de verificação a cada 25s para manter a linha ativa
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
-    // Tenta enviar o arquivo index.html da raiz por padrão para evitar o erro "Cannot GET /"
     res.sendFile(path.join(__dirname, 'index.html'), (err) => {
         if (err) {
-            // Se não achar na raiz, tenta buscar dentro da pasta public
             res.sendFile(path.join(__dirname, 'public', 'index.html'));
         }
     });
 });
 
-// Banco de dados em memória para armazenar as salas de jogo
 const salas = {};
 
 function gerarCodigoSala() {
@@ -46,7 +47,7 @@ io.on('connection', (socket) => {
             gameState: 'lobby',
             gameMode: 'classico',
             useVoting: 'sim',
-            maxPlayers: 10, // Limite padrão inicial
+            maxPlayers: 10,
             maxRounds: 5,
             roundTime: 60,
             ptsAcerto: 10,
@@ -85,8 +86,6 @@ io.on('connection', (socket) => {
         if (sala.gameState !== 'lobby') {
             return socket.emit('erro', 'O jogo nesta sala já começou!');
         }
-
-        // Validação do limite de vagas configurado pelo Host
         if (sala.players.length >= sala.maxPlayers) {
             return socket.emit('erro', `A sala está cheia! Limite máximo de ${sala.maxPlayers} jogadores.`);
         }
