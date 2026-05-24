@@ -1,10 +1,17 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, { cors: { origin: "*" } });
+const io = require('socket.io')(http, { 
+    cors: { origin: "*" } 
+});
 const path = require('path');
 
-app.use(express.static(path.join(__dirname, '')));
+// Garante que o servidor ache o index.html na pasta correta
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const salas = {};
 
@@ -13,6 +20,7 @@ io.on('connection', (socket) => {
     socket.emit('statusConexao', true);
 
     socket.on('criarSala', (nome) => {
+        if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         salas[codigo] = {
             codigo: codigo,
@@ -52,6 +60,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('joinRoom', ({ roomCode, name }) => {
+        if (!roomCode) return;
         const codigo = roomCode.toUpperCase();
         if (salas[codigo]) {
             const sala = salas[codigo];
@@ -59,8 +68,7 @@ io.on('connection', (socket) => {
                 return socket.emit('erro', 'A sala já está cheia!');
             }
             const jaExiste = sala.jogadores.find(p => p.id === socket.id);
-            if (!jaExiste) {
-                if(!name) return; 
+            if (!jaExiste && name) {
                 sala.jogadores.push({ id: socket.id, nome: name, pontos: 0 });
             }
             socket.join(codigo);
@@ -153,3 +161,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+      
