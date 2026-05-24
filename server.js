@@ -79,8 +79,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('startRound', () => {
-        const sala = Object.values(salas).find(s => s.host === socket.id || (s.players.some(p => p.id === socket.id) && s.gameState === 'reviewing'));
-        if (sala && sala.allowedLetters.length > 0) {
+        // CORREÇÃO: Busca a sala tanto se você for o host direto ou se você faz parte da lista de jogadores dela
+        const sala = Object.values(salas).find(s => s.host === socket.id || s.players.some(p => p.id === socket.id));
+        
+        if (sala && (sala.host === socket.id)) {
+            if (sala.allowedLetters.length === 0) {
+                return socket.emit('erro', 'Não restaram mais letras permitidas para jogar!');
+            }
             sala.currentRound++;
             sala.gameState = 'playing';
             
@@ -106,7 +111,6 @@ io.on('connection', (socket) => {
             jogador.timeTaken = tempoGasto;
             jogador.submitted = true;
 
-            // Transmite quem deu stop para manter o relógio correndo em tempo real nos oponentes
             io.to(sala.code).emit('stopPressionado', jogador.name);
             io.to(sala.code).emit('roomUpdated', sala);
 
@@ -166,8 +170,10 @@ function calcularPontuacaoERevisao(sala) {
     const acabouJogo = sala.currentRound >= sala.maxRounds;
 
     io.to(sala.code).emit('showReviewTable', {
+        hostId: sala.host, // Envia de forma explícita quem manda na sala
         players: sala.players, ranking: ranking, categories: sala.categories, isLastRound: acabouJogo
     });
 }
 
 http.listen(PORT, () => console.log("Servidor ativo"));
+      
