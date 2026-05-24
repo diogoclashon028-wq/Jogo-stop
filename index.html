@@ -1,0 +1,130 @@
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// Configuração de porta automática para o Render
+const PORT = process.env.PORT || 10000;
+
+// TODO O SEU CONTEÚDO VISUAL (HTML/CSS/JS DO CLIENTE)
+const conteudoHTML = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Dinâmico</title>
+    <style>
+        corpo, body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 400px; width: 100%;
+        }
+        h2 { color: #4a148c; text-align: center; margin-top: 0; font-size: 28px; }
+        h3 { color: #7b1fa2; border-bottom: 2px solid #d1bae7; padding-bottom: 5px; }
+        input {
+            width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ddd;
+        }
+        button {
+            width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; font-size: 16px; cursor: pointer; font-weight: bold;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; font-size: 18px; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .banner-img { width: 100%; max-height: 130px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin-bottom: 8px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="screen-login" class="screen active">
+            <img class="banner-img" src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=600&auto=format&fit=crop" alt="Stop Online">
+            <h2>Paro! Online</h2>
+            <input type="text" id="username" placeholder="Seu Nome">
+            <button class="btn-primary" onclick="createRoom()">Criar Nova Sala</button>
+            <hr style="border: 0; height: 1px; background: #ddd; margin: 15px 0;">
+            <input type="text" id="room-code" placeholder="Código da Sala">
+            <button class="btn-success" onclick="joinRoom()">Entrar na Sala</button>
+        </div>
+
+        <div id="screen-lobby" class="screen">
+            <img class="banner-img" src="https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&auto=format&fit=crop" alt="Lobby">
+            <h2 id="lobby-title">Sala: -----</h2>
+            <div id="theme-manager-section"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function createRoom() {
+            const name = document.getElementById('username').value;
+            if (!name) return alert('Por favor, digite seu nome!');
+            socket.emit('criarSala', name);
+        }
+
+        function joinRoom() {
+            const room = document.getElementById('room-code').value;
+            if (!room) return alert('Por favor, digite o código da sala!');
+            socket.emit('criarSala', room); // Mantendo a lógica de conexão do seu print
+        }
+
+        socket.on('salaCriada', (nomeSala) => {
+            document.getElementById('screen-login').classList.remove('active');
+            document.getElementById('screen-lobby').classList.add('active');
+            document.getElementById('lobby-title').innerText = "Sala: " + nomeSala;
+        });
+
+        socket.on('erro', (msg) => {
+            alert(msg);
+        });
+    </script>
+</body>
+</html>
+`;
+
+// O servidor entrega o HTML unificado na página inicial
+app.get('/', (req, res) => {
+    res.send(conteudoHTML);
+});
+
+let salas = {};
+
+io.on('connection', (socket) => {
+    console.log('Novo jogador conectado:', socket.id);
+
+    socket.on('criarSala', (nomeSala) => {
+        if (!salas[nomeSala]) {
+            salas[nomeSala] = { jogadores: [], jogoIniciado: false };
+            socket.join(nomeSala);
+            salas[nomeSala].jogadores.push(socket.id);
+            socket.emit('salaCriada', nomeSala);
+            console.log(`Sala ${nomeSala} criada por ${socket.id}`);
+        } else {
+            // Se a sala já existir, o jogador entra nela em vez de dar erro
+            socket.join(nomeSala);
+            salas[nomeSala].jogadores.push(socket.id);
+            socket.emit('salaCriada', nomeSala);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Jogador desconectado:', socket.id);
+    });
+});
+
+// Inicialização correta para o Render
+server.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
+
