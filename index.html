@@ -57,7 +57,7 @@
 
         <div id="screenLobby" class="screen">
             <h2 style="color: #4a00e0;">Sala: <span id="labelCodigoSala" style="color:#ff4757;"></span></h2>
-            <p style="margin: 5px 0; font-size: 14px; color: #666;">Jogadores conectados:</p>
+            <p style="margin: 5px 0; font-size: 14px; color: #666;">Jogadores conectados (<span id="contadorJogadores">0/0</span>):</p>
             <ul id="listaJogadores" style="list-style: none; margin-bottom: 15px; font-weight: bold;"></ul>
             
             <div id="painelHost" style="display: none; border-top: 2px dashed #eee; padding-top: 10px;">
@@ -79,6 +79,18 @@
                 <select id="selectVotacao" onchange="alterarConfiguracoes()">
                     <option value="sim">Ativada (Votação manual 👍/👎)</option>
                     <option value="nao">Desativada (Validação Automática)</option>
+                </select>
+
+                <span class="custom-label">Limite de Jogadores na Sala:</span>
+                <select id="selectMaxPlayers" onchange="alterarConfiguracoes()">
+                    <option value="2">2 Jogadores</option>
+                    <option value="3">3 Jogadores</option>
+                    <option value="4">4 Jogadores</option>
+                    <option value="5">5 Jogadores</option>
+                    <option value="10" selected>10 Jogadores</option>
+                    <option value="15">15 Jogadores</option>
+                    <option value="20">20 Jogadores</option>
+                    <option value="999">Sem Limite</option>
                 </select>
 
                 <div id="painelCustomSettings" style="display: none; background: #f8f9fa; padding: 12px; border-radius: 10px; margin-top: 5px; border: 1px solid #e2e8f0;">
@@ -145,7 +157,6 @@
         let meuId = "";
         let salaAtual = null;
         
-        // Controle do Cronômetro do Round
         let tempoGastoS = 0;
         let intervaloCronometro = null;
 
@@ -199,6 +210,7 @@
         function alterarConfiguracoes() {
             const modo = document.getElementById('selectModo').value;
             const sistemaVotacao = document.getElementById('selectVotacao').value;
+            const maxPlayers = document.getElementById('selectMaxPlayers').value;
             const maxRds = document.getElementById('inputMaxRounds').value;
             const rTime = document.getElementById('inputRoundTime').value;
             const pAcerto = document.getElementById('inputPtsAcerto').value;
@@ -207,6 +219,7 @@
             socket.emit('updateSettings', {
                 gameMode: modo,
                 useVoting: sistemaVotacao,
+                maxPlayers: maxPlayers,
                 maxRounds: maxRds,
                 roundTime: rTime,
                 ptsAcerto: pAcerto,
@@ -219,13 +232,12 @@
         }
 
         function pressionarStop() {
-            clearInterval(intervaloCronometro); // Para o cronômetro local
+            clearInterval(intervaloCronometro);
             const respostas = {};
             salaAtual.categories.forEach(cat => {
                 const el = document.getElementById(`input-cat-${cat}`);
                 respostas[cat] = el ? el.value.trim() : "";
             });
-            // Envia as respostas junto com o tempo exato decorrido!
             socket.emit('pressStop', { respostas, tempoGasto: tempoGastoS });
         }
 
@@ -253,6 +265,10 @@
             salaAtual = sala;
             document.getElementById('labelCodigoSala').innerText = sala.code;
             
+            // Atualiza o contador visual de pessoas conectadas ex: 3/5
+            const textoLimite = sala.maxPlayers == 999 ? "∞" : sala.maxPlayers;
+            document.getElementById('contadorJogadores').innerText = `${sala.players.length}/${textoLimite}`;
+            
             if (sala.gameState === 'lobby') {
                 alternarTela('screenLobby');
             }
@@ -266,6 +282,7 @@
 
                 document.getElementById('selectModo').value = sala.gameMode;
                 document.getElementById('selectVotacao').value = sala.useVoting || 'sim';
+                document.getElementById('selectMaxPlayers').value = sala.maxPlayers || '10';
                 
                 if(sala.gameMode === 'custom') {
                     document.getElementById('painelCustomSettings').style.display = 'block';
@@ -291,12 +308,11 @@
 
             } else {
                 document.getElementById('painelHost').style.display = 'none';
-                document.getElementById('playerWaitingMsg').style.display = 'block';
+                document.getElementById('playerWaitingMsg').style.block = 'block';
             }
         });
 
         socket.on('roundStarted', (data) => {
-            // Inicializa o cronômetro regressivo/progressivo local
             tempoGastoS = 0;
             document.getElementById('cronometroRound').innerText = tempoGastoS;
             clearInterval(intervaloCronometro);
@@ -351,7 +367,6 @@
             const tabela = document.getElementById('tabelaRanking');
             tabela.innerHTML = "";
 
-            // Renderiza a lista aplicando classes para o TOP 3 (Ouro, Prata, Bronze)
             data.ranking.forEach((p, index) => {
                 let posicaoEstilo = "";
                 let medalhaOuNum = `${index + 1}º`;
@@ -362,20 +377,4 @@
                 } else if (index === 1) {
                     posicaoEstilo = "rank-silver";
                     medalhaOuNum = "🥈 2º";
-                } else if (index === 2) {
-                    posicaoEstilo = "rank-bronze";
-                    medalhaOuNum = "🥉 3º";
-                }
-
-                // Cria a linha principal do jogador + linha oculta com os dados da Lupa (🔍)
-                const trPrincipal = `
-                    <tr class="${posicaoEstilo}" style="border-bottom: 1px solid #eee;">
-                        <td style="padding:12px; text-align: left;">${medalhaOuNum} - ${p.name}</td>
-                        <td style="padding:12px; font-weight:bold; text-align: right;">${p.points}</td>
-                        <td style="padding:12px; text-align: center;">
-                            <button class="btn-primary" style="width:auto; padding: 4px 10px; font-size:12px; margin:0;" onclick="toggleLupa('${p.id}')">🔍</button>
-                        </td>
-                    </tr>
-                `;
-
-                // Constrói a caixa expandida contendo
+                } else if (index ===
