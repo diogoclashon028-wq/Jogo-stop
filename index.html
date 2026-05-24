@@ -10,7 +10,7 @@
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 500px; text-align: center; position: relative; }
         
-        .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; }
+        .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; transition: background 0.3s; }
         
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; outline: none; }
         input:focus, select:focus { border-color: #764ba2; }
@@ -56,7 +56,7 @@
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; position: relative; text-align: left; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .close-modal { position: absolute; top: 10px; right: 16px; font-size: 2rem; font-weight: bold; color: #94a3b8; cursor: pointer; transition: 0.2s; }
+        .close-modal { position: absolute; top: 10px; right: 16px; font-size: 2rem; font-weight: bold; color: #94a3b8; cursor: pointer; }
         .close-modal:hover { color: #e53935; }
 
         .podium-list { list-style: none; margin-top: 15px; }
@@ -73,7 +73,7 @@
         <div id="statusBar" class="status-bar">Conectando ao servidor...</div>
 
         <div id="telaInicial" class="panel active">
-            <h1 style="text-align: center; margin-bottom: 15px; color: #5e35b1;">Stop! Online</h1>
+            <h1 style="text-align: center; margin-bottom: 15px; color: #764ba2;">Stop! Online</h1>
             <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
             <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
             <div style="text-align: center; margin: 10px 0; color: #777;">-- OU --</div>
@@ -126,19 +126,19 @@
                     <input type="number" id="cfgPtsRepetido" value="5" min="0" max="50">
                 </div>
 
-                <h4 style="margin: 12px 0 4px 0;">Temas</h4>
+                <h4 style="margin: 12px 0 4px 0;">Temas da Rodada</h4>
                 <div class="tag-container" id="containerCategorias"></div>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="novoTemaInput" placeholder="Novo Tema" style="padding: 6px; margin: 0;">
                     <button id="btnaddTema" style="width: auto; padding: 0 15px; margin: 0; background: #764ba2;">+</button>
                 </div>
 
-                <h4 style="margin: 12px 0 4px 0;">Letras do Sorteio</h4>
+                <h4 style="margin: 12px 0 4px 0;">Letras Ativas no Sorteio</h4>
                 <div class="letter-grid" id="gridLetras"></div>
             </div>
 
             <button id="btnIniciarJogo" class="btn-join" style="margin-top: 15px;">INICIAR JOGO</button>
-            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 15px; display: none;">Aguardando líder iniciar...</p>
+            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 15px; display: none;">Aguardando líder iniciar o jogo...</p>
         </div>
 
         <div id="telaJogo" class="panel">
@@ -155,16 +155,15 @@
 
         <div id="telaVotacao" class="panel">
             <h2 style="color: #764ba2; margin-bottom: 10px;">🔍 Avaliação das Palavras</h2>
-            <p style="font-size:0.9rem; margin-bottom:15px; color:#475569;">Clique em "Anular" nas palavras erradas ou use a lupa para espiar tudo.</p>
+            <p style="font-size:0.9rem; margin-bottom:15px; color:#475569;">Use o "Anular ❌" para reprovar palavras falsas. Clique na lupa para inspecionar o jogador.</p>
             <div id="containerVotacaoItens"></div>
             <button id="btnConfirmarVotos" class="btn-ready">ENVIAR AVALIAÇÃO</button>
         </div>
 
         <div id="telaFinal" class="panel">
-            <h2 style="text-align:center; color: #eab308; font-size: 1.8rem;">🏆 FIM DE JOGO 🏆</h2>
-            <h3 style="margin-top: 15px; color:#475569;">Classificação Final:</h3>
+            <h2 style="text-align:center; color: #eab308; font-size: 1.8rem;">🏆 CLASSIFICAÇÃO FINAL 🏆</h2>
             <ul id="listaPodio" class="podium-list"></ul>
-            <button onclick="window.location.reload()" class="btn-create" style="margin-top:20px;">JOGAR NOVAMENTE</button>
+            <button onclick="window.location.reload()" class="btn-create" style="margin-top:20px;">VOLTAR AO INÍCIO</button>
         </div>
     </div>
 
@@ -189,6 +188,7 @@
             document.getElementById(idTela).classList.add('active');
         }
 
+        // Criando o grid do alfabeto dinamicamente
         const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         const gridLetras = document.getElementById('gridLetras');
         alfabeto.forEach(letra => {
@@ -256,8 +256,8 @@
         });
 
         socket.on('roomUpdated', (sala) => {
-            const telasAtivasImpeditivas = ['telaJogo', 'telaVotacao', 'telaFinal'];
-            const algumaAtiva = telasAtivasImpeditivas.some(id => document.getElementById(id).classList.contains('active'));
+            const telasImpeditivas = ['telaJogo', 'telaVotacao', 'telaFinal'];
+            const algumaAtiva = telasImpeditivas.some(id => document.getElementById(id).classList.contains('active'));
             if (!algumaAtiva) {
                 alternarTela('telaLobby');
                 document.getElementById('codigoSalaGerado').innerText = sala.code;
@@ -276,9 +276,9 @@
                 
                 let htmlJogador = `<span>👤 ${p.name} (${p.points} pts)</span>`;
                 if (p.id === sala.host) {
-                    htmlJogador += `<span class="host-badge">Dono</span>`;
+                    htmlJogador += `<span class="host-badge">Líder</span>`;
                 } else if (souHost) {
-                    htmlJogador += `<button class="btn-kick" onclick="removerDoJogo('${p.id}')">❌</button>`;
+                    htmlJogador += `<button class="btn-kick" onclick="removerDoJogo('${p.id}')">Expulsar ❌</button>`;
                 }
                 
                 li.innerHTML = htmlJogador;
@@ -321,14 +321,14 @@
         });
 
         function removerDoJogo(idJogador) {
-            if(confirm("Deseja expulsar este jogador?")) {
+            if(confirm("Tem certeza que quer expulsar esse jogador?")) {
                 socket.emit('kickPlayer', idJogador);
             }
         }
 
         socket.on('playerKicked', () => {
             socket.disconnect();
-            document.body.innerHTML = `<h2 style="color:white; text-align:center; margin-top:50px;">Você foi removido da sala.</h2>`;
+            document.body.innerHTML = `<h2 style="color:white; text-align:center; margin-top:50px;">Você foi removido da sala pelo Host.</h2>`;
         });
 
         document.getElementById('btnIniciarJogo').addEventListener('click', () => {
@@ -354,5 +354,4 @@
             containerInputs.innerHTML = '';
             
             dadosRodada.categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.className = 'input-box-game'
+                const div = document.createElement('d
