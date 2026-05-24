@@ -28,11 +28,10 @@ app.get('/', (req, res) => {
     });
 });
 
-// ADICIONADO: Rota explícita para entregar o arquivo lobby.html e evitar o erro de "Não foi possível obter"
-app.get('/lobby.html', (req, res) => {
+// Suporte total para carregar o lobby com ou sem .html na URL
+app.get(['/lobby', '/lobby.html'], (req, res) => {
     res.sendFile(path.join(__dirname, 'lobby.html'), (err) => {
         if (err) {
-            // Se não encontrar na raiz, tenta buscar dentro da pasta public
             res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
         }
     });
@@ -63,7 +62,7 @@ io.on('connection', (socket) => {
             gameState: 'lobby',
             gameMode: 'classico',
             useVoting: 'sim',
-            maxPlayers: 10, // Limite padrão inicial
+            maxPlayers: 10,
             maxRounds: 5,
             roundTime: 60,
             ptsAcerto: 10,
@@ -103,7 +102,6 @@ io.on('connection', (socket) => {
             return socket.emit('erro', 'O jogo nesta sala já começou!');
         }
 
-        // Validação do limite de vagas configurado pelo Host
         if (sala.players.length >= sala.maxPlayers) {
             return socket.emit('erro', `A sala está cheia! Limite máximo de ${sala.maxPlayers} jogadores.`);
         }
@@ -347,4 +345,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor ativo na porta *:${PORT}`);
 });
-              
