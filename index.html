@@ -49,18 +49,18 @@
         .input-box-game label { display: block; font-weight: bold; color: #475569; margin-bottom: 4px; }
         .stop-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
 
-        /* Estilos do Painel de Votação (Lupa) */
         .vote-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
         .vote-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .btn-anular { background: #cbd5e1; color: #334155; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; width: auto; margin: 0; }
         .btn-anular.invalidada { background: #e53935; color: white; }
 
-        /* Modal/Lupa de Detalhes com X */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 90%; max-width: 400px; position: relative; text-align: left; }
-        .close-modal { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; font-weight: bold; color: #64748b; cursor: pointer; }
+        /* Modal customizado com o X */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; position: relative; text-align: left; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .close-modal { position: absolute; top: 10px; right: 16px; font-size: 2rem; font-weight: bold; color: #94a3b8; cursor: pointer; transition: 0.2s; }
+        .close-modal:hover { color: #e53935; }
 
-        /* Pódio */
+        /* Listagem do pódio final */
         .podium-list { list-style: none; margin-top: 15px; }
         .podium-item { padding: 12px; margin-bottom: 8px; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         .podium-1 { background: #fef08a; border-left: 6px solid #eab308; color: #854d0e; }
@@ -157,14 +157,14 @@
 
         <div id="telaVotacao" class="panel">
             <h2 style="color: #764ba2; margin-bottom: 10px;">🔍 Avaliação das Palavras</h2>
-            <p style="font-size:0.9rem; margin-bottom:15px; color:#475569;">Toque nas palavras erradas para anulá-las antes de enviar!</p>
+            <p style="font-size:0.9rem; margin-bottom:15px; color:#475569;">Clique em "Anular" nas palavras erradas ou use a lupa para espiar tudo.</p>
             <div id="containerVotacaoItens"></div>
             <button id="btnConfirmarVotos" class="btn-ready">ENVIAR AVALIAÇÃO</button>
         </div>
 
         <div id="telaFinal" class="panel">
-            <h2 style="text-align:center; color: #eab308;">🏆 FIM DE JOGO 🏆</h2>
-            <h3 style="margin-top: 15px;">Pódio de Vencedores:</h3>
+            <h2 style="text-align:center; color: #eab308; font-size: 1.8rem;">🏆 FIM DE JOGO 🏆</h2>
+            <h3 style="margin-top: 15px; color:#475569;">Classificação Final:</h3>
             <ul id="listaPodio" class="podium-list"></ul>
             <button onclick="window.location.reload()" class="btn-create" style="margin-top:20px;">JOGAR NOVAMENTE</button>
         </div>
@@ -172,9 +172,9 @@
 
     <div id="modalDetalhes" class="modal">
         <div class="modal-content">
-            <span class="close-modal" id="btnFecharModal">×</span>
-            <h3 id="modalTitulo" style="color: #6a1b9a; margin-bottom: 10px;">🔍 Detalhes do Jogador</h3>
-            <div id="modalCorpo"></div>
+            <span class="close-modal" id="btnFecharModal">&times;</span>
+            <h3 id="modalTitulo" style="color: #6a1b9a; margin-bottom: 12px;">🔎 Detalhes das Respostas</h3>
+            <div id="modalCorpo" style="font-size: 0.95rem; color: #334155; line-height: 1.5;"></div>
         </div>
     </div>
 
@@ -355,8 +355,4 @@
             containerInputs.innerHTML = '';
             
             dadosRodada.categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.className = 'input-box-game';
-                div.innerHTML = `
-                    <label>${cat}</label>
-                    <input type="text" c
+                const div = document.c
