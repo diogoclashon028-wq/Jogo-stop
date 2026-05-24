@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Supremo v2</title>
+    <title>Stop! Online Supremo</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,7 +42,6 @@
         .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
         .config-row select, .config-row input { padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 45%; }
         
-        /* Gerenciador de Temas */
         .temas-wrapper { max-height: 120px; overflow-y: auto; background: white; padding: 6px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; }
         .tema-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; padding: 2px; }
         .btn-excluir-tema { color: red; cursor: pointer; font-weight: bold; margin-left: 6px; }
@@ -212,7 +211,6 @@
             }
         });
 
-        // Adicionar novo tema na lista local antes de enviar
         document.getElementById('btnAdicionarTema').addEventListener('click', () => {
             const input = document.getElementById('novoTemaNome');
             const nomeTema = input.value.trim();
@@ -228,7 +226,6 @@
         });
 
         function dispararSalvarConfig() {
-            // Re-coleta status dos checkboxes de ativação das palavras
             const checkboxes = document.querySelectorAll('.check-tema');
             checkboxes.forEach(cb => {
                 const idx = cb.getAttribute('data-index');
@@ -248,7 +245,6 @@
             socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
         }
 
-        // Ativação do botão Começar Rodada
         document.getElementById('btnIniciar').addEventListener('click', () => {
             if(minhaSala) {
                 socket.emit('startRound', minhaSala);
@@ -295,7 +291,6 @@
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
             document.getElementById('cfgRepetidas').value = sala.config.regrasRepetidas || 'metade';
 
-            // Renderiza lista de temas com checkboxes e botão excluir
             const divTemas = document.getElementById('listaTemasConfig');
             divTemas.innerHTML = '';
             categoriasLocais.forEach((cat, index) => {
@@ -313,7 +308,6 @@
                 `;
             });
 
-            // Renderiza lista de jogadores com botão Expulsar para o Dono
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
@@ -340,7 +334,6 @@
             window.location.reload();
         });
 
-        // Início da Partida Real
         socket.on('rodadaIniciada', (data) => {
             document.getElementById('telaLobby').classList.add('escondido');
             document.getElementById('telaJogo').classList.remove('escondido');
@@ -352,7 +345,6 @@
             const container = document.getElementById('containerCampos');
             container.innerHTML = '';
             
-            // Filtra e exibe apenas as palavras/temas que o Dono deixou habilitado
             categoriasLocais = data.config.categorias.filter(c => c.ativa);
             
             categoriasLocais.forEach(cat => {
@@ -395,7 +387,7 @@
         });
 
         function coletarEVoar(pararGeral) {
-            clearInterval(cronprogr);
+            clearInterval(cronweb);
             clearInterval(cronometro);
             const respostas = {};
             categoriasLocais.forEach(cat => {
@@ -413,4 +405,15 @@
         socket.on('jogoParado', (data) => {
             document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaResultado').classList.remove('escondido');
-    
+            if(socket.id !== data.quemParou) {
+                coletarEVoar(false);
+            }
+        });
+
+        socket.on('atualizarRespostasFinais', (respostasDoServidor) => {
+            const div = document.getElementById('resultadosCorpo');
+            div.innerHTML = '';
+            
+            Object.keys(respostasDoServidor).forEach(id => {
+                const resp = respostasDoServidor[id];
+                let bloco = `<div style="background:#f9f9f9; padding:10px;
