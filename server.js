@@ -1,4 +1,3 @@
-            
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -15,26 +14,21 @@ let salas = {};
 
 io.on('connection', (socket) => {
     
-    // EVENTO ATUALIZADO: Cria a sala e embaralha as letras do alfabeto
     socket.on('criarSala', (nomeJogador) => {
         const codigoSala = Math.random().toString(36).substring(2, 7).toUpperCase();
         
-        // 1. Criamos a lista com o alfabeto padrão completo
         let letras = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-        
-        // 2. ALGORITMO DE EMBARALHAMENTO (Fisher-Yates): Mistura as letras completamente
         for (let i = letras.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [letras[i], letras[letras[j]]] = [letras[j], letras[i]];
         }
 
-        // 3. Montamos o objeto da sala com as letras já misturadas
         salas[codigoSala] = {
             code: codigoSala, 
             host: socket.id,
-            players: [{ id: socket.id, name: nomeJogador, points: 0, submitted: false, answers: {}, timeTaken: 0 }],
+            players: [{ id: socket.id, name: nomeJogador, points: 0, submitted: false, answers: {}, timeTaken: 0, waiting: false }],
             categories: ['Nome', 'CEP', 'Cor', 'Fruta'],
-            allowedLetters: letras, // Salva o alfabeto embaralhado
+            allowedLetters: letras, 
             maxRounds: 5, 
             roundTime: 60, 
             currentRound: 0, 
@@ -52,9 +46,28 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', ({ roomCode, name }) => {
         const codigo = roomCode.toUpperCase();
         if (salas[codigo]) {
-            salas[codigo].players.push({ id: socket.id, name: name, points: 0, submitted: false, answers: {}, timeTaken: 0 });
+            const sala = salas[codigo];
+            // Se o jogo já começou, o jogador entra marcado como "waiting" (em espera)
+            const emEspera = sala.gameState !== 'lobby';
+            
+            sala.players.push({ 
+                id: socket.id, 
+                name: name, 
+                points: 0, 
+                submitted: emEspera, // se está em espera, conta como enviado para não travar o STOP
+                answers: {}, 
+                timeTaken: 0,
+                waiting: emEspera 
+            });
+            
             socket.join(codigo);
-            io.to(codigo).emit('roomUpdated', salas[codigo]);
+            
+            // Avisa o jogador se ele deve ir para a tela de espera diretamente
+            if (emEspera) {
+                socket.emit('forcarEspera');
+            }
+            
+            io.to(codigo).emit('roomUpdated', sala);
         } else {
             socket.emit('erro', 'Sala não encontrada!');
         }
@@ -109,11 +122,16 @@ io.on('connection', (socket) => {
             sala.currentRound++;
             sala.gameState = 'playing';
             
-            // Como a lista já está embaralhada, pegar a primeira letra (índice 0) já é 100% aleatório!
             sala.currentLetter = sala.allowedLetters[0];
-            sala.allowedLetters.splice(0, 1); // Remove a letra usada para não repetir
+            sala.allowedLetters.splice(0, 1); 
             
-            sala.players.forEach(p => { p.submitted = false; p.answers = {}; p.timeTaken = 0; });
+            // IMPORTANTE: Quem estava esperando (waiting: true) agora entra oficialmente no jogo ativo!
+            sala.players.forEach(p => { 
+                p.waiting = false;
+                p.submitted = false; 
+                p.answers = {}; 
+                p.timeTaken = 0; 
+            });
             
             io.to(sala.code).emit('roundStarted', {
                 round: sala.currentRound, maxRounds: sala.maxRounds,
@@ -127,16 +145,18 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala && sala.gameState === 'playing') {
             const jogador = sala.players.find(p => p.id === socket.id);
-            jogador.answers = respostas;
-            jogador.timeTaken = tempoGasto;
-            jogador.submitted = true;
+            if (jogador && !jogador.waiting) {
+                jogador.answers = respostas;
+                jogador.timeTaken = tempoGasto;
+                jogador.submitted = true;
 
-            io.to(sala.code).emit('stopPressionado', jogador.name);
-            io.to(sala.code).emit('roomUpdated', sala);
+                io.to(sala.code).emit('stopPressionado', jogador.name);
+                io.to(sala.code).emit('roomUpdated', sala);
 
-            const todosEnviaram = sala.players.every(p => p.submitted);
-            if (todosEnviaram) {
-                calcularPontuacaoERevisao(sala);
+                const todosEnviaram = sala.players.every(p => p.submitted);
+                if (todosEnviaram) {
+                    calcularPontuacaoERevisao(sala);
+                }
             }
         }
     });
@@ -145,7 +165,7 @@ io.on('connection', (socket) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala && sala.gameState === 'playing') {
             const jogador = sala.players.find(p => p.id === socket.id);
-            if (!jogador.submitted) {
+            if (jogador && !jogador.waiting && !jogador.submitted) {
                 jogador.answers = respostas;
                 jogador.timeTaken = tempoGasto;
                 jogador.submitted = true;
@@ -167,22 +187,24 @@ function calcularPontuacaoERevisao(sala) {
     sala.categories.forEach(cat => {
         let contagemRespostas = {};
         
-        // Validação: Só aceita palavras que comecem com a letra sorteada
         sala.players.forEach(p => {
-            let ans = (p.answers[cat] || '').trim().toUpperCase();
-            if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
-                contagemRespostas[ans] = (contagemRespostas[ans] || 0) + 1;
+            if (!p.waiting) {
+                let ans = (p.answers[cat] || '').trim().toUpperCase();
+                if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
+                    contagemRespostas[ans] = (contagemRespostas[ans] || 0) + 1;
+                }
             }
         });
 
-        // Distribuição dos pontos configurados no painel do host
         sala.players.forEach(p => {
-            let ans = (p.answers[cat] || '').trim().toUpperCase();
-            if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
-                if (contagemRespostas[ans] > 1) {
-                    p.points += sala.ptsRepetido;
-                } else {
-                    p.points += sala.ptsAcerto;
+            if (!p.waiting) {
+                let ans = (p.answers[cat] || '').trim().toUpperCase();
+                if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
+                    if (contagemRespostas[ans] > 1) {
+                        p.points += sala.ptsRepetido;
+                    } else {
+                        p.points += sala.ptsAcerto;
+                    }
                 }
             }
         });
@@ -197,5 +219,5 @@ function calcularPontuacaoERevisao(sala) {
     });
 }
 
-http.listen(PORT, () => console.log("Servidor ativo e rodando perfeitamente!"));
+http.listen(PORT, () => console.log("Servidor ativo e rodando com suporte a entrada tardia!"));
                     
