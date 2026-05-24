@@ -11,24 +11,35 @@
         h2 { color: #4a148c; text-align: center; margin-top: 0; }
         h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
         label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; font-size: 14px;}
-        input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; }
-        input[disabled] { background-color: #e0e0e0; color: #757575; cursor: not-allowed; }
-        button { width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; background: white; }
+        input[disabled], select[disabled] { background-color: #e0e0e0; color: #757575; cursor: not-allowed; }
+        button { width: 100%; padding: 12px; margin: 6px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: uppercase; }
         .btn-primary { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; }
         .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
-        .btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; font-size: 20px; }
+        .btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; font-size: 20px; padding: 15px; }
         .screen { display: none; }
         .screen.active { display: block; }
-        .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; cursor: pointer;}
-        .letter-display { font-size: 72px; text-align: center; font-weight: bold; color: #ffb300; margin: 10px 0; }
-        .timer { font-size: 24px; text-align: center; font-weight: bold; color: #d32f2f; margin: 15px 0; background: #ffebee; padding: 10px; border-radius: 8px; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold;}
+        .letter-display { font-size: 64px; text-align: center; font-weight: bold; color: #ffb300; margin: 5px 0; }
+        .timer { font-size: 22px; text-align: center; font-weight: bold; color: #d32f2f; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
         .letters-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
-        .letter-btn { padding: 8px 0; font-size: 13px; background: #4caf50; color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-align: center;}
+        .letter-btn { padding: 8px 0; font-size: 12px; background: #4caf50; color: white; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; }
         .letter-btn.disabled { background: #f44336; text-decoration: line-through; opacity: 0.6; }
         .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
         .btn-remove-theme { background: none; color: #ff4336; width: auto; margin: 0; padding: 0 5px; font-size: 16px; }
-        .review-box { background: #fff; border: 2px solid #ba68c8; border-radius: 8px; padding: 15px; margin-top: 10px; display: none; position: relative; }
-        .btn-close-review { position: absolute; top: 10px; right: 10px; background: #ff4b2b; color: white; border: none; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; padding: 0; cursor: pointer; line-height: 30px; text-align: center; font-weight: bold;}
+        
+        /* ESTILOS DOS NOVOS RECURSOS */
+        .chat-container { background: #fff3e0; padding: 10px; border-radius: 12px; margin-top: 15px; border: 2px solid #ffb74d; }
+        .chat-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px; }
+        .btn-chat { background: #ff9800; color: white; padding: 8px; font-size: 12px; margin: 0; }
+        .alert-toast { background: #333; color: #fff; padding: 10px 15px; border-radius: 30px; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10000; display: none; }
+        
+        .vote-card { background: white; border: 2px solid #e1bee7; border-radius: 8px; padding: 12px; margin: 10px 0; }
+        .vote-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-vote-yes { background: #4caf50; color: white; flex: 1; margin: 0; }
+        .btn-vote-no { background: #f44336; color: white; flex: 1; margin: 0; }
+        
+        .history-box { background: #eceff1; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #b0bec5; max-height: 200px; overflow-y: auto; font-size: 13px; }
         .row-config { display: flex; gap: 10px; }
         .row-config div { flex: 1; }
         .waiting-box { text-align: center; padding: 30px 10px; color: #555; }
@@ -39,6 +50,7 @@
 <body>
 <div class="container">
     <div id="status-conexao">🔴 Conectando ao servidor backend...</div>
+    <div id="toast-alerta" class="alert-toast"></div>
 
     <div id="screen-login" class="screen active">
         <h2>Stop! Online</h2>
@@ -52,6 +64,13 @@
     <div id="screen-lobby" class="screen">
         <h2 id="lobby-title">Sala: ----</h2>
         
+        <h3>Modo de Jogo</h3>
+        <select id="select-game-mode" onchange="updateSettings()">
+            <option value="classico">Clássico (60s - Alerta de STOP)</option>
+            <option value="competitivo">Competitivo (45s - STOP Imediato!)</option>
+            <option value="custom">⚙️ Customizado (Ajuste Manual)</option>
+        </select>
+
         <div id="host-settings" style="display: none;">
             <h3>Configurações do Jogo</h3>
             <div style="display:flex; gap: 5px;">
@@ -87,10 +106,8 @@
 
         <h3>Temas Ativos</h3>
         <div id="lobby-themes-list"></div>
-        
         <h3>Jogadores</h3>
         <div id="player-list"></div>
-        
         <button id="btn-start-game" class="btn-success" onclick="startRound()" style="display: none;">Começar Jogo</button>
     </div>
 
@@ -99,7 +116,7 @@
         <div class="waiting-box">
             <div class="spinner"></div>
             <p style="font-size: 18px; font-weight: bold; color: #4a148c;">Você entrou no meio da partida!</p>
-            <p>Por favor, aguarde a rodada atual terminar. Você entrará na próxima automaticamente com os seus amigos.</p>
+            <p>Aguarde a rodada terminar. Você entrará na próxima automaticamente.</p>
         </div>
     </div>
 
@@ -112,21 +129,32 @@
             <div id="dynamic-inputs-container"></div>
             <button type="submit" id="btn-main-action" class="btn-stop">STOP!</button>
         </form>
+
+        <div class="chat-container">
+            <span style="font-weight:bold; color:#e65100; font-size:13px;">💥 Provocações rápidas:</span>
+            <div class="chat-buttons">
+                <button class="btn-chat" onclick="enviarChat('Digita rápido aí galera! ⏱️')">Digita rápido!</button>
+                <button class="btn-chat" onclick="enviarChat('Meu Deus, esqueci tudo! 🤯')">Esqueci tudo!</button>
+                <button class="btn-chat" onclick="enviarChat('Já acabei, vou dar STOP! 🛑')">Vou dar STOP!</button>
+                <button class="btn-chat" onclick="enviarChat('Essa letra é impossível! ❌')">Letra horrível!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-voting" class="screen">
+        <h2>Votação de Palavras</h2>
+        <p style="text-align:center; color:#555; font-size:13px; margin:0;">Vote se as respostas dos seus amigos são válidas!</p>
+        <div id="voting-list-container" style="max-height: 380px; overflow-y:auto; margin-top:10px;"></div>
+        <button id="btn-apply-votes" class="btn-success" onclick="aplicarVotos()" style="display:none; margin-top:15px;">Computar Pontos e Ver Placar</button>
     </div>
 
     <div id="screen-review" class="screen">
-        <h2>Fim da Rodada!</h2>
-        <p style="text-align:center; color:#666; font-size:14px;">Clique no nome de qualquer jogador para conferir o tempo e as palavras dele.</p>
-        
-        <h3>Placar Geral</h3>
+        <h2>Placar da Rodada</h2>
+        <h3>Resultados Gerais</h3>
         <div id="ranking-list"></div>
 
-        <div id="review-details-box" class="review-box">
-            <button class="btn-close-review" onclick="fecharDetalhesJogador()">X</button>
-            <h4 id="review-player-name" style="margin:0 0 10px 0; color:#4a148c;">Folha de Respostas</h4>
-            <p id="review-player-time" style="font-weight:bold; color:#d32f2f; margin:5px 0;"></p>
-            <div id="review-player-answers"></div>
-        </div>
+        <h3>📜 Histórico da Partida</h3>
+        <div id="history-container" class="history-box">Nenhuma rodada salva ainda.</div>
 
         <button id="btn-next-round" class="btn-success" onclick="startRound()" style="display: none; margin-top:20px;">Próxima Rodada</button>
     </div>
@@ -142,14 +170,12 @@
 <script>
     const socket = io("https://jogo-stop.onrender.com");
     let myId = null, timerInterval = null, activeCategories = [], isHost = false;
-    let tempoTotalRodada = 60, milissegundosPassados = 0;
-    let guardouPlayersReview = [];
-    let euJaDeiStop = false;
+    let tempoTotalRodada = 60, milissegundosPassados = 0, euJaDeiStop = false;
     const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     socket.on('connect', () => { 
         myId = socket.id; 
-        document.getElementById('status-conexao').innerText = "🟢 Conectado ao Servidor!";
+        document.getElementById('status-conexao').innerText = "🟢 Conectado!";
         document.getElementById('status-conexao').style.background = "#11998e";
     });
 
@@ -167,24 +193,23 @@
     function joinRoom() {
         const name = document.getElementById('username').value.trim();
         const roomCode = document.getElementById('room-code-input').value.trim();
-        if(!name || !roomCode) return alert('Preencha nome e código!');
+        if(!name || !roomCode) return alert('Preencha os campos!');
         socket.emit('joinRoom', { roomCode, name });
     }
 
     function addTheme() {
         const input = document.getElementById('new-theme-name');
-        if(input.value.trim()) { 
-            socket.emit('addCategory', input.value.trim()); 
-            input.value = ''; 
-        }
+        if(input.value.trim()) { socket.emit('addCategory', input.value.trim()); input.value = ''; }
     }
 
     function removeTheme(tema) { socket.emit('removeCategory', tema); }
     function toggleLetter(letra) { if(isHost) socket.emit('toggleLetter', letra); }
+    function enviarChat(msg) { socket.emit('enviarProvocacao', msg); }
 
     function updateSettings() {
         if(isHost) {
             socket.emit('updateSettings', {
+                gameMode: document.getElementById('select-game-mode').value,
                 maxRounds: document.getElementById('setting-rounds').value,
                 roundTime: document.getElementById('setting-time').value,
                 ptsAcerto: document.getElementById('setting-pts-acerto').value,
@@ -196,186 +221,128 @@
     function startRound() { socket.emit('startRound'); }
 
     function triggerStop(e) {
-        e.preventDefault();
-        euJaDeiStop = true;
-        
+        e.preventDefault(); euJaDeiStop = true;
         const answers = {};
         activeCategories.forEach(c => {
             const inputEl = document.getElementById('ans-' + c);
-            answers[c] = inputEl.value;
-            inputEl.disabled = true;
+            answers[c] = inputEl.value; inputEl.disabled = true;
         });
-        
-        const tempoGastoFinal = (milissegundosPassados / 1000).toFixed(1) + "s";
-        socket.emit('pressStop', { respostas: answers, tempoGasto: tempoGastoFinal });
-        
+        socket.emit('pressStop', { respostas: answers, tempoGasto: (milissegundosPassados / 1000).toFixed(1) + "s" });
         document.getElementById('btn-main-action').disabled = true;
-        document.getElementById('btn-main-action').innerText = "VOCÊ DEU STOP!";
-        document.getElementById('btn-main-action').style.background = "#777";
+        document.getElementById('btn-main-action').innerText = "STOP!";
     }
 
     function enviarPorFimDeTempo() {
         const answers = {};
         activeCategories.forEach(c => {
             const inputEl = document.getElementById('ans-' + c);
-            answers[c] = inputEl.value;
-            inputEl.disabled = true;
+            if(inputEl) { answers[c] = inputEl.value; inputEl.disabled = true; }
         });
-        const tempoGastoFinal = (tempoTotalRodada).toFixed(1) + "s";
-        socket.emit('submitAnswers', { respostas: answers, tempoGasto: tempoGastoFinal });
+        socket.emit('submitAnswers', { respostas: answers, tempoGasto: tempoTotalRodada + "s" });
     }
 
-    socket.on('salaCriada', () => { showScreen('screen-lobby'); });
-    
-    // Força o jogador atrasado a ver a tela de espera estilizada
-    socket.on('forcarEspera', () => { showScreen('screen-wait-round'); });
+    function computarVoto(idAlvo, cat, tipo) {
+        socket.emit('votarPalavra', { playerTargetId: idAlvo, categoria: cat, voto: tipo });
+    }
 
-    socket.on('stopPressionado', (nome) => {
-        const alerta = document.getElementById('stop-alert');
-        if(alerta) {
-            alerta.innerText = `🚨 ${nome} deu STOP! Digite rápido até o tempo acabar!`;
-            alerta.style.display = 'block';
-        }
+    function aplicarVotos() { socket.emit('aplicarVotosEAvancar'); }
+
+    // RENDERIZAÇÃO DA NOTIFICAÇÃO DO CHAT RÁPIDO
+    socket.on('receberProvocacao', (data) => {
+        const toast = document.getElementById('toast-alerta');
+        toast.innerText = `${data.nome}: "${data.mensagem}"`;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3500);
     });
 
+    socket.on('salaCriada', () => { showScreen('screen-lobby'); });
+    socket.on('forcarEspera', () => { showScreen('screen-wait-round'); });
+    socket.on('stopPressionado', (nome) => {
+        document.getElementById('stop-alert').innerText = `🚨 ${nome} deu STOP! Corra!`;
+        document.getElementById('stop-alert').style.display = 'block';
+    });
+    socket.on('stopImediato', (nome) => { clearInterval(timerInterval); alert(`🚨 STOP IMEDIATO por ${nome}! Acabou o tempo!`); });
+
     socket.on('roomUpdated', (room) => {
-        activeCategories = room.categories;
-        isHost = room.host === myId;
+        activeCategories = room.categories; isHost = room.host === myId;
         document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
-        
-        document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+        document.getElementById('select-game-mode').value = room.gameMode;
+        document.getElementById('select-game-mode').disabled = !isHost;
+
+        if (isHost) {
+            document.getElementById('host-settings').style.display = 'block';
+            ['setting-rounds', 'setting-time', 'setting-pts-acerto', 'setting-pts-repetido'].forEach(id => {
+                document.getElementById(id).disabled = (room.gameMode !== 'custom');
+            });
+            if (room.gameMode !== 'custom') {
+                document.getElementById('setting-rounds').value = room.maxRounds;
+                document.getElementById('setting-time').value = room.roundTime;
+                document.getElementById('setting-pts-acerto').value = room.ptsAcerto;
+                document.getElementById('setting-pts-repetido').value = room.ptsRepetido;
+            }
+            const grid = document.getElementById('alphabet-selector'); grid.innerHTML = '';
+            alfabeto.forEach(l => {
+                grid.innerHTML += `<button class="letter-btn ${room.allowedLetters.includes(l) ? '' : 'disabled'}" onclick="toggleLetter('${l}')">${l}</button>`;
+            });
+        } else {
+            document.getElementById('host-settings').style.display = 'none';
+        }
         document.getElementById('btn-start-game').style.display = isHost ? 'block' : 'none';
 
-        if(isHost) {
-            const grid = document.getElementById('alphabet-selector');
-            grid.innerHTML = '';
-            alfabeto.forEach(l => {
-                const ativa = room.allowedLetters.includes(l);
-                grid.innerHTML += `<button class="letter-btn ${ativa ? '' : 'disabled'}" onclick="toggleLetter('${l}')">${l}</button>`;
-            });
-        }
-
-        const themesList = document.getElementById('lobby-themes-list');
-        themesList.innerHTML = '';
+        const themesList = document.getElementById('lobby-themes-list'); themesList.innerHTML = '';
         room.categories.forEach(c => {
-            themesList.innerHTML += `
-                <div class="theme-tag">
-                    <span>📝 ${c}</span>
-                    ${isHost ? `<button class="btn-remove-theme" onclick="removeTheme('${c}')">❌</button>` : ''}
-                </div>`;
+            themesList.innerHTML += `<div class="theme-tag"><span>📝 ${c}</span>${isHost ? `<button class="btn-remove-theme" onclick="removeTheme('${c}')">❌</button>` : ''}</div>`;
         });
 
-        const playerList = document.getElementById('player-list');
-        playerList.innerHTML = '';
+        const playerList = document.getElementById('player-list'); playerList.innerHTML = '';
         room.players.forEach(p => {
-            let statusIcon = p.waiting ? '⏳ (Em Espera)' : (p.submitted ? '✅' : '⏳');
-            playerList.innerHTML += `<div class="player-item" style="cursor:default">${p.name} ${p.id === room.host ? '👑' : ''} ${statusIcon}</div>`;
+            playerList.innerHTML += `<div class="player-item">${p.name} ${p.id === room.host ? '👑' : ''} ${p.waiting ? '⏳' : (p.submitted ? '✅' : '⏳')}</div>`;
         });
     });
 
     socket.on('roundStarted', (data) => {
-        clearInterval(timerInterval);
-        activeCategories = data.categories;
-        tempoTotalRodada = data.roundTime;
-        milissegundosPassados = 0;
-        euJaDeiStop = false;
-
+        clearInterval(timerInterval); activeCategories = data.categories; tempoTotalRodada = data.roundTime; milissegundosPassados = 0; euJaDeiStop = false;
         document.getElementById('stop-alert').style.display = 'none';
-        document.getElementById('btn-main-action').disabled = false;
-        document.getElementById('btn-main-action').innerText = "STOP!";
-        document.getElementById('btn-main-action').style.background = "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)";
-
+        document.getElementById('btn-main-action').disabled = false; document.getElementById('btn-main-action').innerText = "STOP!";
         document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
         document.getElementById('game-letter').innerText = data.letter;
         
-        const container = document.getElementById('dynamic-inputs-container');
-        container.innerHTML = '';
-        activeCategories.forEach(c => {
-            container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}" autocomplete="off">`;
-        });
-
-        document.getElementById('game-timer').innerText = 'Tempo: ' + tempoTotalRodada + 's';
+        const container = document.getElementById('dynamic-inputs-container'); container.innerHTML = '';
+        activeCategories.forEach(c => { container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}" autocomplete="off">`; });
         
         timerInterval = setInterval(() => {
             milissegundosPassados += 1000;
             let tempoRestante = tempoTotalRodada - (milissegundosPassados / 1000);
             document.getElementById('game-timer').innerText = 'Tempo: ' + Math.max(0, Math.ceil(tempoRestante)) + 's';
-            
-            if(tempoRestante <= 0) {
-                clearInterval(timerInterval);
-                if (!euJaDeiStop) {
-                    enviarPorFimDeTempo();
-                }
-            }
+            if(tempoRestante <= 0) { clearInterval(timerInterval); if (!euJaDeiStop) enviarPorFimDeTempo(); }
         }, 1000);
         showScreen('screen-game');
     });
 
-    socket.on('showReviewTable', ({ hostId, players, ranking, categories, isLastRound }) => {
+    // CRIA A TELA DE VOTAÇÃO
+    socket.on('abrirRevisao', ({ hostId, players, categories, letter }) => {
         clearInterval(timerInterval);
-        guardouPlayersReview = players;
         isHost = hostId === myId;
+        document.getElementById('btn-apply-votes').style.display = isHost ? 'block' : 'none';
         
-        document.getElementById('review-details-box').style.display = 'none';
-        
-        const rList = document.getElementById('ranking-list');
-        rList.innerHTML = '';
-        ranking.forEach((p, idx) => {
-            // Se o jogador estava esperando, exibe aviso na tabela
-            let infoTexto = p.waiting ? 'Aguardando próxima' : `${p.points} pts`;
-            rList.innerHTML += `
-                <div class="player-item" onclick="${p.waiting ? '' : `mostrarDetalhesJogador('${p.id}')`}">
-                    <b>${idx+1}° ${p.name}</b> 
-                    <span>${p.waiting ? '⏳' : '🔍 Ver Folha'} | ${infoTexto}</span>
-                </div>`;
-        });
+        const container = document.getElementById('voting-list-container');
+        container.innerHTML = '';
 
-        if(isLastRound) {
-            document.getElementById('btn-next-round').style.display = 'none';
-            const podium = document.getElementById('podium-content');
-            podium.innerHTML = '';
-            
-            ranking.slice(0, 3).forEach((p, i) => {
-                let medalha = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
-                podium.innerHTML += `
-                    <div class="player-item" style="background:#ffca28; cursor:default; font-size:18px; padding:15px;">
-                        <span>${medalha} ${i+1}° Lugar: <b>${p.name}</b></span>
-                        <b>${p.points} pts</b>
-                    </div>`;
-            });
-            showScreen('screen-final');
-        } else {
-            document.getElementById('btn-next-round').style.display = isHost ? 'block' : 'none';
-            showScreen('screen-review');
-        }
-    });
-
-    function mostrarDetalhesJogador(idJogador) {
-        const player = guardouPlayersReview.find(p => p.id === idJogador);
-        if(!player || player.waiting) return;
-
-        document.getElementById('review-player-name').innerText = `Folha de: ${player.name}`;
-        document.getElementById('review-player-time').innerText = `⏱️ Tempo de envio: ${player.timeTaken || "Não finalizou"}`;
-        
-        const containerAns = document.getElementById('review-player-answers');
-        containerAns.innerHTML = '';
-        
-        activeCategories.forEach(cat => {
-            const respostaDada = player.answers[cat] || '---';
-            containerAns.innerHTML += `<p style="margin:6px 0; font-size:15px;"><b>${cat}:</b> <span style="color:#2575fc">${respostaDada}</span></p>`;
-        });
-
-        const boxDetalhes = document.getElementById('review-details-box');
-        boxDetalhes.style.display = 'block';
-        boxDetalhes.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function fecharDetalhesJogador() {
-        document.getElementById('review-details-box').style.display = 'none';
-    }
-
-    socket.on('erro', (msg) => alert(msg));
-</script>
-</body>
-    </html>
-    
+        players.forEach(p => {
+            if (p.waiting) return;
+            container.innerHTML += `<h4 style="color:#6a11cb; margin:10px 0 5px 0;">👤 Folha de: ${p.name} <small style="color:#999">(${p.timeTaken || 'Tempo esgotado'})</small></h4>`;
+            categories.forEach(cat => {
+                const palavra = (p.answers[cat] || '').trim();
+                if(!palavra) return;
+                
+                const valida = palavra.toUpperCase().startsWith(letter.toUpperCase());
+                const chave = `${p.id}-${cat}`;
+                
+                container.innerHTML += `
+                    <div class="vote-card" id="card-${chave}">
+                        <div><b>${cat}:</b> <span style="color:#2575fc; font-size:16px;">${palavra}</span> ${valida ? '' : '<b style="color:red">(Letra errada)</b>'}</div>
+                        <div style="font-size:12px; color:#666;" id="count-${chave}">Aceitos: 0 | Rejeitados: 0</div>
+                        ${p.id !== myId ? `
+                        <div class="vote-actions">
+                            <button class="btn-vote-yes" onclick="computarVoto('${p.id}', '${cat}', 'sim')">✅ Aceitar</button>
+                            <button class="btn-vote-no" onclick="computarVoto('${p.id}', '${cat}', 'nao')"
