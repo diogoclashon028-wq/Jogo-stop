@@ -3,11 +3,10 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { 
     cors: { origin: "*" },
-    transports: ['websocket', 'polling'] // Garante compatibilidade máxima
+    transports: ['websocket', 'polling']
 });
 const path = require('path');
 
-// Garante que o servidor ache o index.html na pasta correta
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
@@ -131,12 +130,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarPontos', ({ roomCode, pontosAtualizados }) => {
+    socket.on('atualizarPontos', ({ roomCode, pointsMap }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.jogadores.forEach(j => {
-                if (pontosAtualizados[j.id] !== undefined) {
-                    j.pontos = (j.pontos || 0) + pontosAtualizados[j.id];
+                if (pointsMap[j.id] !== undefined) {
+                    j.pontos = (j.pontos || 0) + pointsMap[j.id];
                 }
             });
             sala.status = 'lobby';
@@ -161,4 +160,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                        
