@@ -2,11 +2,20 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 const path = require('path');
 
+// Serve os arquivos da pasta raiz
 app.use(express.static(path.join(__dirname, '')));
+
+// Rota garantida para entregar o index.html caso o static falhe
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const salas = {};
 
@@ -185,4 +194,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-                        
+            
