@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online</title>
+    <title>Stop! Online Supremo</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,72 +20,150 @@
         }
         .container { 
             background: white; 
-            padding: 30px; 
+            padding: 25px; 
             border-radius: 20px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
             width: 100%; 
-            max-width: 440px; 
+            max-width: 480px; 
             text-align: center; 
             position: relative;
         }
-        h1 { color: #764ba2; margin-bottom: 20px; font-size: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .status-badge { background: #ff4d4d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; display: inline-block; animation: pulse 1.5s infinite; }
-        input[type="text"] { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: 0.3s; }
+        
+        /* BOLINHA DE STATUS DE CONEXÃO */
+        .status-servidor {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        .bolinha {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: #ff3333; /* Vermelho por padrão */
+        }
+        .bolinha.conectado { background: #00bfa5; } /* Verde quando ativo */
+
+        h1 { color: #764ba2; margin-bottom: 15px; font-size: 1.8rem; }
+        .config-section { background: #f4effa; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; border: 1px solid #dcd1ed; }
+        .config-section h4 { color: #764ba2; margin-bottom: 10px; }
+        .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        .config-row select, .config-row input { padding: 5px; border-radius: 5px; border: 1px solid #ccc; width: 50%; }
+        
+        .timer-box { font-size: 1.5rem; font-weight: bold; color: #ff3333; margin-bottom: 10px; }
+        input[type="text"] { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
         input[type="text"]:focus { border-color: #764ba2; outline: none; }
-        button { width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; }
+        
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: #764ba2; }
-        .btn-primary:hover { background: #5a3682; }
         .btn-secondary { background: #00bfa5; }
-        .btn-secondary:hover { background: #009688; }
-        .btn-danger { background: #ff3333; font-size: 1.3rem; padding: 20px; box-shadow: 0 5px 15px rgba(255,51,51,0.4); }
-        .divisor { margin: 15px 0; color: #aaa; font-weight: bold; position: relative; }
+        .btn-danger { background: #ff3333; font-size: 1.2rem; padding: 16px; }
+        
         .escondido { display: none; }
-        ul { list-style: none; margin: 15px 0; text-align: left; }
-        li { background: #f7f7f9; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; font-weight: 500; }
-        .letra-box { font-size: 4rem; font-weight: 900; color: #ff3333; margin: 10px 0; }
-        .item-revisao { background: #f9f9f9; padding: 12px; border-radius: 10px; margin-bottom: 10px; text-align: left; border-left: 5px solid #764ba2; }
-        hr { margin: 15px 0; border: none; border-top: 1px solid #ddd; }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        ul { list-style: none; margin: 10px 0; text-align: left; }
+        li { background: #f7f7f9; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        
+        /* ESTILO DA LUPA DE ESPIONAGEM */
+        .lupa-container { background: #fffde6; border: 1px dashed #e6c300; padding: 10px; border-radius: 8px; margin-top: 15px; text-align: left; font-size: 0.85rem; }
+        .podio-item { padding: 15px; margin: 10px 0; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .top1 { background: #ffd700; color: #554400; font-size: 1.3rem; }
+        .top2 { background: #c0c0c0; color: #333; }
+        .top3 { background: #cd7f32; color: white; }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <div class="status-servidor">
+            <div class="bolinha" id="statusBolinha"></div>
+            <span id="statusTexto">Desconectado</span>
+        </div>
+
         <div id="telaInicial">
-            <h1>Stop! Online 🎲</h1>
-            <input type="text" id="nome" placeholder="Digite seu nome">
+            <h1 style="margin-top: 20px;">Stop! Online 🎲</h1>
+            <input type="text" id="nome" placeholder="Seu Nome">
             <button class="btn-primary" id="btnCriar">CRIAR NOVA SALA</button>
-            <div class="divisor">-- OU --</div>
-            <input type="text" id="codigo" placeholder="Código da sala">
+            <div style="margin: 10px 0; color: #888;">-- OU --</div>
+            <input type="text" id="codigo" placeholder="CÓDIGO DA SALA">
             <button class="btn-secondary" id="btnEntrar">ENTRAR EM SALA</button>
         </div>
 
         <div id="telaLobby" class="escondido">
-            <h1>Sala: <span id="idSala" style="color:#00bfa5;">----</span></h1>
-            <h3>Jogadores no Lobby:</h3>
+            <h1 style="margin-top: 20px;">Sala: <span id="idSala" style="color:#00bfa5;">----</span></h1>
+            
+            <div class="config-section">
+                <h4>⚙️ Configurações da Sala <span id="avisoDono" style="font-size:0.75rem; color:#888;"></span></h4>
+                <div class="config-row">
+                    <label>Tempo (segundos):</label>
+                    <input type="number" id="cfgTempo" value="60">
+                </div>
+                <div class="config-row">
+                    <label>Rodadas Totais:</label>
+                    <input type="number" id="cfgRodadas" value="5">
+                </div>
+                <div class="config-row">
+                    <label>Pontos por acerto:</label>
+                    <input type="number" id="cfgPontos" value="10">
+                </div>
+                <div class="config-row">
+                    <label>Limite de Pessoas:</label>
+                    <input type="number" id="cfgLimite" value="8">
+                </div>
+                <div class="config-row">
+                    <label>Votação de Palavras:</label>
+                    <select id="cfgVotacao">
+                        <option value="true">Habilitada</option>
+                        <option value="false">Desabilitada</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label>Exibir no Pódio:</label>
+                    <select id="cfgVencedores">
+                        <option value="1">Apenas 1º Lugar</option>
+                        <option value="3">Top 3 Vencedores</option>
+                    </select>
+                </div>
+                <button id="btnSalvarConfig" class="btn-primary" style="padding: 5px; font-size: 0.85rem; margin-top: 5px;">Aplicar Configurações</button>
+            </div>
+
+            <h3>Jogadores conectados:</h3>
             <ul id="listaJogadores"></ul>
-            <button class="btn-secondary" id="btnIniciar">COMEÇAR JOGO</button>
+            <button class="btn-secondary" id="btnIniciar">COMEÇAR RODADA</button>
         </div>
 
         <div id="telaJogo" class="escondido">
-            <div class="status-badge">RODADA EM ANDAMENTO</div>
+            <div class="timer-box">⏱️ <span id="tempoRestante">60</span>s</div>
             <h2>LETA ATUAL:</h2>
-            <div class="letra-box" id="letra">-</div>
+            <div style="font-size: 4rem; font-weight: 900; color: #ff3333;" id="letra">-</div>
             
-            <input type="text" id="respNome" placeholder="Nome...">
-            <input type="text" id="respAnimal" placeholder="Animal...">
-            <input type="text" id="respObjeto" placeholder="Objeto...">
-            <input type="text" id="respCor" placeholder="Cor...">
-            <input type="text" id="respFrist" placeholder="Fruta...">
+            <div id="containerCampos"></div>
 
             <button class="btn-danger" id="btnStop">STOP! 🛑</button>
+
+            <div class="lupa-container">
+                <strong>🔍 Lupa (O que os outros estão digitando):</strong>
+                <div id="dadosLupa" style="margin-top: 5px; font-style: italic; color: #555;">Ninguém digitando ainda...</div>
+            </div>
         </div>
 
         <div id="telaResultado" class="escondido">
             <h1>Revisão de Respostas 📋</h1>
             <div id="resultadosCorpo"></div>
+            <button class="btn-primary" id="btnConfirmarPontos">Confirmar e Avançar</button>
+        </div>
+
+        <div id="telaPodio" class="escondido">
+            <h1 style="color: #ffd700;">🏆 Classificação Final 🏆</h1>
+            <div id="corpoPodio"></div>
             <br>
-            <button class="btn-primary" id="btnConfirmarPontos">Computar e Voltar pro Lobby</button>
+            <button class="btn-secondary" id="btnReiniciarTudo">Jogar Novamente (Zerar Pontos)</button>
         </div>
     </div>
 
@@ -93,11 +171,22 @@
         const socket = io();
         let minhaSala = '';
         let meuId = '';
+        let souDono = false;
+        let tempoDoJogo = 60;
+        let cronometro;
+        let categoriasAtuais = ['Nome', 'Animal', 'Objeto', 'Cor', 'Fruta'];
 
-        // Captura ID do socket conectado
-        socket.on('connect', () => { meuId = socket.id; });
+        // Atualização da Bolinha Verde/Vermelha de conexão
+        socket.on('statusConexao', (conectado) => {
+            const bolinha = document.getElementById('statusBolinha');
+            const texto = document.getElementById('statusTexto');
+            if(conectado) {
+                bolinha.classList.add('conectado');
+                texto.innerText = "Conectado";
+            }
+        });
 
-        // Ações de cliques
+        // Criar e Entrar
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             if(nome) socket.emit('criarSala', nome);
@@ -112,64 +201,141 @@
             }
         });
 
+        // Dono aplicando as regras
+        document.getElementById('btnSalvarConfig').addEventListener('click', () => {
+            const novaConfig = {
+                tempo: parseInt(document.getElementById('cfgTempo').value),
+                totalRodadas: parseInt(document.getElementById('cfgRodadas').value),
+                pontosPorPalavra: parseInt(document.getElementById('cfgPontos').value),
+                limiteJogadores: parseInt(document.getElementById('cfgLimite').value),
+                votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
+                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value)
+            };
+            socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
+        });
+
         document.getElementById('btnIniciar').addEventListener('click', () => {
             socket.emit('startRound', minhaSala);
         });
 
-        document.getElementById('btnStop').addEventListener('click', () => {
-            enviarMinhasRespostas(true);
-        });
-
-        function enviarMinhasRespostas(apertouStop = false) {
-            const respostas = {
-                Nome: document.getElementById('respNome').value.trim(),
-                Animal: document.getElementById('respAnimal').value.trim(),
-                Objeto: document.getElementById('respObjeto').value.trim(),
-                Cor: document.getElementById('respCor').value.trim(),
-                Fruta: document.getElementById('respFrist').value.trim()
-            };
-            if(apertouStop) {
-                socket.emit('pressStop', { roomCode: minhaSala, respostas: respostas });
-            } else {
-                socket.emit('enviarRespostasRestantes', { roomCode: minhaSala, respostas: respostas });
-            }
-        }
-
-        // Respostas vindas do servidor
-        socket.on('salaCriada', (codigo) => { minhaSala = codigo; });
+        // Sincronização do painel do Lobby
+        socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
 
         socket.on('atualizarSala', (sala) => {
             document.getElementById('telaInicial').classList.add('escondido');
             document.getElementById('telaResultado').classList.add('escondido');
+            document.getElementById('telaPodio').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
+            // Bloqueia campos caso o jogador não seja o dono
+            if(socket.id !== sala.donoId) {
+                souDono = false;
+                document.getElementById('btnIniciar').classList.add('escondido');
+                document.getElementById('btnSalvarConfig').classList.add('escondido');
+                document.getElementById('avisoDono').innerText = "(Apenas Visualizando)";
+                document.getElementById('cfgTempo').disabled = true;
+                document.getElementById('cfgRodadas').disabled = true;
+                document.getElementById('cfgPontos').disabled = true;
+                document.getElementById('cfgLimite').disabled = true;
+                document.getElementById('cfgVotacao').disabled = true;
+                document.getElementById('cfgVencedores').disabled = true;
+            } else {
+                souDono = true;
+                document.getElementById('btnIniciar').classList.remove('escondido');
+                document.getElementById('avisoDono').innerText = "(Você é o Dono)";
+            }
+
+            // Atualiza valores nas caixas com o que está salvo no servidor
+            document.getElementById('cfgTempo').value = sala.config.tempo;
+            document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
+            document.getElementById('cfgPontos').value = sala.config.pontosPorPalavra;
+            document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
+            document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
+            document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
+
+            // Renderiza lista de jogadores
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
-                lista.innerHTML += `<li><span>👤 ${p.nome}</span> <span>🏆 ${p.pontos} pts</span></li>`;
+                const coroa = p.id === sala.donoId ? '👑 ' : '👤 ';
+                lista.innerHTML += `<li><span>${coroa}${p.nome}</span> <span>🏆 ${p.pontos} pts</span></li>`;
             });
         });
 
-        socket.on('rodadaIniciada', (letra) => {
+        // Rodada Iniciada
+        socket.on('rodadaIniciada', (data) => {
             document.getElementById('telaLobby').classList.add('escondido');
             document.getElementById('telaJogo').classList.remove('escondido');
-            document.getElementById('letra').innerText = letra;
+            document.getElementById('letra').innerText = data.letra;
             
-            // Limpa campos anteriores
-            document.getElementById('respNome').value = '';
-            document.getElementById('respAnimal').value = '';
-            document.getElementById('respObjeto').value = '';
-            document.getElementById('respCor').value = '';
-            document.getElementById('respFrist').value = '';
+            tempoDoJogo = data.config.tempo;
+            document.getElementById('tempoRestante').innerText = tempoDoJogo;
+
+            // Monta os inputs baseados nas palavras configuradas
+            const container = document.getElementById('containerCampos');
+            container.innerHTML = '';
+            categoriasAtuais = data.config.categorias;
+            
+            categoriasAtuais.forEach(cat => {
+                container.innerHTML += `<input type="text" id="resp_${cat}" placeholder="${cat}..." oninput="dispararLupa()">`;
+            });
+
+            // Dispara Cronômetro regressivo
+            clearInterval(cronometro);
+            cronorigem = setInterval(() => {
+                tempoDoJogo--;
+                document.getElementById('tempoRestante').innerText = tempoDoJogo;
+                if(tempoDoJogo <= 0) {
+                    clearInterval(cronorigem);
+                    coletarEVoar(true); // Força o Stop automático por tempo
+                }
+            }, 1000);
         });
+
+        // 🔍 Lupa: Captura o que você digita e envia para os outros verem na área de espionagem
+        function dispararLupa() {
+            const respostas = {};
+            categoriasAtuais.forEach(cat => {
+                respostas[cat] = document.getElementById(`resp_${cat}`).value.trim();
+            });
+            socket.emit('digitandoRespostas', { roomCode: minhaSala, respostas });
+        }
+
+        socket.on('espiarJogador', (data) => {
+            const divLupa = document.getElementById('dadosLupa');
+            let resumo = `<strong>Exibindo progresso:</strong><br>`;
+            Object.keys(data.respostas).forEach(cat => {
+                if(data.respostas[cat]) {
+                    resumo += `▪️ ${cat}: <span style="color:#764ba2">${data.respostas[cat]}</span><br>`;
+                }
+            });
+            divLupa.innerHTML = resumo;
+        });
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            coletarEVoar(true);
+        });
+
+        function coletarEVoar(pararGeral) {
+            clearInterval(cronorigem);
+            const respostas = {};
+            categoriasAtuais.forEach(cat => {
+                respostas[cat] = document.getElementById(`resp_${cat}`).value.trim();
+            });
+
+            if(pararGeral) {
+                socket.emit('pressStop', { roomCode: minhaSala, respostas });
+            } else {
+                socket.emit('enviarRespostasRestantes', { roomCode: minhaSala, respostas });
+            }
+        }
 
         socket.on('jogoParado', (data) => {
             document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaResultado').classList.remove('escondido');
-            
-            if(meuId !== data.quemParou) {
-                enviarMinhasRespostas(false);
+            if(socket.id !== data.quemParou) {
+                coletarEVoar(false);
             }
         });
 
@@ -179,23 +345,26 @@
             
             Object.keys(respostasDoServidor).forEach(id => {
                 const resp = respostasDoServidor[id];
-                div.innerHTML += `
-                    <div class="item-revisao">
-                        <p><strong>Jogador: ${id.substring(0,5)}</strong></p>
-                        <p>🔹 Nome: ${resp.Nome || '-'}</p>
-                        <p>🔹 Animal: ${resp.Animal || '-'}</p>
-                        <p>🔹 Objeto: ${resp.Objeto || '-'}</p>
-                        <p>🔹 Cor: ${resp.Cor || '-'}</p>
-                        <p>🔹 Fruta: ${resp.Fruta || '-'}</p>
-                    </div>
-                `;
+                let bloco = `<div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px; text-align:left;">`;
+                bloco += `<p><strong>Jogador: ${id.substring(0,4)}</strong></p>`;
+                Object.keys(resp).forEach(cat => {
+                    bloco += `<p>🔹 ${cat}: ${resp[cat] || '-'}</p>`;
+                });
+                bloco += `</div>`;
+                div.innerHTML += bloco;
             });
+
+            if(!souDono) {
+                document.getElementById('btnConfirmarPontos').classList.add('escondido');
+            } else {
+                document.getElementById('btnConfirmarPontos').classList.remove('escondido');
+            }
         });
 
         document.getElementById('btnConfirmarPontos').addEventListener('click', () => {
-            // Por enquanto, soma 10 pontos automáticos para testar a volta ao lobby
             const pontosSimulados = {};
-            pontosSimulados[meuId] = 10;
+            // Adiciona 10 pontos automáticos para avançar para testar o fluxo
+            pontosSimulados[socket.id] = 10; 
             socket.emit('atualizarPontos', { roomCode: minhaSala, pontosAtualizados: pontosSimulados });
         });
 
@@ -203,7 +372,48 @@
             socket.emit('joinRoom', { roomCode: minhaSala, name: '' });
         });
 
+        // 🏆 EXIBIÇÃO DO PÓDIO / CLASSIFICAÇÃO FINAL
+        socket.on('mostrarPodioFinal', (sala) => {
+            document.getElementById('telaLobby').classList.add('escondido');
+            document.getElementById('telaResultado').classList.add('escondido');
+            document.getElementById('telaJogo').classList.add('escondido');
+            document.getElementById('telaPodio').classList.remove('escondido');
+
+            // Ordena os jogadores por pontos acumulados decrescente
+            const classificados = [...sala.jogadores].sort((a,b) => b.pontos - a.pontos);
+            const corpo = document.getElementById('corpoPodio');
+            corpo.innerHTML = '';
+
+            // Limita a exibição com base na escolha do dono (1 ou 3 vencedores)
+            const limiteExibicao = Math.min(classificados.length, sala.config.qtdVencedores);
+
+            for(let i = 0; i < limiteExibicao; i++) {
+                const jogador = classificados[i];
+                let classePodio = 'top2';
+                if(i === 0) classePodio = 'top1';
+                if(i === 2) classePodio = 'top3';
+
+                corpo.innerHTML += `
+                    <div class="podio-item ${classePodio}">
+                        <span>${i + 1}º Lugar: ${jogador.nome}</span>
+                        <span>🏆 ${jogador.pontos} Pontos</span>
+                    </div>
+                `;
+            }
+
+            if(!souDono) {
+                document.getElementById('btnReiniciarTudo').classList.add('escondido');
+            } else {
+                document.getElementById('btnReiniciarTudo').classList.remove('escondido');
+            }
+        });
+
+        document.getElementById('btnReiniciarTudo').addEventListener('click', () => {
+            socket.emit('reiniciarJogoCompleto', minhaSala);
+        });
+
         socket.on('erro', (msg) => alert(msg));
     </script>
 </body>
 </html>
+
