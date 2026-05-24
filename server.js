@@ -5,11 +5,19 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// Configuração correta do Socket.io para evitar bloqueios de conexão
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 const PORT = process.env.PORT || 10000;
 
-app.use(express.static(__dirname));
+// Garante que o Express encontre o index.html corretamente na pasta raiz
+app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -22,6 +30,8 @@ function gerarCodigo() {
 }
 
 io.on('connection', (socket) => {
+    console.log('Jogador conectado:', socket.id);
+
     socket.on('criarSala', (nomeJogador) => {
         const codigo = gerarCodigo();
         salas[codigo] = {
