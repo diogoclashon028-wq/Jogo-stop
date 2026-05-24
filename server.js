@@ -1,13 +1,7 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    },
-    transports: ['websocket', 'polling']
-});
+const io = require('socket.io')(http, { cors: { origin: "*" } });
 const path = require('path');
 
 app.use(express.static(path.join(__dirname, '')));
@@ -266,4 +260,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-        
+                              
