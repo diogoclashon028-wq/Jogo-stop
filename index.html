@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Avançado</title>
+    <title>Stop! Online Completo Corrigido</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;}
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
@@ -12,6 +12,7 @@
         h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
         label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; font-size: 14px;}
         input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; }
+        input[disabled] { background-color: #e0e0e0; color: #757575; cursor: not-allowed; }
         button { width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; }
         .btn-primary { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; }
         .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
@@ -67,11 +68,11 @@
 
             <div class="row-config">
                 <div>
-                    <label>Pts Palavra Única:</label>
+                    <label>Pts Único:</label>
                     <input type="number" id="setting-pts-acerto" value="10" onchange="updateSettings()">
                 </div>
                 <div>
-                    <label>Pts Repetida:</label>
+                    <label>Pts Repetido:</label>
                     <input type="number" id="setting-pts-repetido" value="5" onchange="updateSettings()">
                 </div>
             </div>
@@ -118,7 +119,6 @@
 
     <div id="screen-final" class="screen">
         <h2>🏆 PODIUM FINAL 🏆</h2>
-        <p style="text-align:center; font-weight:bold; color:#4a148c; margin-bottom:25px;">Os 3 jogadores com mais pontos nesta partida:</p>
         <div id="podium-content"></div>
         <button class="btn-primary" onclick="window.location.reload()" style="margin-top:20px;">Jogar Novamente</button>
     </div>
@@ -128,8 +128,9 @@
 <script>
     const socket = io("https://jogo-stop.onrender.com");
     let myId = null, timerInterval = null, activeCategories = [], isHost = false;
-    let tempoTotalRodada = 60, milissegundosPassados = 0, cronometroAtivo = false;
+    let tempoTotalRodada = 60, milissegundosPassados = 0;
     let guardouPlayersReview = [];
+    let euJaDeiStop = false;
     const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     socket.on('connect', () => { 
@@ -180,31 +181,32 @@
 
     function startRound() { socket.emit('startRound'); }
 
-    // COMPORTAMENTO DO BOTÃO DE STOP
+    // TRAVA COMPLETA DE INPUTS QUANDO APERTA STOP
     function triggerStop(e) {
         e.preventDefault();
-        cronometroAtivo = false;
+        euJaDeiStop = true;
+        
         const answers = {};
         activeCategories.forEach(c => {
-            answers[c] = document.getElementById('ans-' + c).value;
+            const inputEl = document.getElementById('ans-' + c);
+            answers[c] = inputEl.value;
+            inputEl.disabled = true; // IMPEDE EDIÇÕES IMEDIATAMENTE
         });
         
         const tempoGastoFinal = (milissegundosPassados / 1000).toFixed(1) + "s";
-        
-        // Avisa que este jogador apertou STOP. O jogo continua aberto pros outros até o tempo expirar.
         socket.emit('pressStop', { respostas: answers, tempoGasto: tempoGastoFinal });
         
-        // Bloqueia os inputs dele para ele não trapacear continuando a digitar
         document.getElementById('btn-main-action').disabled = true;
         document.getElementById('btn-main-action').innerText = "VOCÊ DEU STOP!";
         document.getElementById('btn-main-action').style.background = "#777";
     }
 
-    // ENVIO AUTOMÁTICO (QUANDO O TEMPO ACABA)
     function enviarPorFimDeTempo() {
         const answers = {};
         activeCategories.forEach(c => {
-            answers[c] = document.getElementById('ans-' + c).value;
+            const inputEl = document.getElementById('ans-' + c);
+            answers[c] = inputEl.value;
+            inputEl.disabled = true;
         });
         const tempoGastoFinal = (tempoTotalRodada).toFixed(1) + "s";
         socket.emit('submitAnswers', { respostas: answers, tempoGasto: tempoGastoFinal });
@@ -257,7 +259,7 @@
         activeCategories = data.categories;
         tempoTotalRodada = data.roundTime;
         milissegundosPassados = 0;
-        cronometroAtivo = true;
+        euJaDeiStop = false;
 
         document.getElementById('stop-alert').style.display = 'none';
         document.getElementById('btn-main-action').disabled = false;
@@ -275,16 +277,17 @@
 
         document.getElementById('game-timer').innerText = 'Tempo: ' + tempoTotalRodada + 's';
         
+        // O CRONÔMETRO NUNCA PARA, ELE CONTA CONTINUAMENTE ATÉ O FINAL DA RODADA
         timerInterval = setInterval(() => {
-            if (cronometroAtivo) {
-                milissegundosPassados += 1000;
-            }
+            milissegundosPassados += 1000;
             let tempoRestante = tempoTotalRodada - (milissegundosPassados / 1000);
             document.getElementById('game-timer').innerText = 'Tempo: ' + Math.max(0, Math.ceil(tempoRestante)) + 's';
             
             if(tempoRestante <= 0) {
                 clearInterval(timerInterval);
-                enviarPorFimDeTempo();
+                if (!euJaDeiStop) {
+                    enviarPorFimDeTempo();
+                }
             }
         }, 1000);
         showScreen('screen-game');
@@ -292,7 +295,7 @@
 
     socket.on('showReviewTable', ({ players, ranking, categories, isLastRound }) => {
         clearInterval(timerInterval);
-        guardouPlayersReview = players; // Salva a lista localmente para consulta
+        guardouPlayersReview = players;
         
         document.getElementById('review-details-box').style.display = 'none';
         
@@ -311,7 +314,6 @@
             const podium = document.getElementById('podium-content');
             podium.innerHTML = '';
             
-            // FILTRA APENAS OS 3 PRIMEIROS DO RANKING
             ranking.slice(0, 3).forEach((p, i) => {
                 let medalha = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
                 podium.innerHTML += `
@@ -327,7 +329,6 @@
         }
     });
 
-    // SISTEMA INTERATIVO PARA REVISAR PALAVRAS E TEMPO DOS OUTROS
     function mostrarDetalhesJogador(idJogador) {
         const player = guardouPlayersReview.find(p => p.id === idJogador);
         if(!player) return;
