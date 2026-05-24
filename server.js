@@ -6,6 +6,7 @@ const io = require('socket.io')(http, {
 });
 const path = require('path');
 
+// Serve os arquivos da pasta atual (onde vai estar o index.html)
 app.use(express.static(path.join(__dirname, '')));
 
 const salas = {};
@@ -38,7 +39,7 @@ io.on('connection', (socket) => {
             ptsAcerto: 10,
             ptsRepetido: 5,
             maxPlayers: 8,
-            gameMode: 'regressiva', // 'regressiva' (Normal) ou 'classico' (Para na hora)
+            gameMode: 'regressiva',
             useVoting: 'sim',
             status: 'lobby',
             respostasRodada: {}
@@ -143,14 +144,12 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Alguém clicou no STOP
     socket.on('notifyStop', () => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (!sala || sala.status !== 'jogando') return;
 
         const jogador = sala.players.find(p => p.id === socket.id);
         if (jogador) {
-            // Emite para toda a sala quem apertou o botão
             io.to(sala.code).emit('playerPressedStop', jogador.name);
         }
     });
@@ -161,9 +160,8 @@ io.on('connection', (socket) => {
 
         sala.respostasRodada[socket.id] = dados.respostas;
 
-        // Se todos responderam ou se o modo clássico for acionado
         if (Object.keys(sala.respostasRodada).length === sala.players.length || sala.gameMode === 'classico') {
-            sala.status = 'lobby'; // Retorna temporariamente ao lobby (pode direcionar para tela de pontos futuramente)
+            sala.status = 'lobby';
             io.to(sala.code).emit('roundEnded', sala.respostasRodada);
             io.to(sala.code).emit('roomUpdated', sala);
         }
@@ -188,3 +186,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
