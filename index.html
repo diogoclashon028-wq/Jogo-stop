@@ -3,34 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online</title>
+    <title>Stop! Online Completo</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;
-        }
-        .container { 
-            background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; 
-        }
-        #status-conexao {
-            text-align: center; padding: 10px; background: #ff4b2b; color: white; font-weight: bold; border-radius: 8px; margin-bottom: 15px; font-size: 14px;
-        }
-        h2 { color: #4a148c; text-align: center; margin-top: 0; font-size: 28px; }
-        h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; margin-top: 20px; }
-        input[type="text"] { 
-            width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; 
-        }
-        button { 
-            width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; transition: 0.2s;
-        }
-        button:active { transform: scale(0.98); }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box;}
+        .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; max-width: 550px; box-sizing: border-box; }
+        #status-conexao { text-align: center; padding: 10px; background: #ff4b2b; color: white; font-weight: bold; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+        h2 { color: #4a148c; text-align: center; margin-top: 0; }
+        h3 { color: #7b1fa2; border-bottom: 2px solid #e1bee7; padding-bottom: 5px; }
+        label { font-weight: bold; color: #4a148c; display: block; margin-top: 10px; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 6px 0 12px 0; box-sizing: border-box; border-radius: 8px; border: 2px solid #ccc; font-size: 16px; }
+        button { width: 100%; padding: 14px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; text-transform: uppercase; }
         .btn-primary { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; }
         .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .btn-stop { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; font-size: 20px; }
         .screen { display: none; }
         .screen.active { display: block; }
-        .banner-img { width: 100%; max-height: 130px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; }
         .player-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; }
+        .letter-display { font-size: 72px; text-align: center; font-weight: bold; color: #ffb300; margin: 10px 0; }
+        .timer { font-size: 24px; text-align: center; font-weight: bold; color: #d32f2f; margin: 15px 0; background: #ffebee; padding: 10px; border-radius: 8px; }
+        .theme-tag { display: flex; justify-content: space-between; align-items: center; background: #e0f7fa; padding: 8px 12px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #00acc1; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -38,7 +29,6 @@
     <div id="status-conexao">🔴 Conectando ao servidor backend...</div>
 
     <div id="screen-login" class="screen active">
-        <img class="banner-img" src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=600&auto=format&fit=crop&q=60">
         <h2>Stop! Online</h2>
         <input type="text" id="username" placeholder="Seu Nome">
         <button class="btn-primary" onclick="createRoom()">Criar Nova Sala</button>
@@ -49,16 +39,54 @@
 
     <div id="screen-lobby" class="screen">
         <h2 id="lobby-title">Sala: ----</h2>
+        
+        <div id="host-settings">
+            <h3>Configurações do Jogo</h3>
+            <div style="display:flex; gap: 5px;">
+                <input type="text" id="new-theme-name" placeholder="Adicionar Novo Tema" style="margin:0;">
+                <button class="btn-primary" onclick="addTheme()" style="width:auto; margin:0; padding: 0 20px;">+</button>
+            </div>
+            <label>Tempo da Rodada (segundos):</label>
+            <input type="number" id="setting-time" value="60" onchange="updateSettings()">
+        </div>
+
+        <h3>Temas da Partida</h3>
+        <div id="lobby-themes-list"></div>
+        
         <h3>Jogadores na Sala</h3>
         <div id="player-list"></div>
+        
+        <button id="btn-start-game" class="btn-success" onclick="startRound()">Começar Jogo</button>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <h2 id="game-status">Rodada 1</h2>
+        <div class="letter-display" id="game-letter">-</div>
+        <div class="timer" id="game-timer">Tempo: --s</div>
+        <form id="game-form" onsubmit="sendAnswers(event)">
+            <div id="dynamic-inputs-container"></div>
+            <button type="submit" class="btn-stop">STOP!</button>
+        </form>
+    </div>
+
+    <div id="screen-review" class="screen">
+        <h2>Fim da Rodada!</h2>
+        <h3>Placar Geral</h3>
+        <div id="ranking-list"></div>
+        <button id="btn-next-round" class="btn-success" onclick="startRound()">Próxima Rodada</button>
+    </div>
+
+    <div id="screen-final" class="screen">
+        <h2>🏆 FIM DE JOGO! 🏆</h2>
+        <div id="podium-content"></div>
+        <button class="btn-primary" onclick="window.location.reload()">Jogar Novamente</button>
     </div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-    // Aponta direto para o seu link do Render de produção
     const socket = io("https://jogo-stop.onrender.com");
-    let myId = null;
+    let myId = null, timerInterval = null, activeCategories = [];
 
     socket.on('connect', () => { 
         myId = socket.id; 
@@ -68,14 +96,7 @@
     });
 
     socket.on('disconnect', () => { 
-        const indicador = document.getElementById('status-conexao');
-        indicador.innerText = "🔴 Conexão perdida.";
-        indicador.style.background = "#ff4b2b";
-    });
-
-    socket.on('connect_error', (error) => {
-        const indicador = document.getElementById('status-conexao');
-        indicador.innerText = "🔴 Erro: " + error.message;
+        document.getElementById('status-conexao').innerText = "🔴 Conexão perdida.";
     });
 
     function showScreen(screenId) {
@@ -96,23 +117,103 @@
         socket.emit('joinRoom', { roomCode, name });
     }
 
-    socket.on('salaCriada', (codigoSala) => { 
-        showScreen('screen-lobby'); 
-    });
+    function addTheme() {
+        const input = document.getElementById('new-theme-name');
+        if(input.value.trim()) { 
+            socket.emit('addCategory', input.value.trim()); 
+            input.value = ''; 
+        }
+    }
+
+    function updateSettings() {
+        socket.emit('updateSettings', {
+            maxRounds: 5,
+            roundTime: document.getElementById('setting-time').value
+        });
+    }
+
+    function startRound() { 
+        socket.emit('startRound'); 
+    }
+
+    function sendAnswers(e) {
+        e.preventDefault();
+        const answers = {};
+        activeCategories.forEach(c => {
+            answers[c] = document.getElementById('ans-' + c).value;
+        });
+        socket.emit('submitAnswers', answers);
+    }
+
+    socket.on('salaCriada', () => { showScreen('screen-lobby'); });
 
     socket.on('roomUpdated', (room) => {
+        activeCategories = room.categories;
         document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
+        
+        // Exibe ou oculta os controles caso seja o host administrador
+        const isHost = room.host === myId;
+        document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+        document.getElementById('btn-start-game').style.display = isHost ? 'block' : 'none';
+
+        const themesList = document.getElementById('lobby-themes-list');
+        themesList.innerHTML = '';
+        room.categories.forEach(c => {
+            themesList.innerHTML += `<div class="theme-tag"><span>📝 ${c}</span></div>`;
+        });
+
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = '';
         room.players.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'player-item';
-            div.innerText = p.name + (p.id === room.host ? ' 👑' : '');
-            playerList.appendChild(div);
+            playerList.innerHTML += `<div class="player-item">${p.name} ${p.id === room.host ? '👑' : ''}</div>`;
         });
     });
 
-    socket.on('erro', (msg) => { alert(msg); });
+    socket.on('roundStarted', (data) => {
+        clearInterval(timerInterval);
+        activeCategories = data.categories;
+        document.getElementById('game-status').innerText = 'Rodada ' + data.round + '/' + data.maxRounds;
+        document.getElementById('game-letter').innerText = data.letter;
+        
+        const container = document.getElementById('dynamic-inputs-container');
+        container.innerHTML = '';
+        activeCategories.forEach(c => {
+            container.innerHTML += `<label>✏️ ${c}:</label><input type="text" id="ans-${c}">`;
+        });
+
+        let timeLeft = data.roundTime;
+        document.getElementById('game-timer').innerText = 'Tempo: ' + timeLeft + 's';
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('game-timer').innerText = 'Tempo: ' + timeLeft + 's';
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+            }
+        }, 1000);
+        showScreen('screen-game');
+    });
+
+    socket.on('showReviewTable', ({ ranking, isLastRound }) => {
+        clearInterval(timerInterval);
+        const rList = document.getElementById('ranking-list');
+        rList.innerHTML = '';
+        ranking.forEach((p, idx) => {
+            rList.innerHTML += `<div class="player-item"><b>${idx+1}° ${p.name}</b> <span>${p.points} pts</span></div>`;
+        });
+
+        if(isLastRound) {
+            const podium = document.getElementById('podium-content');
+            podium.innerHTML = '';
+            ranking.slice(0, 3).forEach((p, i) => {
+                podium.innerHTML += `<div class="player-item" style="background:#ffa000;">🏆 ${i+1}° Lugar: ${p.name} - ${p.points} pts</div>`;
+            });
+            showScreen('screen-final');
+        } else {
+            showScreen('screen-review');
+        }
+    });
+
+    socket.on('erro', (msg) => alert(msg));
 </script>
 </body>
 </html>
