@@ -35,7 +35,10 @@ io.on('connection', (socket) => {
             gameState: 'lobby', 
             currentLetter: '',
             ptsAcerto: 10, 
-            ptsRepetido: 5
+            ptsRepetido: 5,
+            gameMode: 'classico',
+            history: [], // Histórico das rodadas passadas
+            votes: {}   // Controle de votação das palavras
         };
         
         socket.join(codigoSala);
@@ -47,29 +50,32 @@ io.on('connection', (socket) => {
         const codigo = roomCode.toUpperCase();
         if (salas[codigo]) {
             const sala = salas[codigo];
-            // Se o jogo já começou, o jogador entra marcado como "waiting" (em espera)
             const emEspera = sala.gameState !== 'lobby';
             
             sala.players.push({ 
                 id: socket.id, 
                 name: name, 
                 points: 0, 
-                submitted: emEspera, // se está em espera, conta como enviado para não travar o STOP
+                submitted: emEspera, 
                 answers: {}, 
                 timeTaken: 0,
                 waiting: emEspera 
             });
             
             socket.join(codigo);
-            
-            // Avisa o jogador se ele deve ir para a tela de espera diretamente
-            if (emEspera) {
-                socket.emit('forcarEspera');
-            }
-            
+            if (emEspera) socket.emit('forcarEspera');
             io.to(codigo).emit('roomUpdated', sala);
         } else {
             socket.emit('erro', 'Sala não encontrada!');
+        }
+    });
+
+    // CHAT RÁPIDO: Envia a provocação para todos na sala
+    socket.on('enviarProvocacao', (msg) => {
+        const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
+        if (sala) {
+            const jogador = sala.players.find(p => p.id === socket.id);
+            io.to(sala.code).emit('receberProvocacao', { nome: jogador.name, mensagem: msg });
         }
     });
 
@@ -104,10 +110,17 @@ io.on('connection', (socket) => {
     socket.on('updateSettings', (data) => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (sala) {
-            sala.maxRounds = parseInt(data.maxRounds) || sala.maxRounds;
-            sala.roundTime = parseInt(data.roundTime) || sala.roundTime;
-            sala.ptsAcerto = parseInt(data.ptsAcerto) || sala.ptsAcerto;
-            sala.ptsRepetido = parseInt(data.ptsRepetido) || sala.ptsRepetido;
+            sala.gameMode = data.gameMode || sala.gameMode;
+            if (sala.gameMode === 'classico') {
+                sala.maxRounds = 5; sala.roundTime = 60; sala.ptsAcerto = 10; sala.ptsRepetido = 5;
+            } else if (sala.gameMode === 'competitivo') {
+                sala.maxRounds = 5; sala.roundTime = 45; sala.ptsAcerto = 15; sala.ptsRepetido = 5;
+            } else if (sala.gameMode === 'custom') {
+                sala.maxRounds = parseInt(data.maxRounds) || sala.maxRounds;
+                sala.roundTime = parseInt(data.roundTime) || sala.roundTime;
+                sala.ptsAcerto = parseInt(data.ptsAcerto) || sala.ptsAcerto;
+                sala.ptsRepetido = parseInt(data.ptsRepetido) || sala.ptsRepetido;
+            }
             io.to(sala.code).emit('roomUpdated', sala);
         }
     });
@@ -117,20 +130,17 @@ io.on('connection', (socket) => {
         
         if (sala && (sala.host === socket.id)) {
             if (sala.allowedLetters.length === 0) {
-                return socket.emit('erro', 'Não restaram mais letras disponíveis no alfabeto selecionado!');
+                return socket.emit('erro', 'Não restaram mais letras disponíveis no alfabeto!');
             }
             sala.currentRound++;
             sala.gameState = 'playing';
+            sala.votes = {}; // Limpa votos antigos
             
             sala.currentLetter = sala.allowedLetters[0];
             sala.allowedLetters.splice(0, 1); 
             
-            // IMPORTANTE: Quem estava esperando (waiting: true) agora entra oficialmente no jogo ativo!
             sala.players.forEach(p => { 
-                p.waiting = false;
-                p.submitted = false; 
-                p.answers = {}; 
-                p.timeTaken = 0; 
+                p.waiting = false; p.submitted = false; p.answers = {}; p.timeTaken = 0; 
             });
             
             io.to(sala.code).emit('roundStarted', {
@@ -150,12 +160,14 @@ io.on('connection', (socket) => {
                 jogador.timeTaken = tempoGasto;
                 jogador.submitted = true;
 
-                io.to(sala.code).emit('stopPressionado', jogador.name);
-                io.to(sala.code).emit('roomUpdated', sala);
-
-                const todosEnviaram = sala.players.every(p => p.submitted);
-                if (todosEnviaram) {
-                    calcularPontuacaoERevisao(sala);
+                if (sala.gameMode === 'competitivo') {
+                    io.to(sala.code).emit('stopImediato', jogador.name);
+                    sala.players.forEach(p => { if (!p.submitted) p.submitted = true; });
+                    fecharRodadaEVotacao(sala);
+                } else {
+                    io.to(sala.code).emit('stopPressionado', jogador.name);
+                    io.to(sala.code).emit('roomUpdated', sala);
+                    if (sala.players.every(p => p.submitted)) fecharRodadaEVotacao(sala);
                 }
             }
         }
@@ -170,19 +182,46 @@ io.on('connection', (socket) => {
                 jogador.timeTaken = tempoGasto;
                 jogador.submitted = true;
             }
-            
             io.to(sala.code).emit('roomUpdated', sala);
+            if (sala.players.every(p => p.submitted)) fecharRodadaEVotacao(sala);
+        }
+    });
 
-            const todosEnviaram = sala.players.every(p => p.submitted);
-            if (todosEnviaram) {
-                calcularPontuacaoERevisao(sala);
+    // SISTEMA DE VOTAÇÃO: Computa os votos de aceitar/rejeitar
+    socket.on('votarPalavra', ({ playerTargetId, categoria, voto }) => {
+        const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
+        if (sala && sala.gameState === 'reviewing') {
+            const chave = `${playerTargetId}-${categoria}`;
+            if (!sala.votes[chave]) sala.votes[chave] = { aceitos: 0, rejeitados: 0, votantes: [] };
+            
+            if (!sala.votes[chave].votantes.includes(socket.id)) {
+                sala.votes[chave].votantes.push(socket.id);
+                if (voto === 'sim') sala.votes[chave].aceitos++;
+                else sala.votes[chave].rejeitados++;
+                
+                io.to(sala.code).emit('votosAtualizados', sala.votes);
             }
+        }
+    });
+
+    // Finaliza a revisão aplicando as decisões da votação
+    socket.on('aplicarVotosEAvancar', () => {
+        const sala = Object.values(salas).find(s => s.host === socket.id);
+        if (sala && sala.gameState === 'reviewing') {
+            calcularPontosComVotacao(sala);
         }
     });
 });
 
-function calcularPontuacaoERevisao(sala) {
+function fecharRodadaEVotacao(sala) {
     sala.gameState = 'reviewing';
+    io.to(sala.code).emit('abrirRevisao', {
+        hostId: sala.host, players: sala.players, categories: sala.categories, letter: sala.currentLetter
+    });
+}
+
+function calcularPontosComVotacao(sala) {
+    let copiaRodadaInfo = { rodada: sala.currentRound, letra: sala.currentLetter, respostas: [] };
 
     sala.categories.forEach(cat => {
         let contagemRespostas = {};
@@ -190,7 +229,12 @@ function calcularPontuacaoERevisao(sala) {
         sala.players.forEach(p => {
             if (!p.waiting) {
                 let ans = (p.answers[cat] || '').trim().toUpperCase();
-                if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
+                const chave = `${p.id}-${cat}`;
+                const votacao = sala.votes[chave];
+                // Regra: Se os votos de rejeição forem maiores ou iguais aos de aceitação, a palavra é anulada
+                let foiRejeitado = votacao && votacao.rejeitados > votacao.aceitos;
+
+                if (ans.length > 0 && ans.startsWith(sala.currentLetter) && !foiRejeitado) {
                     contagemRespostas[ans] = (contagemRespostas[ans] || 0) + 1;
                 }
             }
@@ -199,25 +243,34 @@ function calcularPontuacaoERevisao(sala) {
         sala.players.forEach(p => {
             if (!p.waiting) {
                 let ans = (p.answers[cat] || '').trim().toUpperCase();
-                if (ans.length > 0 && ans.startsWith(sala.currentLetter)) {
+                const chave = `${p.id}-${cat}`;
+                const votacao = sala.votes[chave];
+                let foiRejeitado = votacao && votacao.rejeitados > votacao.aceitos;
+
+                let pontosGanhos = 0;
+                if (ans.length > 0 && ans.startsWith(sala.currentLetter) && !foiRejeitado) {
                     if (contagemRespostas[ans] > 1) {
-                        p.points += sala.ptsRepetido;
+                        pontosGanhos = sala.ptsRepetido;
                     } else {
-                        p.points += sala.ptsAcerto;
+                        pontosGanhos = sala.ptsAcerto;
                     }
+                    p.points += pontosGanhos;
                 }
+                
+                copiaRodadaInfo.respostas.push({ nome: p.name, categoria: cat, palavra: ans || '---', pontos: pontosGanhos, status: foiRejeitado ? '❌ Rejeitado' : '✅' });
             }
         });
     });
+
+    sala.history.push(copiaRodadaInfo); // Salva no histórico
 
     const ranking = [...sala.players].sort((a, b) => b.points - a.points);
     const acabouJogo = sala.currentRound >= sala.maxRounds;
 
     io.to(sala.code).emit('showReviewTable', {
-        hostId: sala.host,
-        players: sala.players, ranking: ranking, categories: sala.categories, isLastRound: acabouJogo
+        ranking: ranking, isLastRound: acabouJogo, historicoCompleto: sala.history
     });
 }
 
-http.listen(PORT, () => console.log("Servidor ativo e rodando com suporte a entrada tardia!"));
-                    
+http.listen(PORT, () => console.log("Servidor rodando com Votação, Chat e Histórico!"));
+                                                                   
