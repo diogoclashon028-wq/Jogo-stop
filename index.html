@@ -142,14 +142,17 @@
     </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
     const socket = io();
     let myId = null, isHost = false, timerInterval = null, timeLeft = 0, hasSubmitted = false;
     let currentPlayersData = [], activeCategories = [];
     const FULL_ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
-    socket.on('connect', () => { myId = socket.id; });
+    socket.on('connect', () => { 
+        myId = socket.id; 
+        console.log("Conectado com sucesso. ID:", myId);
+    });
 
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -214,7 +217,6 @@
         activeCategories = room.categories;
         document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
         
-        // Ativa painéis apenas se for o criador (Host)
         document.getElementById('host-theme-inputs').style.display = isHost ? 'block' : 'none';
         document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
         document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
