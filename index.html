@@ -168,7 +168,9 @@
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-    const socket = io(); // Conecta direto na URL do Render do projeto
+    // AQUI ESTÁ A CORREÇÃO: Apontando direto para o endereço do seu Render
+    const socket = io('https://jogo-stop.onrender.com'); 
+    
     let myId = null, timerInterval = null, activeCategories = [], isHost = false;
     let tempoTotalRodada = 60, milissegundosPassados = 0, euJaDeiStop = false;
     const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -210,7 +212,7 @@
         if(isHost) {
             socket.emit('updateSettings', {
                 gameMode: document.getElementById('select-game-mode').value,
-                votingEnabled: document.getElementById('select-voting-mode').value === "true", // Envia valor booleano da votação
+                votingEnabled: document.getElementById('select-voting-mode').value === "true",
                 maxRounds: document.getElementById('setting-rounds').value,
                 roundTime: document.getElementById('setting-time').value,
                 ptsAcerto: document.getElementById('setting-pts-acerto').value,
@@ -268,7 +270,7 @@
         activeCategories = room.categories; isHost = room.host === myId;
         document.getElementById('lobby-title').innerText = 'Sala: ' + room.code;
         document.getElementById('select-game-mode').value = room.gameMode;
-        document.getElementById('select-voting-mode').value = room.votingEnabled.toString(); // Sincroniza o seletor de votação
+        document.getElementById('select-voting-mode').value = room.votingEnabled.toString();
         document.getElementById('select-game-mode').disabled = !isHost;
         document.getElementById('select-voting-mode').disabled = !isHost;
 
@@ -353,4 +355,4 @@
                                 </div>
                             ` : ''}
                         </div>
-        
+          
