@@ -1,188 +1,368 @@
-const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
-    cors: { origin: "*" }
-});
-const path = require('path');
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stop! Online</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 480px; text-align: center; }
+        
+        .status-bar { background-color: #ff4d4d; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; }
+        
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; outline: none; }
+        input:focus, select:focus { border-color: #764ba2; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; margin-top: 5px; }
+        .btn-create { background: #6a1b9a; }
+        .btn-join { background: #00bfa5; }
+        .btn-stop { background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%); margin-top: 15px; }
+        
+        .panel { display: none; text-align: left; }
+        .active { display: block; }
+        
+        .room-code { background: #f0f0f0; padding: 12px; border-radius: 10px; font-size: 1.3rem; font-weight: bold; text-align: center; margin-bottom: 15px; border: 2px dashed #764ba2; }
+        .player-list { list-style: none; margin: 10px 0; }
+        .player-item { background: #f9f9f9; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #00bfa5; }
+        
+        .host-badge { background: #764ba2; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 20px; font-weight: bold; }
+        .btn-kick { background: #e53935; color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
 
-app.use(express.static(path.join(__dirname, '')));
+        .config-section { background: #f5f6fa; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #e4e7eb; }
+        .config-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .config-group label { font-size: 0.9rem; color: #4a5568; font-weight: 600; width: 60%; }
+        .config-group input, .config-group select { width: 40%; padding: 6px 10px; margin: 0; }
 
-const salas = {};
+        .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .tag { background: #e2e8f0; color: #4a5568; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .tag span { cursor: pointer; color: #e53935; font-weight: bold; }
 
-function gerarCodigo() {
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let resultado = '';
-    for (let i = 0; i < 4; i++) {
-        resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-    }
-    return resultado;
-}
+        .letter-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 5px; }
+        .letter-btn { padding: 6px 0; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #334155; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; }
+        .letter-btn.active { background: #764ba2; color: white; border-color: #764ba2; }
 
-io.on('connection', (socket) => {
-    console.log('Usuário conectado:', socket.id);
+        .game-header { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
+        .letter-big { font-size: 2.5rem; color: #e53935; text-align: center; margin: 10px 0; font-weight: 900; }
+        .input-box-game { margin-bottom: 12px; }
+        .input-box-game label { display: block; font-weight: bold; color: #475569; margin-bottom: 4px; }
+        .stop-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
 
-    socket.on('criarSala', (nomeHost) => {
-        const codigo = gerarCodigo();
-        salas[codigo] = {
-            code: codigo,
-            host: socket.id,
-            players: [{ id: socket.id, name: nomeHost, points: 0 }],
-            categories: ['Nome', 'Animal', 'Objeto', 'Fruta'],
-            allowedLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
-            usedLetters: [],
-            currentLetter: '',
-            roundTime: 60,
-            maxRounds: 5,
-            currentRound: 0,
-            ptsAcerto: 10,
-            ptsRepetido: 5,
-            maxPlayers: 8,
-            gameMode: 'regressiva',
-            useVoting: 'sim',
-            status: 'lobby',
-            respostasRodada: {}
-        };
-        socket.join(codigo);
-        socket.emit('salaCriada', codigo);
-        io.to(codigo).emit('roomUpdated', salas[codigo]);
-    });
+    <div class="container">
+        <div id="statusBar" class="status-bar">Conectando ao servidor...</div>
 
-    socket.on('joinRoom', ({ roomCode, name }) => {
-        const codigo = roomCode.toUpperCase();
-        const sala = salas[codigo];
-        if (!sala) return socket.emit('erro', 'Sala não encontrada!');
-        if (sala.status !== 'lobby') return socket.emit('erro', 'O jogo já começou!');
-        if (sala.players.length >= (sala.maxPlayers || 8)) return socket.emit('erro', 'A sala está cheia!');
+        <div id="telaInicial" class="panel active">
+            <h1 style="text-align: center; margin-bottom: 15px; color: #5e35b1;">Stop! Online</h1>
+            <input type="text" id="nomeJogador" placeholder="Seu Nome" maxlength="15">
+            <button id="btnCriar" class="btn-create">CRIAR NOVA SALA</button>
+            <div style="text-align: center; margin: 10px 0; color: #777;">-- OU --</div>
+            <input type="text" id="codigoSala" placeholder="CÓDIGO DA SALA" style="text-transform: uppercase;" maxlength="4">
+            <button id="btnEntrar" class="btn-join">ENTRAR EM SALA</button>
+        </div>
 
-        sala.players.push({ id: socket.id, name: name, points: 0 });
-        socket.join(codigo);
-        io.to(codigo).emit('roomUpdated', sala);
-    });
+        <div id="telaLobby" class="panel">
+            <h2>Sala de Espera</h2>
+            <div class="room-code">CÓDIGO: <span id="codigoSalaGerado">----</span></div>
+            
+            <h3>Jogadores:</h3>
+            <ul id="listaJogadores" class="player-list"></ul>
 
-    socket.on('updateSettings', (config) => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala) return;
+            <div id="painelConfiguracoes" class="config-section">
+                <h4 style="margin-bottom: 8px;">Configurações do Jogo</h4>
+                <div class="config-group">
+                    <label>Modo de Jogo:</label>
+                    <select id="cfgModoJogo">
+                        <option value="regressiva">Contagem Regressiva</option>
+                        <option value="classico">Clássico (Para na hora)</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>Limite de Jogadores:</label>
+                    <input type="number" id="cfgLimiteJogadores" value="8" min="2" max="20">
+                </div>
+                <div class="config-group">
+                    <label>Tempo (segundos):</label>
+                    <input type="number" id="cfgTempo" value="60" min="15" max="180">
+                </div>
+                <div class="config-group">
+                    <label>Total de Rodadas:</label>
+                    <input type="number" id="cfgRodadas" value="5" min="1" max="15">
+                </div>
+                <div class="config-group">
+                    <label>Pts Acerto Único:</label>
+                    <input type="number" id="cfgPtsAcerto" value="10" min="1" max="100">
+                </div>
+                <div class="config-group">
+                    <label>Pts Repetido:</label>
+                    <input type="number" id="cfgPtsRepetido" value="5" min="0" max="50">
+                </div>
+                <div class="config-group">
+                    <label>Avaliação por Votos:</label>
+                    <select id="cfgVotos">
+                        <option value="sim">Ativado</option>
+                        <option value="nao">Desativado</option>
+                    </select>
+                </div>
 
-        sala.roundTime = parseInt(config.roundTime) || 60;
-        sala.maxRounds = parseInt(config.maxRounds) || 5;
-        sala.ptsAcerto = parseInt(config.ptsAcerto) || 10;
-        sala.ptsRepetido = parseInt(config.ptsRepetido) || 5;
-        sala.maxPlayers = parseInt(config.maxPlayers) || 8;
-        sala.gameMode = config.gameMode || 'regressiva';
-        sala.useVoting = config.useVoting || 'sim';
+                <h4 style="margin: 12px 0 4px 0;">Temas</h4>
+                <div class="tag-container" id="containerCategorias"></div>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="novoTemaInput" placeholder="Novo Tema" style="padding: 6px; margin: 0;">
+                    <button id="btnaddTema" style="width: auto; padding: 0 15px; margin: 0; background: #764ba2;">+</button>
+                </div>
 
-        io.to(sala.code).emit('roomUpdated', sala);
-    });
+                <h4 style="margin: 12px 0 4px 0;">Letras do Sorteio</h4>
+                <div class="letter-grid" id="gridLetras"></div>
+            </div>
 
-    socket.on('addCategory', (categoria) => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (sala && categoria && !sala.categories.includes(categoria)) {
-            sala.categories.push(categoria);
-            io.to(sala.code).emit('roomUpdated', sala);
+            <button id="btnIniciarJogo" class="btn-join" style="margin-top: 15px;">INICIAR JOGO</button>
+            <p id="txtAguardandoHost" style="text-align: center; color: #777; font-style: italic; margin-top: 15px; display: none;">Aguardando líder iniciar...</p>
+        </div>
+
+        <div id="telaJogo" class="panel">
+            <div id="bannerStop" class="stop-banner"></div>
+            <div class="game-header">
+                <div>Rodada: <span id="gameRodada">1/5</span></div>
+                <div>⏱️ <span id="gameCronometro">60</span>s</div>
+            </div>
+            <p style="text-align: center; font-weight: bold;">LETRA DA RODADA:</p>
+            <div id="letraSorteada" class="letter-big">-</div>
+            <div id="inputsContainerJogo"></div>
+            <button id="btnStop" class="btn-stop">STOP!</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let tempoMaximoRodada = 60;
+        let modoJogoAtivo = 'regressiva';
+
+        function alternarTela(idTela) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(idTela).classList.add('active');
         }
-    });
 
-    socket.on('removeCategory', (categoria) => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (sala) {
-            sala.categories = sala.categories.filter(c => c !== categoria);
-            io.to(sala.code).emit('roomUpdated', sala);
-        }
-    });
-
-    socket.on('toggleLetter', (letra) => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (sala) {
-            if (sala.allowedLetters.includes(letra)) {
-                if (sala.allowedLetters.length > 1) {
-                    sala.allowedLetters = sala.allowedLetters.filter(l => l !== letra);
-                }
-            } else {
-                sala.allowedLetters.push(letra);
-            }
-            io.to(sala.code).emit('roomUpdated', sala);
-        }
-    });
-
-    socket.on('kickPlayer', (idAlvo) => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala) return;
-        
-        sala.players = sala.players.filter(p => p.id !== idAlvo);
-        io.to(idAlvo).emit('playerKicked');
-        
-        const socketAlvo = io.sockets.sockets.get(idAlvo);
-        if (socketAlvo) socketAlvo.leave(sala.code);
-
-        io.to(sala.code).emit('roomUpdated', sala);
-    });
-
-    socket.on('startRound', () => {
-        const sala = Object.values(salas).find(s => s.host === socket.id);
-        if (!sala) return;
-
-        const letrasDisponiveis = sala.allowedLetters.filter(l => !sala.usedLetters.includes(l));
-        if (letrasDisponiveis.length === 0) sala.usedLetters = []; 
-        
-        const listaSorteio = letrasDisponiveis.length > 0 ? letrasDisponiveis : sala.allowedLetters;
-        const letraEscolhida = listaSorteio[Math.floor(Math.random() * listaSorteio.length)];
-        
-        sala.usedLetters.push(letraEscolhida);
-        sala.currentLetter = letraEscolhida;
-        sala.currentRound++;
-        sala.status = 'jogando';
-        sala.respostasRodada = {};
-
-        io.to(sala.code).emit('roundStarted', {
-            round: sala.currentRound,
-            maxRounds: sala.maxRounds,
-            letter: sala.currentLetter,
-            categories: sala.categories,
-            gameMode: sala.gameMode,
-            roundTime: sala.roundTime
+        const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const gridLetras = document.getElementById('gridLetras');
+        alfabeto.forEach(letra => {
+            const btn = document.createElement('div');
+            btn.className = 'letter-btn active';
+            btn.innerText = letra;
+            btn.dataset.letra = letra;
+            btn.addEventListener('click', () => {
+                socket.emit('toggleLetter', letra);
+            });
+            gridLetras.appendChild(btn);
         });
-    });
 
-    socket.on('notifyStop', () => {
-        const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
-        if (!sala || sala.status !== 'jogando') return;
+        socket.on('connect', () => {
+            const bar = document.getElementById('statusBar');
+            bar.style.backgroundColor = '#2ecc71';
+            bar.innerText = 'Conectado ao Servidor';
+        });
 
-        const jogador = sala.players.find(p => p.id === socket.id);
-        if (jogador) {
-            io.to(sala.code).emit('playerPressedStop', jogador.name);
+        socket.on('disconnect', () => {
+            const bar = document.getElementById('statusBar');
+            bar.style.backgroundColor = '#ff4d4d';
+            bar.innerText = 'Conectando ao servidor...';
+        });
+
+        document.getElementById('btnCriar').addEventListener('click', () => {
+            const nome = document.getElementById('nomeJogador').value.trim();
+            if (!nome) return alert('Digite seu nome!');
+            socket.emit('criarSala', nome);
+        });
+
+        document.getElementById('btnEntrar').addEventListener('click', () => {
+            const nome = document.getElementById('nomeJogador').value.trim();
+            const codigo = document.getElementById('codigoSala').value.trim().toUpperCase();
+            if (!nome || !codigo) return alert('Insira os dados!');
+            socket.emit('joinRoom', { roomCode: codigo, name: nome });
+        });
+
+        socket.on('salaCriada', (codigoGerado) => {
+            alternarTela('telaLobby');
+            document.getElementById('codigoSalaGerado').innerText = codigoGerado;
+        });
+
+        function enviarConfiguracoesAtuais() {
+            socket.emit('updateSettings', {
+                roundTime: parseInt(document.getElementById('cfgTempo').value) || 60,
+                maxRounds: parseInt(document.getElementById('cfgRodadas').value) || 5,
+                ptsAcerto: parseInt(document.getElementById('cfgPtsAcerto').value) || 10,
+                ptsRepetido: parseInt(document.getElementById('cfgPtsRepetido').value) || 5,
+                maxPlayers: parseInt(document.getElementById('cfgLimiteJogadores').value) || 8,
+                gameMode: document.getElementById('cfgModoJogo').value,
+                useVoting: document.getElementById('cfgVotos').value
+            });
         }
-    });
 
-    socket.on('pressStop', (dados) => {
-        const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
-        if (!sala) return;
+        ['cfgTempo', 'cfgRodadas', 'cfgPtsAcerto', 'cfgPtsRepetido', 'cfgVotos', 'cfgLimiteJogadores', 'cfgModoJogo'].forEach(id => {
+            document.getElementById(id).addEventListener('change', enviarConfiguracoesAtuais);
+        });
 
-        sala.respostasRodada[socket.id] = dados.respostas;
-
-        if (Object.keys(sala.respostasRodada).length === sala.players.length || sala.gameMode === 'classico') {
-            sala.status = 'lobby';
-            io.to(sala.code).emit('roundEnded', sala.respostasRodada);
-            io.to(sala.code).emit('roomUpdated', sala);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        Object.keys(salas).forEach(codigo => {
-            const sala = salas[codigo];
-            sala.players = sala.players.filter(p => p.id !== socket.id);
-            if (sala.players.length === 0) {
-                delete salas[codigo];
-            } else if (sala.host === socket.id) {
-                sala.host = sala.players[0].id;
-                io.to(codigo).emit('roomUpdated', sala);
-            } else {
-                io.to(codigo).emit('roomUpdated', sala);
+        document.getElementById('btnaddTema').addEventListener('click', () => {
+            const input = document.getElementById('novoTemaInput');
+            const valor = input.value.trim();
+            if(valor) {
+                socket.emit('addCategory', valor);
+                input.value = '';
             }
         });
-    });
-});
 
-const PORT = process.env.PORT || 10000;
-http.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+        socket.on('roomUpdated', (sala) => {
+            if (!document.getElementById('telaJogo').classList.contains('active')) {
+                alternarTela('telaLobby');
+                document.getElementById('codigoSalaGerado').innerText = sala.code;
+            }
+
+            tempoMaximoRodada = parseInt(sala.roundTime) || 60;
+            modoJogoAtivo = sala.gameMode || 'regressiva';
+            const souHost = socket.id === sala.host;
+
+            const lista = document.getElementById('listaJogadores');
+            lista.innerHTML = '';
+            sala.players.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
                 
+                let htmlJogador = `<span>${p.name}</span>`;
+                if (p.id === sala.host) {
+                    htmlJogador += `<span class="host-badge">Dono</span>`;
+                } else if (souHost) {
+                    htmlJogador += `<button class="btn-kick" onclick="removerDoJogo('${p.id}')">❌</button>`;
+                }
+                
+                li.innerHTML = htmlJogador;
+                lista.appendChild(li);
+            });
+
+            document.getElementById('painelConfiguracoes').style.display = souHost ? 'block' : 'none';
+            document.getElementById('btnIniciarJogo').style.display = souHost ? 'block' : 'none';
+            document.getElementById('txtAguardandoHost').style.display = souHost ? 'none' : 'block';
+
+            if (!souHost) {
+                document.getElementById('cfgTempo').value = sala.roundTime;
+                document.getElementById('cfgRodadas').value = sala.maxRounds;
+                document.getElementById('cfgPtsAcerto').value = sala.ptsAcerto;
+                document.getElementById('cfgPtsRepetido').value = sala.ptsRepetido;
+                document.getElementById('cfgLimiteJogadores').value = sala.maxPlayers;
+                document.getElementById('cfgModoJogo').value = sala.gameMode;
+                document.getElementById('cfgVotos').value = sala.useVoting;
+            }
+
+            const containerTags = document.getElementById('containerCategorias');
+            containerTags.innerHTML = '';
+            sala.categories.forEach(cat => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerText = cat;
+                if(souHost) {
+                    const demoverBtn = document.createElement('span');
+                    demoverBtn.innerText = '×';
+                    demoverBtn.addEventListener('click', () => socket.emit('removeCategory', cat));
+                    tag.appendChild(demoverBtn);
+                }
+                containerTags.appendChild(tag);
+            });
+
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                const letra = btn.dataset.letra;
+                btn.className = sala.allowedLetters.includes(letra) ? 'letter-btn active' : 'letter-btn';
+            });
+        });
+
+        function removerDoJogo(idJogador) {
+            if(confirm("Deseja expulsar este jogador?")) {
+                socket.emit('kickPlayer', idJogador);
+            }
+        }
+
+        socket.on('playerKicked', () => {
+            socket.disconnect();
+            document.body.innerHTML = `<h2 style="color:white; text-align:center; margin-top:50px;">Você foi removido da sala.</h2>`;
+        });
+
+        document.getElementById('btnIniciarJogo').addEventListener('click', () => {
+            socket.emit('startRound');
+        });
+
+        let cronometroPartida;
+        socket.on('roundStarted', (dadosRodada) => {
+            alternarTela('telaJogo');
+            document.getElementById('bannerStop').style.display = 'none';
+            
+            const botaoStop = document.getElementById('btnStop');
+            botaoStop.disabled = false;
+            botaoStop.style.opacity = '1';
+            
+            document.getElementById('gameRodada').innerText = `${dadosRodada.round}/${dadosRodada.maxRounds}`;
+            document.getElementById('letraSorteada').innerText = dadosRodada.letter;
+            modoJogoAtivo = dadosRodada.gameMode;
+            tempoMaximoRodada = parseInt(dadosRodada.roundTime);
+            
+            const containerInputs = document.getElementById('inputsContainerJogo');
+            containerInputs.innerHTML = '';
+            
+            dadosRodada.categories.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = 'input-box-game';
+                div.innerHTML = `
+                    <label>${cat}</label>
+                    <input type="text" class="resposta-input-game" data-categoria="${cat}" placeholder="Escreva aqui...">
+                `;
+                containerInputs.appendChild(div);
+            });
+
+            let tempoRestante = tempoMaximoRodada;
+            document.getElementById('gameCronometro').innerText = tempoRestante;
+            
+            clearInterval(cronometroPartida);
+            cronometroPartida = setInterval(() => {
+                tempoRestante--;
+                document.getElementById('gameCronometro').innerText = tempoRestante;
+                if(tempoRestante <= 0) {
+                    clearInterval(cronometroPartida);
+                    encerrarEEnviarRespostas();
+                }
+            }, 1000);
+        });
+
+        socket.on('playerPressedStop', (nomeJogador) => {
+            const banner = document.getElementById('bannerStop');
+            banner.innerText = `🛑 ${nomeJogador} deu STOP!`;
+            banner.style.display = 'block';
+
+            if (modoJogoAtivo === 'classico') {
+                clearInterval(cronometroPartida);
+                encerrarEEnviarRespostas();
+            }
+        });
+
+        function encerrarEEnviarRespostas() {
+            clearInterval(cronometroPartida);
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnStop').style.opacity = '0.5';
+            
+            const respostas = {};
+            document.querySelectorAll('.resposta-input-game').forEach(input => {
+                respostas[input.dataset.categoria] = input.value.trim();
+                input.disabled = true;
+            });
+            
+            socket.emit('pressStop', { respostas: respostas });
+        }
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            socket.emit('notifyStop');
+            encerrarEEnviarRespostas();
+        });
+
+        socket.on('erro', (msg) => alert(msg));
+    </script>
+</body>
+</html>
+                                                
