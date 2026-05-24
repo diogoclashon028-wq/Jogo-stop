@@ -1,9 +1,7 @@
 const express = require('express');
 const app = express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
-});
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
@@ -37,8 +35,8 @@ io.on('connection', (socket) => {
             ptsAcerto: 10, 
             ptsRepetido: 5,
             gameMode: 'classico',
-            history: [], // Histórico das rodadas passadas
-            votes: {}   // Controle de votação das palavras
+            history: [], 
+            votes: {}   
         };
         
         socket.join(codigoSala);
@@ -70,7 +68,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // CHAT RÁPIDO: Envia a provocação para todos na sala
     socket.on('enviarProvocacao', (msg) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala) {
@@ -134,7 +131,7 @@ io.on('connection', (socket) => {
             }
             sala.currentRound++;
             sala.gameState = 'playing';
-            sala.votes = {}; // Limpa votos antigos
+            sala.votes = {}; 
             
             sala.currentLetter = sala.allowedLetters[0];
             sala.allowedLetters.splice(0, 1); 
@@ -187,7 +184,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SISTEMA DE VOTAÇÃO: Computa os votos de aceitar/rejeitar
     socket.on('votarPalavra', ({ playerTargetId, categoria, voto }) => {
         const sala = Object.values(salas).find(s => s.players.some(p => p.id === socket.id));
         if (sala && sala.gameState === 'reviewing') {
@@ -204,7 +200,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Finaliza a revisão aplicando as decisões da votação
     socket.on('aplicarVotosEAvancar', () => {
         const sala = Object.values(salas).find(s => s.host === socket.id);
         if (sala && sala.gameState === 'reviewing') {
@@ -231,7 +226,6 @@ function calcularPontosComVotacao(sala) {
                 let ans = (p.answers[cat] || '').trim().toUpperCase();
                 const chave = `${p.id}-${cat}`;
                 const votacao = sala.votes[chave];
-                // Regra: Se os votos de rejeição forem maiores ou iguais aos de aceitação, a palavra é anulada
                 let foiRejeitado = votacao && votacao.rejeitados > votacao.aceitos;
 
                 if (ans.length > 0 && ans.startsWith(sala.currentLetter) && !foiRejeitado) {
@@ -262,7 +256,7 @@ function calcularPontosComVotacao(sala) {
         });
     });
 
-    sala.history.push(copiaRodadaInfo); // Salva no histórico
+    sala.history.push(copiaRodadaInfo);
 
     const ranking = [...sala.players].sort((a, b) => b.points - a.points);
     const acabouJogo = sala.currentRound >= sala.maxRounds;
@@ -272,5 +266,4 @@ function calcularPontosComVotacao(sala) {
     });
 }
 
-http.listen(PORT, () => console.log("Servidor rodando com Votação, Chat e Histórico!"));
-                                                                   
+http.listen(PORT, () => console.log("Servidor Rodando"));
