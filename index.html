@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Supremo</title>
+    <title>Stop! Online Supremo v2</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,42 +24,32 @@
             border-radius: 20px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
             width: 100%; 
-            max-width: 480px; 
+            max-width: 500px; 
             text-align: center; 
             position: relative;
         }
-        
-        /* BOLINHA DE STATUS DE CONEXÃO */
         .status-servidor {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            background: #f0f0f0;
-            padding: 4px 10px;
-            border-radius: 12px;
+            position: absolute; top: 15px; right: 15px;
+            display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: bold;
+            background: #f0f0f0; padding: 4px 10px; border-radius: 12px;
         }
-        .bolinha {
-            width: 10px;
-            height: 10px;
-            border-radius: 5px;
-            background: #ff3333; /* Vermelho por padrão */
-        }
-        .bolinha.conectado { background: #00bfa5; } /* Verde quando ativo */
+        .bolinha { width: 10px; height: 10px; border-radius: 5px; background: #ff3333; }
+        .bolinha.conectado { background: #00bfa5; }
 
         h1 { color: #764ba2; margin-bottom: 15px; font-size: 1.8rem; }
         .config-section { background: #f4effa; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; border: 1px solid #dcd1ed; }
         .config-section h4 { color: #764ba2; margin-bottom: 10px; }
         .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
-        .config-row select, .config-row input { padding: 5px; border-radius: 5px; border: 1px solid #ccc; width: 50%; }
+        .config-row select, .config-row input { padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 45%; }
         
+        /* Gerenciador de Temas */
+        .temas-wrapper { max-height: 120px; overflow-y: auto; background: white; padding: 6px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; }
+        .tema-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; padding: 2px; }
+        .btn-excluir-tema { color: red; cursor: pointer; font-weight: bold; margin-left: 6px; }
+
         .timer-box { font-size: 1.5rem; font-weight: bold; color: #ff3333; margin-bottom: 10px; }
-        input[type="text"] { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
-        input[type="text"]:focus { border-color: #764ba2; outline: none; }
+        input[type="text"], input[type="number"] { padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
+        .input-geral { width: 100%; margin: 8px 0; }
         
         button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: #764ba2; }
@@ -68,14 +58,16 @@
         
         .escondido { display: none; }
         ul { list-style: none; margin: 10px 0; text-align: left; }
-        li { background: #f7f7f9; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        li { background: #f7f7f9; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ESTILO DA LUPA DE ESPIONAGEM */
+        .btn-kick { background: #ff4d4d; color: white; border: none; padding: 3px 8px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        
         .lupa-container { background: #fffde6; border: 1px dashed #e6c300; padding: 10px; border-radius: 8px; margin-top: 15px; text-align: left; font-size: 0.85rem; }
-        .podio-item { padding: 15px; margin: 10px 0; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .top1 { background: #ffd700; color: #554400; font-size: 1.3rem; }
+        .podio-item { padding: 12px; margin: 8px 0; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .top1 { background: #ffd700; color: #554400; font-size: 1.2rem; }
         .top2 { background: #c0c0c0; color: #333; }
         .top3 { background: #cd7f32; color: white; }
+        .topGeral { background: #e2d9f3; color: #4a2d73; }
     </style>
 </head>
 <body>
@@ -88,10 +80,10 @@
 
         <div id="telaInicial">
             <h1 style="margin-top: 20px;">Stop! Online 🎲</h1>
-            <input type="text" id="nome" placeholder="Seu Nome">
+            <input type="text" id="nome" class="input-geral" placeholder="Seu Nome">
             <button class="btn-primary" id="btnCriar">CRIAR NOVA SALA</button>
             <div style="margin: 10px 0; color: #888;">-- OU --</div>
-            <input type="text" id="codigo" placeholder="CÓDIGO DA SALA">
+            <input type="text" id="codigo" class="input-geral" placeholder="CÓDIGO DA SALA">
             <button class="btn-secondary" id="btnEntrar">ENTRAR EM SALA</button>
         </div>
 
@@ -109,15 +101,22 @@
                     <input type="number" id="cfgRodadas" value="5">
                 </div>
                 <div class="config-row">
-                    <label>Pontos por acerto:</label>
+                    <label>Pontos Base:</label>
                     <input type="number" id="cfgPontos" value="10">
+                </div>
+                <div class="config-row">
+                    <label>Palavras Repetidas:</label>
+                    <select id="cfgRepetidas">
+                        <option value="metade">Vale Metade (5pts)</option>
+                        <option value="normal">Vale Normal (10pts)</option>
+                    </select>
                 </div>
                 <div class="config-row">
                     <label>Limite de Pessoas:</label>
                     <input type="number" id="cfgLimite" value="8">
                 </div>
                 <div class="config-row">
-                    <label>Votação de Palavras:</label>
+                    <label>Votação:</label>
                     <select id="cfgVotacao">
                         <option value="true">Habilitada</option>
                         <option value="false">Desabilitada</option>
@@ -126,11 +125,23 @@
                 <div class="config-row">
                     <label>Exibir no Pódio:</label>
                     <select id="cfgVencedores">
-                        <option value="1">Apenas 1º Lugar</option>
-                        <option value="3">Top 3 Vencedores</option>
+                        <option value="1">1 Pessoa</option>
+                        <option value="3">Top 3 Pessoas</option>
+                        <option value="5">Top 5 Pessoas</option>
+                        <option value="10">Top 10 Pessoas</option>
                     </select>
                 </div>
-                <button id="btnSalvarConfig" class="btn-primary" style="padding: 5px; font-size: 0.85rem; margin-top: 5px;">Aplicar Configurações</button>
+
+                <div style="margin-top: 10px;">
+                    <label style="font-weight: bold; font-size: 0.85rem;">📝 Gerenciar Temas:</label>
+                    <div id="areaCriarTema" style="display:flex; gap:5px; margin-top:4px;">
+                        <input type="text" id="novoTemaNome" placeholder="Novo tema..." style="flex:1; padding:4px; font-size:0.85rem;">
+                        <button id="btnAdicionarTema" style="width:auto; padding:4px 10px; margin:0; font-size:0.85rem;" class="btn-secondary">+</button>
+                    </div>
+                    <div class="temas-wrapper" id="listaTemasConfig"></div>
+                </div>
+
+                <button id="btnSalvarConfig" class="btn-primary" style="padding: 8px; font-size: 0.9rem; margin-top: 10px;">Aplicar Configurações</button>
             </div>
 
             <h3>Jogadores conectados:</h3>
@@ -140,7 +151,7 @@
 
         <div id="telaJogo" class="escondido">
             <div class="timer-box">⏱️ <span id="tempoRestante">60</span>s</div>
-            <h2>LETA ATUAL:</h2>
+            <h2>LETRA ATUAL:</h2>
             <div style="font-size: 4rem; font-weight: 900; color: #ff3333;" id="letra">-</div>
             
             <div id="containerCampos"></div>
@@ -174,9 +185,8 @@
         let souDono = false;
         let tempoDoJogo = 60;
         let cronometro;
-        let categoriasAtuais = ['Nome', 'Animal', 'Objeto', 'Cor', 'Fruta'];
+        let categoriasLocais = [];
 
-        // Atualização da Bolinha Verde/Vermelha de conexão
         socket.on('statusConexao', (conectado) => {
             const bolinha = document.getElementById('statusBolinha');
             const texto = document.getElementById('statusTexto');
@@ -186,7 +196,8 @@
             }
         });
 
-        // Criar e Entrar
+        socket.on('connect', () => { meuId = socket.id; });
+
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             if(nome) socket.emit('criarSala', nome);
@@ -201,24 +212,49 @@
             }
         });
 
-        // Dono aplicando as regras
+        // Adicionar novo tema na lista local antes de enviar
+        document.getElementById('btnAdicionarTema').addEventListener('click', () => {
+            const input = document.getElementById('novoTemaNome');
+            const nomeTema = input.value.trim();
+            if(nomeTema) {
+                categoriasLocais.push({ nome: nomeTema, ativa: true });
+                input.value = '';
+                dispararSalvarConfig();
+            }
+        });
+
         document.getElementById('btnSalvarConfig').addEventListener('click', () => {
+            dispararSalvarConfig();
+        });
+
+        function dispararSalvarConfig() {
+            // Re-coleta status dos checkboxes de ativação das palavras
+            const checkboxes = document.querySelectorAll('.check-tema');
+            checkboxes.forEach(cb => {
+                const idx = cb.getAttribute('data-index');
+                if(categoriasLocais[idx]) categoriasLocais[idx].ativa = cb.checked;
+            });
+
             const novaConfig = {
                 tempo: parseInt(document.getElementById('cfgTempo').value),
                 totalRodadas: parseInt(document.getElementById('cfgRodadas').value),
                 pontosPorPalavra: parseInt(document.getElementById('cfgPontos').value),
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value),
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
-                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value)
+                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value),
+                regrasRepetidas: document.getElementById('cfgRepetidas').value,
+                categorias: categoriasLocais
             };
             socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
-        });
+        }
 
+        // Ativação do botão Começar Rodada
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            socket.emit('startRound', minhaSala);
+            if(minhaSala) {
+                socket.emit('startRound', minhaSala);
+            }
         });
 
-        // Sincronização do painel do Lobby
         socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
 
         socket.on('atualizarSala', (sala) => {
@@ -228,11 +264,13 @@
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
-            // Bloqueia campos caso o jogador não seja o dono
+            categoriasLocais = sala.config.categorias;
+
             if(socket.id !== sala.donoId) {
                 souDono = false;
                 document.getElementById('btnIniciar').classList.add('escondido');
                 document.getElementById('btnSalvarConfig').classList.add('escondido');
+                document.getElementById('areaCriarTema').classList.add('escondido');
                 document.getElementById('avisoDono').innerText = "(Apenas Visualizando)";
                 document.getElementById('cfgTempo').disabled = true;
                 document.getElementById('cfgRodadas').disabled = true;
@@ -240,30 +278,69 @@
                 document.getElementById('cfgLimite').disabled = true;
                 document.getElementById('cfgVotacao').disabled = true;
                 document.getElementById('cfgVencedores').disabled = true;
+                document.getElementById('cfgRepetidas').disabled = true;
             } else {
                 souDono = true;
                 document.getElementById('btnIniciar').classList.remove('escondido');
+                document.getElementById('btnSalvarConfig').classList.remove('escondido');
+                document.getElementById('areaCriarTema').classList.remove('escondido');
                 document.getElementById('avisoDono').innerText = "(Você é o Dono)";
             }
 
-            // Atualiza valores nas caixas com o que está salvo no servidor
             document.getElementById('cfgTempo').value = sala.config.tempo;
             document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
             document.getElementById('cfgPontos').value = sala.config.pontosPorPalavra;
             document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
+            document.getElementById('cfgRepetidas').value = sala.config.regrasRepetidas || 'metade';
 
-            // Renderiza lista de jogadores
+            // Renderiza lista de temas com checkboxes e botão excluir
+            const divTemas = document.getElementById('listaTemasConfig');
+            divTemas.innerHTML = '';
+            categoriasLocais.forEach((cat, index) => {
+                const checked = cat.ativa ? 'checked' : '';
+                const disabledStr = !souDono ? 'disabled' : '';
+                const botaoExcluir = souDono ? `<span class="btn-excluir-tema" onclick="removerTemaDoVetor(${index})">❌</span>` : '';
+                
+                divTemas.innerHTML += `
+                    <div class="tema-item">
+                        <label>
+                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr}> ${cat.nome}
+                        </label>
+                        ${botaoExcluir}
+                    </div>
+                `;
+            });
+
+            // Renderiza lista de jogadores com botão Expulsar para o Dono
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
                 const coroa = p.id === sala.donoId ? '👑 ' : '👤 ';
-                lista.innerHTML += `<li><span>${coroa}${p.nome}</span> <span>🏆 ${p.pontos} pts</span></li>`;
+                let btnKick = '';
+                if(souDono && p.id !== socket.id) {
+                    btnKick = `<button class="btn-kick" onclick="expulsarId('${p.id}')">❌</button>`;
+                }
+                lista.innerHTML += `<li><span>${coroa}${p.nome} ${btnKick}</span> <span>🏆 ${p.pontos || 0} pts</span></li>`;
             });
         });
 
-        // Rodada Iniciada
+        function removerTemaDoVetor(idx) {
+            categoriasLocais.splice(idx, 1);
+            dispararSalvarConfig();
+        }
+
+        function expulsarId(id) {
+            socket.emit('expulsarJogador', { roomCode: minhaSala, idParaExpulsar: id });
+        }
+
+        socket.on('fuiExpulsado', () => {
+            alert('Você foi expulso desta sala!');
+            window.location.reload();
+        });
+
+        // Início da Partida Real
         socket.on('rodadaIniciada', (data) => {
             document.getElementById('telaLobby').classList.add('escondido');
             document.getElementById('telaJogo').classList.remove('escondido');
@@ -272,32 +349,32 @@
             tempoDoJogo = data.config.tempo;
             document.getElementById('tempoRestante').innerText = tempoDoJogo;
 
-            // Monta os inputs baseados nas palavras configuradas
             const container = document.getElementById('containerCampos');
             container.innerHTML = '';
-            categoriasAtuais = data.config.categorias;
             
-            categoriasAtuais.forEach(cat => {
-                container.innerHTML += `<input type="text" id="resp_${cat}" placeholder="${cat}..." oninput="dispararLupa()">`;
+            // Filtra e exibe apenas as palavras/temas que o Dono deixou habilitado
+            categoriasLocais = data.config.categorias.filter(c => c.ativa);
+            
+            categoriasLocais.forEach(cat => {
+                container.innerHTML += `<input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="${cat.nome}..." oninput="dispararLupa()">`;
             });
 
-            // Dispara Cronômetro regressivo
             clearInterval(cronometro);
-            cronorigem = setInterval(() => {
+            cronometro = setInterval(() => {
                 tempoDoJogo--;
                 document.getElementById('tempoRestante').innerText = tempoDoJogo;
                 if(tempoDoJogo <= 0) {
-                    clearInterval(cronorigem);
-                    coletarEVoar(true); // Força o Stop automático por tempo
+                    clearInterval(cronometro);
+                    coletarEVoar(true);
                 }
             }, 1000);
         });
 
-        // 🔍 Lupa: Captura o que você digita e envia para os outros verem na área de espionagem
         function dispararLupa() {
             const respostas = {};
-            categoriasAtuais.forEach(cat => {
-                respostas[cat] = document.getElementById(`resp_${cat}`).value.trim();
+            categoriasLocais.forEach(cat => {
+                const el = document.getElementById(`resp_${cat.nome}`);
+                if(el) respostas[cat.nome] = el.value.trim();
             });
             socket.emit('digitandoRespostas', { roomCode: minhaSala, respostas });
         }
@@ -318,10 +395,12 @@
         });
 
         function coletarEVoar(pararGeral) {
-            clearInterval(cronorigem);
+            clearInterval(cronprogr);
+            clearInterval(cronometro);
             const respostas = {};
-            categoriasAtuais.forEach(cat => {
-                respostas[cat] = document.getElementById(`resp_${cat}`).value.trim();
+            categoriasLocais.forEach(cat => {
+                const el = document.getElementById(`resp_${cat.nome}`);
+                if(el) respostas[cat.nome] = el.value.trim();
             });
 
             if(pararGeral) {
@@ -334,86 +413,4 @@
         socket.on('jogoParado', (data) => {
             document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaResultado').classList.remove('escondido');
-            if(socket.id !== data.quemParou) {
-                coletarEVoar(false);
-            }
-        });
-
-        socket.on('atualizarRespostasFinais', (respostasDoServidor) => {
-            const div = document.getElementById('resultadosCorpo');
-            div.innerHTML = '';
-            
-            Object.keys(respostasDoServidor).forEach(id => {
-                const resp = respostasDoServidor[id];
-                let bloco = `<div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px; text-align:left;">`;
-                bloco += `<p><strong>Jogador: ${id.substring(0,4)}</strong></p>`;
-                Object.keys(resp).forEach(cat => {
-                    bloco += `<p>🔹 ${cat}: ${resp[cat] || '-'}</p>`;
-                });
-                bloco += `</div>`;
-                div.innerHTML += bloco;
-            });
-
-            if(!souDono) {
-                document.getElementById('btnConfirmarPontos').classList.add('escondido');
-            } else {
-                document.getElementById('btnConfirmarPontos').classList.remove('escondido');
-            }
-        });
-
-        document.getElementById('btnConfirmarPontos').addEventListener('click', () => {
-            const pontosSimulados = {};
-            // Adiciona 10 pontos automáticos para avançar para testar o fluxo
-            pontosSimulados[socket.id] = 10; 
-            socket.emit('atualizarPontos', { roomCode: minhaSala, pontosAtualizados: pontosSimulados });
-        });
-
-        socket.on('pontuacaoAtualizada', (sala) => {
-            socket.emit('joinRoom', { roomCode: minhaSala, name: '' });
-        });
-
-        // 🏆 EXIBIÇÃO DO PÓDIO / CLASSIFICAÇÃO FINAL
-        socket.on('mostrarPodioFinal', (sala) => {
-            document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaResultado').classList.add('escondido');
-            document.getElementById('telaJogo').classList.add('escondido');
-            document.getElementById('telaPodio').classList.remove('escondido');
-
-            // Ordena os jogadores por pontos acumulados decrescente
-            const classificados = [...sala.jogadores].sort((a,b) => b.pontos - a.pontos);
-            const corpo = document.getElementById('corpoPodio');
-            corpo.innerHTML = '';
-
-            // Limita a exibição com base na escolha do dono (1 ou 3 vencedores)
-            const limiteExibicao = Math.min(classificados.length, sala.config.qtdVencedores);
-
-            for(let i = 0; i < limiteExibicao; i++) {
-                const jogador = classificados[i];
-                let classePodio = 'top2';
-                if(i === 0) classePodio = 'top1';
-                if(i === 2) classePodio = 'top3';
-
-                corpo.innerHTML += `
-                    <div class="podio-item ${classePodio}">
-                        <span>${i + 1}º Lugar: ${jogador.nome}</span>
-                        <span>🏆 ${jogador.pontos} Pontos</span>
-                    </div>
-                `;
-            }
-
-            if(!souDono) {
-                document.getElementById('btnReiniciarTudo').classList.add('escondido');
-            } else {
-                document.getElementById('btnReiniciarTudo').classList.remove('escondido');
-            }
-        });
-
-        document.getElementById('btnReiniciarTudo').addEventListener('click', () => {
-            socket.emit('reiniciarJogoCompleto', minhaSala);
-        });
-
-        socket.on('erro', (msg) => alert(msg));
-    </script>
-</body>
-</html>
-
+    
