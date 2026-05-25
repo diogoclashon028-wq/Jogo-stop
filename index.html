@@ -67,6 +67,7 @@
 
         button { width: 100%; padding: 15px; margin: 12px 0; border: none; border-radius: 14px; font-size: 1rem; font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         button:active { transform: scale(0.98); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .btn-secondary { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
         .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 1.5rem; text-transform: uppercase; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); margin-top: 20px; }
@@ -219,15 +220,15 @@
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
-            if(!nome) return alert("coloque o seu nome");
+            if(!nome) return alert("Coloque o seu nome");
             socket.emit('criarSala', nome);
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
-            if(!nome) return alert("coloque o seu nome");
-            if(!cod) return alert("você precisa de um código");
+            if(!nome) return alert("Coloque o seu nome");
+            if(!cod) return alert("Você precisa de um código");
             socket.emit('joinRoom', { roomCode: cod, name: nome });
         });
 
@@ -249,7 +250,7 @@
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
                 tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
                 totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
-                pointsNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
+                pontosNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
                 pontosRepetida: parseInt(document.getElementById('cfgPtsRepetida').value) || 5,
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
@@ -327,12 +328,12 @@
                 document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
                 painelTema.classList.remove('escondido');
                 inputsConfig.forEach(id => document.getElementById(id).disabled = false);
-                document.getElementById('btnIniciar').classList.remove('escondido');
             } else {
                 document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
                 painelTema.classList.add('escondido');
                 inputsConfig.forEach(id => document.getElementById(id).disabled = true);
-                document.getElementById('btnIniciar').classList.add('escondido');
             }
 
-            // Atualiza a
+            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
+
+            // --- DAQUI EM D
