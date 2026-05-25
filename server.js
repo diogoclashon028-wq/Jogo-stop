@@ -28,6 +28,7 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
+            todasCategoriasExistentes: [...categoriasPadrao],
             categoriasDisponiveis: [...categoriasPadrao], 
             config: {
                 tempo: 60,
@@ -36,7 +37,7 @@ io.on('connection', (socket) => {
                 pontosRepetida: 5,
                 limiteJogadores: 8,
                 qtdVencedores: 1,
-                modoJogo: 'tempo', // 'tempo' ou 'imediato'
+                modoJogo: 'tempo',
                 votacaoAtiva: true
             }
         };
@@ -64,22 +65,22 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Adicionar novo tema customizado
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && novoTema) {
             const temaTratado = novoTema.trim();
-            if (!sala.categoriasDisponiveis.includes(temaTratado)) {
-                sala.categoriasDisponiveis.push(temaTratado);
+            if (!sala.todasCategoriasExistentes.includes(temaTratado)) {
+                sala.todasCategoriasExistentes.push(temaTratado);
+                sala.categoriasDisponiveis.push(temaTratado); // Inicia marcado por padrão
                 io.to(roomCode).emit('atualizarSala', sala);
             }
         }
     });
 
-    // Apagar tema da lista
     socket.on('deletarTema', ({ roomCode, tema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
+            sala.todasCategoriasExistentes = sala.todasCategoriasExistentes.filter(c => c !== tema);
             sala.categoriasDisponiveis = sala.categoriasDisponiveis.filter(c => c !== tema);
             io.to(roomCode).emit('atualizarSala', sala);
         }
@@ -139,4 +140,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-      
