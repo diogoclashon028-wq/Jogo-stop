@@ -2,10 +2,14 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { 
-    cors: { origin: "*" } 
+    cors: { 
+        origin: "*",
+        methods: ["GET", "POST"]
+    } 
 });
 const path = require('path');
 
+// Garante que o servidor encontre os arquivos na raiz
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
@@ -17,6 +21,7 @@ const salas = {};
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
 
+    // Criação da sala com todas as configurações padrão prontas
     socket.on('criarSala', (nome) => {
         if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -50,6 +55,7 @@ io.on('connection', (socket) => {
         io.to(codigo).emit('atualizarSala', salas[codigo]);
     });
 
+    // Atualização em tempo real das configurações da sala
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
             salas[roomCode].config = { ...salas[roomCode].config, ...novaConfig };
@@ -57,6 +63,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Entrada de jogadores na sala
     socket.on('joinRoom', ({ roomCode, name }) => {
         if (!roomCode) return;
         const codigo = roomCode.toUpperCase();
@@ -76,6 +83,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Sistema de Kick (Expulsar jogador da sala)
     socket.on('expulsarJogador', ({ roomCode, idParaExpulsar }) => {
         if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
             salas[roomCode].jogadores = salas[roomCode].jogadores.filter(p => p.id !== idParaExpulsar);
@@ -84,12 +92,14 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Sistema da Lupa (Espiar o que os outros estão digitando)
     socket.on('digitandoRespostas', ({ roomCode, respostas }) => {
         if (salas[roomCode] && salas[roomCode].status === 'jogando') {
             socket.to(roomCode).emit('espiarJogador', { id: socket.id, respostas });
         }
     });
 
+    // Início da rodada e sorteio de letras
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
         if (sala && sala.donoId === socket.id) {
@@ -109,6 +119,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Quando alguém aperta o botão de STOP!
     socket.on('pressStop', ({ roomCode, respostas }) => {
         const sala = salas[roomCode];
         if (sala && sala.status === 'jogando') {
@@ -122,6 +133,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Envio automático do resto das palavras quando o tempo acaba ou alguém dá STOP
     socket.on('enviarRespostasRestantes', ({ roomCode, respostas }) => {
         if (salas[roomCode]) {
             salas[roomCode].respostas[socket.id] = respostas;
@@ -129,7 +141,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarPontos', ({ roomCode, pontosAtualizados }) => {
+    // Confirmação de pontos e avanço
+    socket.on('atualizarPoints', ({ roomCode, pontosAtualizados }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.jogadores.forEach(j => {
@@ -142,6 +155,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Reiniciar todo o placar do jogo
     socket.on('reiniciarJogoCompleto', (roomCode) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -157,5 +171,7 @@ io.on('connection', (socket) => {
     });
 });
 
+// Porta dinâmica para rodar perfeitamente no Render
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+
