@@ -28,8 +28,8 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
-            categoriasDisponiveis: [...categoriasPadrao], // Lista total com ordem mantida
-            categoriasAtivas: [...categoriasPadrao],     // Quais estão marcadas para o jogo
+            categoriasDisponiveis: [...categoriasPadrao], 
+            categoriasAtivas: [...categoriasPadrao],     
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
                 pontosRepetida: 5,
                 limiteJogadores: 8,
                 qtdVencedores: 1,
-                modoJogo: 'tempo', // 'tempo' ou 'imediato'
+                modoJogo: 'tempo',
                 votacaoAtiva: true
             }
         };
@@ -65,20 +65,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Criar um novo tema
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && novoTema) {
             const temaTratado = novoTema.trim();
             if (!sala.categoriasDisponiveis.includes(temaTratado)) {
                 sala.categoriasDisponiveis.push(temaTratado);
-                sala.categoriasAtivas.push(temaTratado); // Já nasce marcado
+                sala.categoriasAtivas.push(temaTratado); 
                 io.to(roomCode).emit('atualizarSala', sala);
             }
         }
     });
 
-    // Apagar um tema
     socket.on('deletarTema', ({ roomCode, tema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -88,7 +86,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Salvar configurações e itens marcados
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -115,18 +112,17 @@ io.on('connection', (socket) => {
         const sala = salas[codigo];
         if (sala) {
             if (sala.categoriasAtivas.length === 0) {
-                return socket.emit('erro', 'Selecione pelo menos um tema ativo para jogar!');
+                return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
             sala.status = 'jogando';
             const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
-            // Sorteia apenas entre as marcadas pelo dono
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]];
+                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriesEmbaralhadas[i]];
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
@@ -144,4 +140,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                
+
