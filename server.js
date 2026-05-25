@@ -106,7 +106,7 @@ io.on('connection', (socket) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && jogadorId !== socket.id) {
             sala.jogadores = sala.jogadores.filter(p => p.id !== jogadorId);
-            io.to(jogadorId).emit('mensagemExpulso', 'você foi expulso');
+            io.to(jogadorId).emit('mensagemExpulso', 'Você foi expulso da sala pelo dono.');
             const targetSocket = io.sockets.sockets.get(jogadorId);
             if (targetSocket) targetSocket.leave(roomCode);
             io.to(roomCode).emit('atualizarSala', sala);
@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
+                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
@@ -138,7 +138,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // NOVOS EVENTOS PARA A GAMEPLAY:
     socket.on('baterStop', (codigo) => {
         const sala = salas[codigo];
         if (sala && sala.status === 'jogando') {
@@ -153,10 +152,9 @@ io.on('connection', (socket) => {
         if (sala) {
             const jogador = sala.jogadores.find(p => p.id === socket.id);
             if (jogador) {
-                jogador.respostasUltimaRodada = respostas; // Guarda as respostas do jogador no servidor
+                jogador.respostasUltimaRodada = respostas;
             }
             
-            // Por enquanto, após recolher, ele reseta a sala para o lobby automaticamente para você continuar testando
             if(socket.id === sala.donoId) {
                 setTimeout(() => {
                     sala.status = 'lobby';
@@ -173,4 +171,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                
+                             
