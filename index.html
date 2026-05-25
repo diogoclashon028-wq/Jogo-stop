@@ -44,6 +44,7 @@
             width: 100px; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-weight: bold; text-align: center; outline: none;
         }
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
+        .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
@@ -169,7 +170,7 @@
     <script>
         const socket = io({ transports: ['polling', 'websocket'] });
         
-        let categoriasAtivasLocais = [];
+        let minhaSalaAtual = null;
 
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
@@ -183,24 +184,24 @@
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
-            if(!nome) { alert("coloque o seu nome"); return; }
+            if(!nome) return alert("coloque o seu nome");
             socket.emit('criarSala', nome);
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
-            if(!nome) { alert("coloque o seu nome"); return; }
-            if(!cod) { alert("você precisa de um código"); return; }
+            if(!nome) return alert("coloque o seu nome");
+            if(!cod) return alert("você precisa de um código");
             socket.emit('joinRoom', { roomCode: cod, name: nome });
         });
 
         document.getElementById('btnAddTema').addEventListener('click', () => {
-            const salaCodigo = document.getElementById('idSala').innerText;
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
             const input = document.getElementById('inputNovoTema');
             const tema = input.value.trim();
-            if (tema && salaCodigo && salaCodigo !== '----') {
-                socket.emit('adicionarTema', { roomCode: salaCodigo, novoTema: tema });
+            if (tema) {
+                socket.emit('adicionarTema', { roomCode: minhaSalaAtual.codigo, novoTema: tema });
                 input.value = '';
             }
         });
@@ -208,8 +209,7 @@
         socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
 
         function empacotarESalvarConfig() {
-            const salaCodigo = document.getElementById('idSala').innerText;
-            if (!salaCodigo || salaCodigo === '----') return;
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
             
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
@@ -221,22 +221,23 @@
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
             };
-
-            socket.emit('salvarConfiguracoes', { roomCode: salaCodigo, novaConfig });
+            socket.emit('salvarConfiguracoes', { roomCode: minhaSalaAtual.codigo, novaConfig });
         }
 
-        function alternarCategoria(cat) {
-            const salaCodigo = document.getElementById('idSala').innerText;
-            if (!salaCodigo || salaCodigo === '----') return;
-            
-            let novasAtivas = [...categoriasAtivasLocais];
-            if (novasAtivas.includes(cat)) {
-                novasAtivas = novasAtivas.filter(c => c !== cat);
-            } else {
-                novasAtivas.push(cat);
+        // AGORA SIM: Lendo o checkbox diretamente do clique (this) para não engasgar.
+        function alternarCategoria(cat, elementoCheckbox) {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) {
+                elementoCheckbox.checked = !elementoCheckbox.checked; // Bloqueia clique falso
+                return;
             }
             
-            socket.emit('atualizarCategoriasAtivas', { roomCode: salaCodigo, categoriasSelecionadas: novasAtivas });
+            let novasAtivas = [...minhaSalaAtual.categoriasAtivas];
+            if (elementoCheckbox.checked) {
+                if (!novasAtivas.includes(cat)) novasAtivas.push(cat);
+            } else {
+                novasAtivas = novasAtivas.filter(c => c !== cat);
+            }
+            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSalaAtual.codigo, categoriasSelecionadas: novasAtivas });
         }
 
         const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
@@ -245,35 +246,36 @@
         });
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            const salaCodigo = document.getElementById('idSala').innerText;
-            if (salaCodigo && salaCodigo !== '----') {
-                socket.emit('startRound', salaCodigo);
+            if (minhaSalaAtual && minhaSalaAtual.donoId === socket.id) {
+                socket.emit('startRound', minhaSalaAtual.codigo);
             }
         });
 
-        function renderizarGradeCategorias(categoriasTotais, categoriesAtivas) {
-            const salaCodigo = document.getElementById('idSala').innerText;
-            categoriasAtivasLocais = categoriesAtivas;
-            
+        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             
             categoriasTotais.forEach(cat => {
-                const checkado = categoriesAtivas.includes(cat) ? 'checked' : '';
+                const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
+                const desabilitado = souDono ? '' : 'disabled';
+                const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSalaAtual.codigo}', tema: '${cat}'})">🗑️</button>` : '';
                 
                 grade.innerHTML += `
                     <div class="item-categoria">
                         <label>
-                            <input type="checkbox" id="cb-${cat}" ${checkado} onchange="alternarCategoria('${cat}')">
+                            <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="alternarCategoria('${cat}', this)">
                             <span>${cat}</span>
                         </label>
-                        <button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${salaCodigo}', tema: '${cat}'})">🗑️</button>
+                        ${botaoLixeira}
                     </div>
                 `;
             });
         }
 
         socket.on('atualizarSala', (sala) => {
+            minhaSalaAtual = sala; // Salvando a sala na memória principal do site
+            const souDono = (socket.id === sala.donoId);
+
             document.getElementById('telaInicial').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
@@ -287,14 +289,38 @@
             document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
 
-            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas);
+            const painelTema = document.getElementById('painelCriarTema');
+            if (souDono) {
+                document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
+                painelTema.classList.remove('escondido');
+                inputsConfig.forEach(id => document.getElementById(id).disabled = false);
+            } else {
+                document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
+                painelTema.classList.add('escondido');
+                inputsConfig.forEach(id => document.getElementById(id).disabled = true);
+            }
+
+            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
+
+            const btn = document.getElementById('btnIniciar');
+            if (souDono) {
+                btn.innerText = "INICIAR PARTIDA 🚀";
+                btn.style.opacity = "1"; 
+                btn.style.cursor = "pointer";
+                btn.style.pointerEvents = "auto";
+            } else {
+                btn.innerText = "AGUARDANDO O DONO...";
+                btn.style.opacity = "0.6"; 
+                btn.style.cursor = "not-allowed";
+                btn.style.pointerEvents = "none";
+            }
 
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
                 const ehDono = p.id === sala.donoId;
                 const coroa = ehDono ? '👑' : '👤';
-                const botaoKick = (!ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
+                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
 
                 lista.innerHTML += `
                     <li>
