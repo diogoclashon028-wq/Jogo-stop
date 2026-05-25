@@ -44,7 +44,6 @@
             width: 100px; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-weight: bold; text-align: center; outline: none;
         }
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
-        .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
@@ -170,8 +169,6 @@
     <script>
         const socket = io({ transports: ['polling', 'websocket'] });
         
-        let souDono = false;
-        let todasCategoriasLocais = [];
         let categoriasAtivasLocais = [];
 
         socket.on('connect', () => { 
@@ -212,7 +209,7 @@
 
         function empacotarESalvarConfig() {
             const salaCodigo = document.getElementById('idSala').innerText;
-            if (!salaCodigo || salaCodigo === '----' || !souDono) return;
+            if (!salaCodigo || salaCodigo === '----') return;
             
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
@@ -230,7 +227,7 @@
 
         function alternarCategoria(cat) {
             const salaCodigo = document.getElementById('idSala').innerText;
-            if (!souDono || !salaCodigo || salaCodigo === '----') return;
+            if (!salaCodigo || salaCodigo === '----') return;
             
             let novasAtivas = [...categoriasAtivasLocais];
             if (novasAtivas.includes(cat)) {
@@ -249,33 +246,28 @@
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
             const salaCodigo = document.getElementById('idSala').innerText;
-            if (salaCodigo && salaCodigo !== '----' && souDono) {
+            if (salaCodigo && salaCodigo !== '----') {
                 socket.emit('startRound', salaCodigo);
             }
         });
 
-        socket.on('salaCriada', () => { souDono = true; });
-
-        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas) {
+        function renderizarGradeCategorias(categoriasTotais, categoriesAtivas) {
             const salaCodigo = document.getElementById('idSala').innerText;
-            todasCategoriasLocais = categoriasTotais;
-            categoriasAtivasLocais = categoriasAtivas;
+            categoriasAtivasLocais = categoriesAtivas;
             
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             
             categoriasTotais.forEach(cat => {
-                const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
-                const desabilitado = souDono ? '' : 'disabled';
-                const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${salaCodigo}', tema: '${cat}'})">🗑️</button>` : '';
+                const checkado = categoriesAtivas.includes(cat) ? 'checked' : '';
                 
                 grade.innerHTML += `
                     <div class="item-categoria">
                         <label>
-                            <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="alternarCategoria('${cat}')">
+                            <input type="checkbox" id="cb-${cat}" ${checkado} onchange="alternarCategoria('${cat}')">
                             <span>${cat}</span>
                         </label>
-                        ${botaoLixeira}
+                        <button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${salaCodigo}', tema: '${cat}'})">🗑️</button>
                     </div>
                 `;
             });
@@ -286,8 +278,6 @@
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
-            souDono = (socket.id === sala.donoId);
-
             document.getElementById('cfgModo').value = sala.config.modoJogo;
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgTempo').value = sala.config.tempo;
@@ -297,38 +287,14 @@
             document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
 
-            const painelTema = document.getElementById('painelCriarTema');
-            if (souDono) {
-                document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
-                painelTema.classList.remove('escondido');
-                inputsConfig.forEach(id => document.getElementById(id).disabled = false);
-            } else {
-                document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
-                painelTema.classList.add('escondido');
-                inputsConfig.forEach(id => document.getElementById(id).disabled = true);
-            }
-
             renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas);
-
-            const btn = document.getElementById('btnIniciar');
-            if (souDono) {
-                btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-                btn.style.pointerEvents = "auto";
-            } else {
-                btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; 
-                btn.style.cursor = "not-allowed";
-                btn.style.pointerEvents = "none";
-            }
 
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
                 const ehDono = p.id === sala.donoId;
                 const coroa = ehDono ? '👑' : '👤';
-                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
+                const botaoKick = (!ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
 
                 lista.innerHTML += `
                     <li>
@@ -358,3 +324,4 @@
     </script>
 </body>
 </html>
+
