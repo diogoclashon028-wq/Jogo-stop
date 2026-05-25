@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop! Online Supremo</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
@@ -177,11 +177,12 @@
     </div>
 
     <script>
-        const socket = io("https://jogo-stop.onrender.com", {
-    transports: ['polling', 'websocket'],
-    upgrade: true,
-    secure: true
-});
+        // CONEXÃO ADAPTADA PARA RODAR PERFEITAMENTE EM SERVIDORES HTTPS COMO O RENDER
+        const socket = io("https://jogo-stop.onrender.com", { 
+            transports: ['polling', 'websocket'],
+            upgrade: true,
+            secure: true
+        });
         
         let minhaSala = '';
         let meuId = '';
@@ -190,6 +191,7 @@
         let cronometro;
         let categoriasLocais = [];
 
+        // ESCUTA NATIVA DE REDE DO SOCKET.IO
         socket.on('connect', () => { 
             meuId = socket.id; 
             const bolinha = document.getElementById('statusBolinha');
@@ -403,12 +405,4 @@
             divLupa.innerHTML = temDado ? resumo : "Ninguém digitando ainda...";
         });
 
-        document.getElementById('btnStop').addEventListener('click', () => {
-            coletarEVoar(true);
-        });
-
-        function coletarEVoar(pararGeral) {
-            clearInterval(cronometro);
-            const respostas = {};
-            categoriasLocais.forEach(cat => {
-                const el = document.getElementBy
+        document.getElementById('btnStop').addEventListener('click'
