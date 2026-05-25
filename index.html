@@ -47,8 +47,8 @@
         .btn-excluir-tema { color: red; cursor: pointer; font-weight: bold; margin-left: 6px; }
 
         .timer-box { font-size: 1.5rem; font-weight: bold; color: #ff3333; margin-bottom: 10px; }
-        input[type="text"], input[type="number"] { padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; width: 100%; }
-        .input-geral { margin: 8px 0; }
+        input[type="text"], input[type="number"] { padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
+        .input-geral { width: 100%; margin: 8px 0; }
         
         button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: #764ba2; }
@@ -67,7 +67,6 @@
         .top2 { background: #c0c0c0; color: #333; }
         .top3 { background: #cd7f32; color: white; }
         .topGeral { background: #e2d9f3; color: #4a2d73; }
-        .revisao-card { background: #f9f9f9; padding: 12px; border-radius: 10px; margin-bottom: 12px; text-align: left; border-left: 5px solid #764ba2; }
     </style>
 </head>
 <body>
@@ -126,16 +125,17 @@
                     <label>Exibir no Pódio:</label>
                     <select id="cfgVencedores">
                         <option value="1">1 Pessoa</option>
-                        <option value="3">Top 3 Vencedores</option>
-                        <option value="5">Top 5 Vencedores</option>
+                        <option value="3">Top 3 Pessoas</option>
+                        <option value="5">Top 5 Pessoas</option>
+                        <option value="10">Top 10 Pessoas</option>
                     </select>
                 </div>
 
                 <div style="margin-top: 10px;">
                     <label style="font-weight: bold; font-size: 0.85rem;">📝 Gerenciar Temas:</label>
                     <div id="areaCriarTema" style="display:flex; gap:5px; margin-top:4px;">
-                        <input type="text" id="novoTemaNome" placeholder="Novo tema..." style="flex:1; padding:6px; font-size:0.85rem;">
-                        <button id="btnAdicionarTema" style="width:auto; padding:6px 10px; margin:0; font-size:0.85rem;" class="btn-secondary">+</button>
+                        <input type="text" id="novoTemaNome" placeholder="Novo tema..." style="flex:1; padding:4px; font-size:0.85rem;">
+                        <button id="btnAdicionarTema" style="width:auto; padding:4px 10px; margin:0; font-size:0.85rem;" class="btn-secondary">+</button>
                     </div>
                     <div class="temas-wrapper" id="listaTemasConfig"></div>
                 </div>
@@ -165,7 +165,7 @@
 
         <div id="telaResultado" class="escondido">
             <h1>Revisão de Respostas 📋</h1>
-            <div id="resultadosCorpo" style="margin: 15px 0; max-height: 300px; overflow-y: auto;"></div>
+            <div id="resultadosCorpo"></div>
             <button class="btn-primary" id="btnConfirmarPontos">Confirmar e Avançar</button>
         </div>
 
@@ -178,24 +178,28 @@
     </div>
 
     <script>
-        const socket = io({ transports: ['websocket', 'polling'] });
+        const socket = io({ transports: ['websocket'], upgrade: false });
         let minhaSala = '';
         let meuId = '';
         let souDono = false;
         let tempoDoJogo = 60;
         let cronometro;
         let categoriasLocais = [];
-        let jogadoresAtuais = [];
 
+        // MONITORAMENTO NATIVO DA BOLINHA DE CONEXÃO
         socket.on('connect', () => { 
             meuId = socket.id; 
-            document.getElementById('statusBolinha').classList.add('conectado');
-            document.getElementById('statusTexto').innerText = "Conectado";
+            const bolinha = document.getElementById('statusBolinha');
+            const texto = document.getElementById('statusTexto');
+            bolinha.classList.add('conectado');
+            texto.innerText = "Conectado";
         });
 
         socket.on('disconnect', () => {
-            document.getElementById('statusBolinha').classList.remove('conectado');
-            document.getElementById('statusTexto').innerText = "Desconectado";
+            const bolinha = document.getElementById('statusBolinha');
+            const texto = document.getElementById('statusTexto');
+            bolinha.classList.remove('conectado');
+            texto.innerText = "Desconectado";
         });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
@@ -226,6 +230,10 @@
             dispararSalvarConfig();
         });
 
+        function disparoConfigAutomatico() {
+            if(souDono) dispararSalvarConfig();
+        }
+
         function dispararSalvarConfig() {
             const checkboxes = document.querySelectorAll('.check-tema');
             checkboxes.forEach(cb => {
@@ -247,7 +255,9 @@
         }
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            if(minhaSala) socket.emit('startRound', minhaSala);
+            if(minhaSala) {
+                socket.emit('startRound', minhaSala);
+            }
         });
 
         socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
@@ -260,7 +270,6 @@
             document.getElementById('idSala').innerText = sala.codigo;
 
             categoriasLocais = sala.config.categorias;
-            jogadoresAtuais = sala.jogadores;
 
             if(socket.id !== sala.donoId) {
                 souDono = false;
@@ -268,18 +277,26 @@
                 document.getElementById('btnSalvarConfig').classList.add('escondido');
                 document.getElementById('areaCriarTema').classList.add('escondido');
                 document.getElementById('avisoDono').innerText = "(Apenas Visualizando)";
-                ['cfgTempo', 'cfgRodadas', 'cfgPoints', 'cfgLimite', 'cfgVotacao', 'cfgVencedores', 'cfgRepetidas'].forEach(id => {
-                    document.getElementById(id).disabled = true;
-                });
+                document.getElementById('cfgTempo').disabled = true;
+                document.getElementById('cfgRodadas').disabled = true;
+                document.getElementById('cfgPoints').disabled = true;
+                document.getElementById('cfgLimite').disabled = true;
+                document.getElementById('cfgVotacao').disabled = true;
+                document.getElementById('cfgVencedores').disabled = true;
+                document.getElementById('cfgRepetidas').disabled = true;
             } else {
                 souDono = true;
                 document.getElementById('btnIniciar').classList.remove('escondido');
                 document.getElementById('btnSalvarConfig').classList.remove('escondido');
                 document.getElementById('areaCriarTema').classList.remove('escondido');
                 document.getElementById('avisoDono').innerText = "(Você é o Dono)";
-                ['cfgTempo', 'cfgRodadas', 'cfgPoints', 'cfgLimite', 'cfgVotacao', 'cfgVencedores', 'cfgRepetidas'].forEach(id => {
-                    document.getElementById(id).disabled = false;
-                });
+                document.getElementById('cfgTempo').disabled = false;
+                document.getElementById('cfgRodadas').disabled = false;
+                document.getElementById('cfgPoints').disabled = false;
+                document.getElementById('cfgLimite').disabled = false;
+                document.getElementById('cfgVotacao').disabled = false;
+                document.getElementById('cfgVencedores').disabled = false;
+                document.getElementById('cfgRepetidas').disabled = false;
             }
 
             document.getElementById('cfgTempo').value = sala.config.tempo;
@@ -300,7 +317,7 @@
                 divTemas.innerHTML += `
                     <div class="tema-item">
                         <label>
-                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr}> ${cat.nome}
+                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr} onchange="disparoConfigAutomatico()"> ${cat.nome}
                         </label>
                         ${botaoExcluir}
                     </div>
@@ -347,12 +364,7 @@
             categoriasLocais = data.config.categorias.filter(c => c.ativa);
             
             categoriasLocais.forEach(cat => {
-                container.innerHTML += `
-                    <div style="text-align: left; margin: 10px 0;">
-                        <label style="font-weight: bold;">${cat.nome}:</label>
-                        <input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="Palavra com ${data.letra}..." oninput="dispararLupa()">
-                    </div>
-                `;
+                container.innerHTML += `<div style="text-align:left; margin:8px 0;"><label style="font-weight:bold; font-size:0.9rem;">${cat.nome}:</label><input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="Digite aqui..." oninput="dispararLupa()"></div>`;
             });
 
             clearInterval(cronometro);
@@ -360,7 +372,7 @@
                 tempoDoJogo--;
                 document.getElementById('tempoRestante').innerText = tempoDoJogo;
                 if(tempoDoJogo <= 0) {
-                    clearInterval(cronometro);
+                    clearInterval(crononerror);
                     coletarEVoar(true);
                 }
             }, 1000);
@@ -377,15 +389,15 @@
 
         socket.on('espiarJogador', (data) => {
             const divLupa = document.getElementById('dadosLupa');
-            let resumo = `<strong>Exibindo progresso em tempo real:</strong><br>`;
-            let mudou = false;
+            let resumo = `<strong>Exibindo progresso:</strong><br>`;
+            let temDado = false;
             Object.keys(data.respostas).forEach(cat => {
                 if(data.respostas[cat]) {
                     resumo += `▪️ ${cat}: <span style="color:#764ba2">${data.respostas[cat]}</span><br>`;
-                    mudou = true;
+                    temDado = true;
                 }
             });
-            divLupa.innerHTML = mudou ? resumo : "Ninguém digitando ainda...";
+            divLupa.innerHTML = temDado ? resumo : "Ninguém digitando ainda...";
         });
 
         document.getElementById('btnStop').addEventListener('click', () => {
@@ -394,18 +406,4 @@
 
         function coletarEVoar(pararGeral) {
             clearInterval(cronometro);
-            const respostas = {};
-            categoriasLocais.forEach(cat => {
-                const el = document.getElementById(`resp_${cat.nome}`);
-                if(el) respostas[cat.nome] = el.value.trim();
-            });
-
-            if(pararGeral) {
-                socket.emit('pressStop', { roomCode: minhaSala, respostas });
-            } else {
-                socket.emit('enviarRespostasRestantes', { roomCode: minhaSala, respostas });
-            }
-        }
-
-        socket.on('jogoParado', (data) => {
-            document.getElementById('telaJogo').classList.add('escondido');
+      
