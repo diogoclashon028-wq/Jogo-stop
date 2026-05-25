@@ -46,13 +46,13 @@
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .wrapper-letras { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; justify-content: flex-start; }
+        .wrapper-letras { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 18px; justify-content: flex-start; }
         .btn-letra-config {
-            width: calc(12.5% - 6px); min-width: 35px; height: 35px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
-            font-weight: bold; font-size: 0.9rem; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; box-shadow: none;
+            width: calc(12.5% - 4px); min-width: 32px; height: 32px; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+            font-weight: bold; font-size: 0.85rem; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; box-shadow: none;
         }
         .btn-letra-config.ativa { background: #7c3aed; border-color: #a78bfa; box-shadow: 0 0 8px rgba(124, 58, 237, 0.4); }
-        .btn-letra-config.desativada { background: rgba(0,0,0,0.4); opacity: 0.4; border-color: transparent; }
+        .btn-letra-config.desativada { background: rgba(0,0,0,0.4); opacity: 0.3; border-color: transparent; }
 
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
@@ -84,6 +84,11 @@
         ul { list-style: none; margin: 15px 0; text-align: left; max-height: 160px; overflow-y: auto; }
         li { background: rgba(255, 255, 255, 0.04); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.02); }
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        
+        .input-resposta {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; outline: none; margin-top: 4px;
+        }
+        .input-resposta:focus { border-color: #a78bfa; }
     </style>
 </head>
 <body>
@@ -169,15 +174,28 @@
         </div>
 
         <div id="telaJogo" class="escondido">
-            <h2>Letra Sorteada</h2>
-            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 10px 0;">-</div>
-            <h4 style="color:#10b981; margin-bottom: 15px;">Ordem das Categorias Sorteada:</h4>
-            <ul id="listaOrdemJogo" style="max-height: 150px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px;"></ul>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="text-align: left;">
+                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: bold; text-transform: uppercase;">Letra</span>
+                    <div id="letraExibida" style="font-size: 3.5rem; font-weight: 900; color: #a78bfa; line-height: 1;">-</div>
+                </div>
+                
+                <div id="rodadaExibida" style="font-size: 1.2rem; font-weight: bold; color: #fff; background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 20px;">Rodada 1/5</div>
+                
+                <div style="text-align: right;">
+                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: bold; text-transform: uppercase;">Tempo</span>
+                    <div id="tempoExibido" style="font-size: 3.5rem; font-weight: 900; color: #ef4444; line-height: 1;">-</div>
+                </div>
+            </div>
+
+            <div id="areaInputsCategorias" style="text-align: left; max-height: 45vh; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;"></div>
+
+            <button id="btnBaterStop" style="width: 100%; padding: 16px; font-size: 1.3rem; font-weight: 800; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); border-radius: 16px;">BATER STOP! 🛑</button>
         </div>
     </div>
 
     <script>
-        const socket = io({ transports: ['polling', 'websocket'] });
+        const socket = io({ transports: ['websocket', 'polling'] });
         
         let minhaSalaAtual = null;
 
@@ -193,15 +211,15 @@
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
-            if(!nome) return alert("coloque o seu nome");
+            if(!nome) return alert("Coloque o seu nome");
             socket.emit('criarSala', nome);
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
-            if(!nome) return alert("coloque o seu nome");
-            if(!cod) return alert("você precisa de um código");
+            if(!nome) return alert("Coloque o seu nome");
+            if(!cod) return alert("Você precisa de um código");
             socket.emit('joinRoom', { roomCode: cod, name: nome });
         });
 
@@ -271,6 +289,12 @@
             }
         });
 
+        document.getElementById('btnBaterStop').addEventListener('click', () => {
+            if (minhaSalaAtual) {
+                socket.emit('baterStop', minhaSalaAtual.codigo);
+            }
+        });
+
         function renderizarTecladoLetras(letrasAtivas, souDono) {
             const gradeLetras = document.getElementById('gradeLetras');
             gradeLetras.innerHTML = '';
@@ -315,6 +339,7 @@
             const souDono = (socket.id === sala.donoId);
 
             document.getElementById('telaInicial').classList.add('escondido');
+            document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
@@ -322,36 +347,4 @@
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgTempo').value = sala.config.tempo;
             document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
-            document.getElementById('cfgPtsNormal').value = sala.config.pontosNormal;
-            document.getElementById('cfgPtsRepetida').value = sala.config.pontosRepetida;
-            document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
-            document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
-
-            const painelTema = document.getElementById('painelCriarTema');
-            if (souDono) {
-                document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
-                painelTema.classList.remove('escondido');
-                inputsConfig.forEach(id => document.getElementById(id).disabled = false);
-            } else {
-                document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
-                painelTema.classList.add('escondido');
-                inputsConfig.forEach(id => document.getElementById(id).disabled = true);
-            }
-
-            renderizarTecladoLetras(sala.letrasAtivas || [], souDono);
-            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
-
-            const btn = document.getElementById('btnIniciar');
-            if (souDono) {
-                btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-                btn.style.pointerEvents = "auto";
-            } else {
-                btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; 
-                btn.style.cursor = "not-allowed";
-                btn.style.pointerEvents = "none";
-            }
-
-            const lis
+            document.getElementById('cfgPtsNormal').val
