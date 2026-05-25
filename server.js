@@ -86,13 +86,19 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('salvarConfiguracoes', ({ roomCode, novaConfig, categoriasSelecionadas }) => {
+    // Evento exclusivo para o clique na caixinha de marcar/desmarcar palavras
+    socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriasSelecionadas }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id && categoriasSelecionadas) {
+            sala.categoriasAtivas = categoriasSelecionadas;
+            io.to(roomCode).emit('atualizarSala', sala);
+        }
+    });
+
+    socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.config = { ...sala.config, ...novaConfig };
-            if (categoriasSelecionadas) {
-                sala.categoriasAtivas = categoriasSelecionadas;
-            }
             io.to(roomCode).emit('atualizarSala', sala);
         }
     });
@@ -140,4 +146,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-
+        
