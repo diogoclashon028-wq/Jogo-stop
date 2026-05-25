@@ -46,6 +46,15 @@
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Estilos do Teclado de Letras Gerenciável */
+        .wrapper-letras { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; justify-content: flex-start; }
+        .btn-letra-config {
+            width: calc(12.5% - 6px); min-width: 35px; height: 35px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+            font-weight: bold; font-size: 0.9rem; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; box-shadow: none;
+        }
+        .btn-letra-config.ativa { background: #7c3aed; border-color: #a78bfa; box-shadow: 0 0 8px rgba(124, 58, 237, 0.4); }
+        .btn-letra-config.desativada { background: rgba(0,0,0,0.4); opacity: 0.4; border-color: transparent; }
+
         /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
@@ -92,7 +101,7 @@
             <h1>Stop! Arena 🎲</h1>
             <input type="text" id="nome" placeholder="Digite seu apelido...">
             <button id="btnCriar" class="btn-primary">CRIAR NOVA SALA</button>
-            <div class="divider">ou entre in uma</div>
+            <div class="divider">ou entre em uma</div>
             <input type="text" id="codigo" placeholder="Código de 4 dígitos">
             <button id="btnEntrar" class="btn-secondary">ENTRAR NA SALA</button>
         </div>
@@ -142,6 +151,9 @@
                     <label>Quantidade de ganhadores:</label>
                     <input type="number" id="cfgVencedores" value="1" min="1" max="10">
                 </div>
+
+                <h4 style="margin-top: 15px;">Gerenciar Letras do Sorteio</h4>
+                <div class="wrapper-letras" id="gradeLetras"></div>
 
                 <h4 style="margin-top: 15px;" id="subtituloTemas">Gerenciar Palavras</h4>
                 <div class="box-criar-tema" id="painelCriarTema">
@@ -236,7 +248,20 @@
             } else {
                 novasAtivas = novasAtivas.filter(c => c !== cat);
             }
-            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSalaAtual.codigo, categoriasSelecionadas: novasAtivas });
+            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSalaAtual.codigo, categoriesSelecionadas: novasAtivas });
+        }
+
+        // Função executada quando o dono clica em uma letra do alfabeto nas configurações
+        function alternarLetraConfig(letra) {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
+            
+            let letrasNovas = [...(minhaSalaAtual.letrasAtivas || [])];
+            if (letrasNovas.includes(letra)) {
+                letrasNovas = letrasNovas.filter(l => l !== letra); // Remove se já existia
+            } else {
+                letrasNovas.push(letra); // Adiciona se não existia
+            }
+            socket.emit('atualizarLetrasAtivas', { roomCode: minhaSalaAtual.codigo, letrasSelecionadas: letrasNovas });
         }
 
         const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
@@ -249,6 +274,25 @@
                 socket.emit('startRound', minhaSalaAtual.codigo);
             }
         });
+
+        // Constrói visualmente o teclado de A a Z na tela de configurações
+        function renderizarTecladoLetras(letrasAtivas, souDono) {
+            const gradeLetras = document.getElementById('gradeLetras');
+            gradeLetras.innerHTML = '';
+            const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+            alfabeto.forEach(letra => {
+                const estaAtiva = letrasAtivas.includes(letra);
+                const classeCor = estaAtiva ? 'ativa' : 'desativada';
+                const acaoClique = souDono ? `onclick="alternarLetraConfig('${letra}')"` : '';
+                
+                gradeLetras.innerHTML += `
+                    <button class="btn-letra-config ${classeCor}" ${acaoClique}>
+                        ${letra}
+                    </button>
+                `;
+            });
+        }
 
         function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
@@ -299,54 +343,10 @@
                 inputsConfig.forEach(id => document.getElementById(id).disabled = true);
             }
 
-            // ATENÇÃO: ESTA LINHA ESTAVA EM FALTA! Agora renderiza e atualiza os checkboxes!
+            // Garante o carregamento e renderização do filtro de letras na interface
+            renderizarTecladoLetras(sala.letrasAtivas || [], souDono);
             renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
 
             const btn = document.getElementById('btnIniciar');
             if (souDono) {
-                btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-                btn.style.pointerEvents = "auto";
-            } else {
-                btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; 
-                btn.style.cursor = "not-allowed";
-                btn.style.pointerEvents = "none";
-            }
-
-            const lista = document.getElementById('listaJogadores');
-            lista.innerHTML = '';
-            sala.jogadores.forEach(p => {
-                const ehDono = p.id === sala.donoId;
-                const coroa = ehDono ? '👑' : '👤';
-                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
-
-                lista.innerHTML += `
-                    <li>
-                        <div class="player-info">
-                            <span>${coroa}</span>
-                            <span>${p.nome}</span>
-                        </div>
-                        ${botaoKick}
-                    </li>
-                `;
-            });
-        });
-
-        socket.on('rodadaIniciada', (data) => {
-            document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaJogo').classList.remove('escondido');
-            document.getElementById('letraExibida').innerText = data.letra;
-
-            const listaOrdem = document.getElementById('listaOrdemJogo');
-            listaOrdem.innerHTML = '';
-            data.categoriasOrdem.forEach((cat, index) => {
-                listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
-            });
-        });
-
-        socket.on('erro', (msg) => alert(msg));
-    </script>
-</body>
-</html>
+                btn.innerText = "INICI
