@@ -1,17 +1,21 @@
 const express = require('express');
 const app = express();
+
+// REGRA CHAVE PARA O RENDER: Avisa ao Node que ele está rodando atrás de um servidor de nuvem
+app.set('trust proxy', 1);
+
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { 
     cors: { 
         origin: "*",
         methods: ["GET", "POST"],
         credentials: true
-    },
-    allowEIO3: true
+    }
 });
 const path = require('path');
 
-// Serve os arquivos da raiz
+// O resto do código do seu server.js para baixo continua EXATAMENTE igualzinho...
+
 app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
