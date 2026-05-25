@@ -102,13 +102,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('expulsarJogador', ({ roomCode, playerID }) => { // Corrigido de jogadorId para compatibilidade com o front
-        const sala = salas[roomCode];
-        const idAlvo = playerID || socket.id; 
-        // Nota: no front chamamos usando jogadorId, ajustado abaixo para aceitar ambos
-    });
-
-    // Ajuste fino para o evento expulsarJogador bater perfeitamente com o front:
     socket.on('expulsarJogador', ({ roomCode, jogadorId }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && jogadorId !== socket.id) {
@@ -134,7 +127,7 @@ io.on('connection', (socket) => {
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
+                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
@@ -178,3 +171,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+            
