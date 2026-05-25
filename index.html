@@ -11,7 +11,7 @@
         body { 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #1c163a 100%); 
-            color: #f3f1f8; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; \
+            color: #f3f1f8; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;
         }
 
         .container { 
@@ -79,7 +79,6 @@
         li { background: rgba(255, 255, 255, 0.04); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.02); }
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 
-        /* Estilos da gameplay */
         .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 25px; }
         .letra-box, .tempo-box { text-align: center; background: rgba(0, 0, 0, 0.2); padding: 10px 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.04); }
         .letra-destaque { font-size: 3.5rem; font-weight: 900; color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); line-height: 1; margin-top: 5px; }
@@ -169,7 +168,7 @@
                 <ul id="listaJogadores"></ul>
             </div>
 
-            <button id="btnIniciar" class="btn-primary">INICIAR PARTIDA 🚀</button>
+            <button id="btnIniciar" class="btn-primary escondido">INICIAR PARTIDA 🚀</button>
         </div>
 
         <div id="telaJogo" class="escondido" style="width: 100%;">
@@ -191,7 +190,6 @@
     </div>
 
     <script>
-        // Inicialização limpa do Socket.io usando o próprio host atual
         const socket = io({
             transports: ['websocket', 'polling'],
             reconnection: true,
@@ -309,7 +307,6 @@
 
             atualizarStatusConexao(socket.connected);
 
-            // Só altera telas se o status for lobby para evitar tirar o player da partida no meio do jogo
             if (sala.status === 'lobby') {
                 document.getElementById('telaInicial').classList.add('escondido');
                 document.getElementById('telaJogo').classList.add('escondido');
@@ -334,4 +331,7 @@
                     btnIniciar.classList.remove('escondido');
                     inputsConfig.forEach(id => document.getElementById(id).disabled = false);
                 } else {
-                    document.getElementById('titu
+                    document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
+                    painelTema.classList.add('escondido');
+                    btnIniciar.classList.add('escondido');
+                    inputs
