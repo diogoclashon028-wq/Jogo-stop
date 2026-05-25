@@ -177,7 +177,12 @@
     </div>
 
     <script>
-        const socket = io({ transports: ['websocket'], upgrade: false });
+        const socket = io("https://jogo-stop.onrender.com", {
+    transports: ['polling', 'websocket'],
+    upgrade: true,
+    secure: true
+});
+        
         let minhaSala = '';
         let meuId = '';
         let souDono = false;
