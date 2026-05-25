@@ -23,6 +23,7 @@
         .status-servidor {
             position: absolute; top: 18px; right: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 700;
             background: rgba(255, 255, 255, 0.06); padding: 6px 14px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05);
+            z-index: 10;
         }
         .bolinha { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444; }
         .bolinha.conectado { background: #10b981; box-shadow: 0 0 12px #10b981; }
@@ -68,7 +69,7 @@
         button:active { transform: scale(0.98); }
         .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .btn-secondary { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 1.5rem; text-transform: uppercase; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 1.5rem; text-transform: uppercase; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); margin-top: 20px; }
 
         .btn-kick { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; width: auto; margin: 0; font-weight: bold; }
         .divider { margin: 20px 0; color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
@@ -79,14 +80,17 @@
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 
         /* Estilos da gameplay */
-        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px; }
-        .letra-destaque { font-size: 4rem; font-weight: 900; color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); line-height: 1; }
-        .tempo-destaque { font-size: 3rem; font-weight: 900; color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); line-height: 1; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 25px; }
+        .letra-box, .tempo-box { text-align: center; background: rgba(0, 0, 0, 0.2); padding: 10px 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.04); }
+        .letra-destaque { font-size: 3.5rem; font-weight: 900; color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); line-height: 1; margin-top: 5px; }
+        .tempo-destaque { font-size: 3.5rem; font-weight: 900; color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); line-height: 1; margin-top: 5px; }
         .tempo-destaque.perigo { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
         
-        .formulario-jogo { width: 100%; max-height: 50vh; overflow-y: auto; padding-right: 5px; text-align: left; }
-        .formulario-jogo label { display: block; font-size: 0.85rem; font-weight: bold; color: #c084fc; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .input-jogo { margin-top: 0; margin-bottom: 15px; }
+        .formulario-jogo { width: 100%; max-height: 48vh; overflow-y: auto; padding-right: 5px; text-align: left; }
+        .row-campo-jogo { background: rgba(0, 0, 0, 0.15); padding: 12px 16px; border-radius: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); }
+        .row-campo-jogo label { display: block; font-size: 0.85rem; font-weight: bold; color: #c084fc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .input-jogo { width: 100%; padding: 12px 14px; background: rgba(15, 12, 32, 0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff; font-size: 1rem; outline: none; margin: 0; }
+        .input-jogo:focus { border-color: #a78bfa; background: rgba(15, 12, 32, 0.6); }
     </style>
 </head>
 <body>
@@ -169,40 +173,50 @@
         </div>
 
         <div id="telaJogo" class="escondido" style="width: 100%;">
-            
             <div class="game-header">
-                <div style="text-align: left;">
-                    <span style="font-size: 0.8rem; font-weight: bold; color: rgba(255,255,255,0.5); text-transform: uppercase;">Letra</span><br>
+                <div class="letra-box">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: rgba(255,255,255,0.4); text-transform: uppercase;">Letra</span>
                     <div id="letraExibida" class="letra-destaque">-</div>
                 </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 0.8rem; font-weight: bold; color: rgba(255,255,255,0.5); text-transform: uppercase;">Tempo</span><br>
+                <div class="tempo-box">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: rgba(255,255,255,0.4); text-transform: uppercase;">Tempo</span>
                     <div id="tempoRestante" class="tempo-destaque">60</div>
                 </div>
             </div>
 
-            <div id="formularioJogo" class="formulario-jogo">
-                </div>
+            <div id="formularioJogo" class="formulario-jogo"></div>
 
             <button id="btnStop" class="btn-danger">🛑 BATER STOP! 🛑</button>
         </div>
     </div>
 
     <script>
-        const socket = io({ transports: ['polling', 'websocket'] });
+        // Configuração contínua do Socket para estabilizar o status de rede
+        const socket = io(window.location.origin, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000
+        });
         
         let minhaSalaAtual = null;
         let timerInterval;
 
-        socket.on('connect', () => { 
-            document.getElementById('statusBolinha').classList.add('conectado');
-            document.getElementById('statusTexto').innerText = "ONLINE";
-        });
+        function atualizarStatusConexao(conectado) {
+            const bolinha = document.getElementById('statusBolinha');
+            const texto = document.getElementById('statusTexto');
+            if (conectado) {
+                bolinha.classList.add('conectado');
+                texto.innerText = "ONLINE";
+            } else {
+                bolinha.classList.remove('conectado');
+                texto.innerText = "CONECTANDO";
+            }
+        }
 
-        socket.on('disconnect', () => {
-            document.getElementById('statusBolinha').classList.remove('conectado');
-            document.getElementById('statusTexto').innerText = "DESCONECTADO";
-        });
+        socket.on('connect', () => { atualizarStatusConexao(true); });
+        socket.on('disconnect', () => { atualizarStatusConexao(false); });
+        socket.on('connect_error', () => { atualizarStatusConexao(false); });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
@@ -269,11 +283,11 @@
             }
         });
 
-        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
+        function renderizarGradeCategorias(categoriasTotais, categoriesAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             categoriasTotais.forEach(cat => {
-                const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
+                const checkado = categoriesAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
                 const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSalaAtual.codigo}', tema: '${cat}'})">🗑️</button>` : '';
                 
@@ -292,6 +306,8 @@
         socket.on('atualizarSala', (sala) => {
             minhaSalaAtual = sala;
             const souDono = (socket.id === sala.donoId);
+
+            atualizarStatusConexao(socket.connected);
 
             document.getElementById('telaInicial').classList.add('escondido');
             document.getElementById('telaJogo').classList.add('escondido');
@@ -320,28 +336,4 @@
 
             renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
 
-            const btn = document.getElementById('btnIniciar');
-            if (souDono) {
-                btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-                btn.style.pointerEvents = "auto";
-            } else {
-                btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; 
-                btn.style.cursor = "not-allowed";
-                btn.style.pointerEvents = "none";
-            }
-
-            const lista = document.getElementById('listaJogadores');
-            lista.innerHTML = '';
-            sala.jogadores.forEach(p => {
-                const ehDono = p.id === sala.donoId;
-                const coroa = ehDono ? '👑' : '👤';
-                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
-
-                lista.innerHTML += `
-                    <li>
-                        <div class="player-info">
-                            <span>${coroa}</span>
-                            <span>${p.no
+            con
