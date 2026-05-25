@@ -179,9 +179,9 @@
     <script>
         // Deixar vazio força o Socket a usar o MESMO endereço e protocolo do site aberto
         const socket = io({
-            transports: ['polling', 'websocket'],
-            upgrade: true
-        });
+    transports: ['websocket', 'polling'],
+    upgrade: true
+});
         
         let minhaSala = '';
         let meuId = '';
