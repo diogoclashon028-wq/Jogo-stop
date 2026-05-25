@@ -34,7 +34,6 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Indicador de Status Premium */
         .status-servidor {
             position: absolute; top: 18px; right: 20px;
             display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 700;
@@ -48,89 +47,51 @@
         h2 { font-size: 1.4rem; font-weight: 700; color: #f3f1f8; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         
         .room-tag {
-            background: rgba(167, 139, 250, 0.15);
-            color: #c084fc;
-            padding: 4px 12px;
-            border-radius: 8px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            font-size: 1.5rem;
-            border: 1px dashed rgba(192, 132, 252, 0.4);
-            display: inline-block;
-            margin-top: 5px;
-            letter-spacing: 2px;
+            background: rgba(167, 139, 250, 0.15); color: #c084fc; padding: 4px 12px; border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.5rem;
+            border: 1px dashed rgba(192, 132, 252, 0.4); display: inline-block; margin-top: 5px; letter-spacing: 2px;
         }
 
-        /* Inputs Modernos */
+        /* Configurações da Sala */
+        .panel-config {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 15px; margin: 20px 0; text-align: left;
+        }
+        .panel-config h4 { color: #a78bfa; font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .config-row label { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+        
+        .panel-config input[type="number"] {
+            width: 80px; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: #fff; font-weight: bold; text-align: center; outline: none;
+        }
+        .panel-config input[type="number"]:focus { border-color: #a78bfa; }
+        .panel-config input:disabled { opacity: 0.5; cursor: not-allowed; }
+
         input[type="text"] { 
-            width: 100%; 
-            padding: 14px 18px; 
-            margin: 10px 0; 
-            border: 2px solid rgba(255, 255, 255, 0.08); 
-            border-radius: 14px; 
-            background: rgba(15, 12, 32, 0.5);
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
+            width: 100%; padding: 14px 18px; margin: 10px 0; border: 2px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 14px; background: rgba(15, 12, 32, 0.5); color: #fff; font-size: 1rem; outline: none;
         }
-        input[type="text"]:focus {
-            border-color: #a78bfa;
-            box-shadow: 0 0 15px rgba(167, 139, 250, 0.2);
-            background: rgba(15, 12, 32, 0.8);
-        }
+        input[type="text"]:focus { border-color: #a78bfa; box-shadow: 0 0 15px rgba(167, 139, 250, 0.2); }
 
-        /* Botões Estilizados */
         button { 
-            width: 100%; 
-            padding: 15px; 
-            margin: 12px 0; 
-            border: none; 
-            border-radius: 14px; 
-            font-size: 1rem; 
-            font-weight: 700; 
-            color: white; 
-            cursor: pointer; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
+            width: 100%; padding: 15px; margin: 12px 0; border: none; border-radius: 14px; 
+            font-size: 1rem; font-weight: 700; color: white; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         button:active { transform: scale(0.98); }
-        
         .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
-        .btn-primary:hover { box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
-        
         .btn-secondary { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-        .btn-secondary:hover { box-shadow: 0 0 20px rgba(5, 150, 105, 0.4); }
 
-        .divider { margin: 20px 0; color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        
+        .divider { margin: 20px 0; color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
         .escondido { display: none !important; }
 
-        /* Lista de Jogadores Profissional */
-        ul { list-style: none; margin: 20px 0; text-align: left; max-height: 240px; overflow-y: auto; padding-right: 5px; }
-        ul::-webkit-scrollbar { width: 6px; }
-        ul::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        
+        ul { list-style: none; margin: 15px 0; text-align: left; max-height: 180px; overflow-y: auto; }
         li { 
-            background: rgba(255, 255, 255, 0.04); 
-            padding: 14px 18px; 
-            border-radius: 12px; 
-            margin-bottom: 8px; 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid rgba(255,255,255,0.02);
-            animation: fadeIn 0.4s ease forwards;
+            background: rgba(255, 255, 255, 0.04); padding: 12px 16px; border-radius: 12px; 
+            margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.02);
         }
-        li:hover { background: rgba(255, 255, 255, 0.07); transform: translateX(2px); }
-
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-        .player-status { font-size: 0.8rem; background: rgba(167, 139, 250, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 20px; font-weight: bold; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .player-status { font-size: 0.8rem; background: rgba(167, 139, 250, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -145,9 +106,7 @@
             <h1>Stop! Arena 🎲</h1>
             <input type="text" id="nome" placeholder="Digite seu apelido...">
             <button id="btnCriar" class="btn-primary">CRIAR NOVA SALA</button>
-            
             <div class="divider">ou entre em uma</div>
-            
             <input type="text" id="codigo" placeholder="Código de 4 dígitos">
             <button id="btnEntrar" class="btn-secondary">ENTRAR NA SALA</button>
         </div>
@@ -156,12 +115,43 @@
             <h2>Sala Ativa</h2>
             <div id="idSala" class="room-tag">----</div>
             
-            <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
-                <h3 style="text-align: left; font-size: 1rem; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: 10px;">JOGADORES NA ARENA</h3>
+            <div class="panel-config">
+                <h4 id="tituloConfig">Configurações da Partida</h4>
+                
+                <div class="config-row">
+                    <label>Tempo por rodada (s):</label>
+                    <input type="number" id="cfgTempo" value="60" min="10" max="300">
+                </div>
+                <div class="config-row">
+                    <label>Total de rodadas:</label>
+                    <input type="number" id="cfgRodadas" value="5" min="1" max="20">
+                </div>
+                <div class="config-row">
+                    <label>Pontos palavra normal:</label>
+                    <input type="number" id="cfgPtsNormal" value="10" min="1" max="50">
+                </div>
+                <div class="config-row">
+                    <label>Pontos palavra repetida:</label>
+                    <input type="number" id="cfgPtsRepetida" value="5" min="0" max="50">
+                </div>
+                <div class="config-row">
+                    <label>Máximo de jogadores:</label>
+                    <input type="number" id="cfgLimite" value="8" min="2" max="20">
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                <h3 style="text-align: left; font-size: 0.9rem; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: 10px;">JOGADORES NA ARENA</h3>
                 <ul id="listaJogadores"></ul>
             </div>
 
-            <button id="btnIniciarFake" class="btn-primary" style="opacity: 0.6; cursor: not-allowed; margin-top: 15px;">AGUARDANDO O DONO...</button>
+            <button id="btnIniciar" class="btn-primary">AGUARDANDO O DONO...</button>
+        </div>
+
+        <div id="telaJogo" class="escondido">
+            <h2>Letra Sorteada</h2>
+            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 20px 0;">-</div>
+            <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">Pronto! A rodada foi iniciada com sucesso.</p>
         </div>
     </div>
 
@@ -171,6 +161,7 @@
         });
         
         let minhaSala = '';
+        let souDono = false;
 
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
@@ -196,12 +187,61 @@
             }
         });
 
-        socket.on('salaCriada', (codigo) => { minhaSala = codigo; });
+        // Ouvinte nos inputs numéricos para salvar configurações em tempo real se for o dono
+        const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite'];
+        inputsConfig.forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                if (souDono) {
+                    const novaConfig = {
+                        tempo: parseInt(document.getElementById('cfgTempo').value),
+                        totalRodadas: parseInt(document.getElementById('cfgRodadas').value),
+                        pontosNormal: parseInt(document.getElementById('cfgPtsNormal').value),
+                        pontosRepetida: parseInt(document.getElementById('cfgPtsRepetida').value),
+                        limiteJogadores: parseInt(document.getElementById('cfgLimite').value)
+                    };
+                    socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
+                }
+            });
+        });
+
+        // Evento do botão Iniciar
+        document.getElementById('btnIniciar').addEventListener('click', () => {
+            if (souDono && minhaSala) {
+                socket.emit('startRound', minhaSala);
+            }
+        });
+
+        socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
 
         socket.on('atualizarSala', (sala) => {
             document.getElementById('telaInicial').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
+
+            // Determinar se quem está visualizando é o dono
+            souDono = (socket.id === sala.donoId);
+
+            // Atualizar valores na tela vindos do servidor
+            document.getElementById('cfgTempo').value = sala.config.tempo;
+            document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
+            document.getElementById('cfgPtsNormal').value = sala.config.pontosNormal;
+            document.getElementById('cfgPtsRepetida').value = sala.config.pontosRepetida;
+            document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
+
+            const btn = document.getElementById('btnIniciar');
+            if (souDono) {
+                document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
+                inputsConfig.forEach(id => document.getElementById(id).disabled = false);
+                btn.innerText = "INICIAR PARTIDA 🚀";
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+            } else {
+                document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
+                inputsConfig.forEach(id => document.getElementById(id).disabled = true);
+                btn.innerText = "AGUARDANDO O DONO...";
+                btn.style.opacity = "0.6";
+                btn.style.cursor = "not-allowed";
+            }
 
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
@@ -217,6 +257,13 @@
                     </li>
                 `;
             });
+        });
+
+        // Quando a rodada iniciar, esconde o lobby e mostra a letra sorteada
+        socket.on('rodadaIniciada', (data) => {
+            document.getElementById('telaLobby').classList.add('escondido');
+            document.getElementById('telaJogo').classList.remove('escondido');
+            document.getElementById('letraExibida').innerText = data.letra;
         });
 
         socket.on('erro', (msg) => alert(msg));
