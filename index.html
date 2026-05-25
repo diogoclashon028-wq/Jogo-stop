@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop! Online Supremo</title>
+    <title>Stop! Base de Reserva</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: Arial, sans-serif; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             color: #333; 
             display: flex; 
@@ -31,42 +31,14 @@
         .status-servidor {
             position: absolute; top: 15px; right: 15px;
             display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: bold;
-            background: #f0f0f0; padding: 4px 10px; border-radius: 12px;
         }
         .bolinha { width: 10px; height: 10px; border-radius: 5px; background: #ff3333; }
         .bolinha.conectado { background: #00bfa5; }
-
-        h1 { color: #764ba2; margin-bottom: 15px; font-size: 1.8rem; }
-        .config-section { background: #f4effa; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; border: 1px solid #dcd1ed; }
-        .config-section h4 { color: #764ba2; margin-bottom: 10px; }
-        .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
-        .config-row select, .config-row input { padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 45%; }
-        
-        .temas-wrapper { max-height: 120px; overflow-y: auto; background: white; padding: 6px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; }
-        .tema-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; padding: 2px; }
-        .btn-excluir-tema { color: red; cursor: pointer; font-weight: bold; margin-left: 6px; }
-
-        .timer-box { font-size: 1.5rem; font-weight: bold; color: #ff3333; margin-bottom: 10px; }
-        input[type="text"], input[type="number"] { padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
-        .input-geral { width: 100%; margin: 8px 0; }
-        
-        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; color: white; cursor: pointer; }
-        .btn-primary { background: #764ba2; }
-        .btn-secondary { background: #00bfa5; }
-        .btn-danger { background: #ff3333; font-size: 1.2rem; padding: 16px; }
-        
+        input[type="text"] { width: 100%; padding: 10px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 10px; }
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; background: #764ba2; }
         .escondido { display: none; }
         ul { list-style: none; margin: 10px 0; text-align: left; }
-        li { background: #f7f7f9; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-        
-        .btn-kick { background: #ff4d4d; color: white; border: none; padding: 3px 8px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
-        
-        .lupa-container { background: #fffde6; border: 1px dashed #e6c300; padding: 10px; border-radius: 8px; margin-top: 15px; text-align: left; font-size: 0.85rem; }
-        .podio-item { padding: 12px; margin: 8px 0; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .top1 { background: #ffd700; color: #554400; font-size: 1.2rem; }
-        .top2 { background: #c0c0c0; color: #333; }
-        .top3 { background: #cd7f32; color: white; }
-        .topGeral { background: #e2d9f3; color: #4a2d73; }
+        li { background: #f7f7f9; padding: 10px; border-radius: 8px; margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -78,131 +50,35 @@
         </div>
 
         <div id="telaInicial">
-            <h1 style="margin-top: 20px;">Stop! Online 🎲</h1>
-            <input type="text" id="nome" class="input-geral" placeholder="Seu Nome">
-            <button class="btn-primary" id="btnCriar">CRIAR NOVA SALA</button>
-            <div style="margin: 10px 0; color: #888;">-- OU --</div>
-            <input type="text" id="codigo" class="input-geral" placeholder="CÓDIGO DA SALA">
-            <button class="btn-secondary" id="btnEntrar">ENTRAR EM SALA</button>
+            <h1>Stop! Inicial 🎲</h1>
+            <input type="text" id="nome" placeholder="Seu Nome">
+            <button id="btnCriar">CRIAR SALA</button>
+            <input type="text" id="codigo" placeholder="CÓDIGO DA SALA">
+            <button id="btnEntrar" style="background: #00bfa5;">ENTRAR NA SALA</button>
         </div>
 
         <div id="telaLobby" class="escondido">
-            <h1 style="margin-top: 20px;">Sala: <span id="idSala" style="color:#00bfa5;">----</span></h1>
-            
-            <div class="config-section">
-                <h4>⚙️ Configurações da Sala <span id="avisoDono" style="font-size:0.75rem; color:#888;"></span></h4>
-                <div class="config-row">
-                    <label>Tempo (segundos):</label>
-                    <input type="number" id="cfgTempo" value="60">
-                </div>
-                <div class="config-row">
-                    <label>Rodadas Totais:</label>
-                    <input type="number" id="cfgRodadas" value="5">
-                </div>
-                <div class="config-row">
-                    <label>Pontos Base:</label>
-                    <input type="number" id="cfgPoints" value="10">
-                </div>
-                <div class="config-row">
-                    <label>Palavras Repetidas:</label>
-                    <select id="cfgRepetidas">
-                        <option value="metade">Vale Metade (5pts)</option>
-                        <option value="normal">Vale Normal (10pts)</option>
-                    </select>
-                </div>
-                <div class="config-row">
-                    <label>Limite de Pessoas:</label>
-                    <input type="number" id="cfgLimite" value="8">
-                </div>
-                <div class="config-row">
-                    <label>Votação:</label>
-                    <select id="cfgVotacao">
-                        <option value="true">Habilitada</option>
-                        <option value="false">Desabilitada</option>
-                    </select>
-                </div>
-                <div class="config-row">
-                    <label>Exibir no Pódio:</label>
-                    <select id="cfgVencedores">
-                        <option value="1">1 Pessoa</option>
-                        <option value="3">Top 3 Pessoas</option>
-                        <option value="5">Top 5 Pessoas</option>
-                    </select>
-                </div>
-
-                <div style="margin-top: 10px;">
-                    <label style="font-weight: bold; font-size: 0.85rem;">📝 Gerenciar Temas:</label>
-                    <div id="areaCriarTema" style="display:flex; gap:5px; margin-top:4px;">
-                        <input type="text" id="novoTemaNome" placeholder="Novo tema..." style="flex:1; padding:4px; font-size:0.85rem;">
-                        <button id="btnAdicionarTema" style="width:auto; padding:4px 10px; margin:0; font-size:0.85rem;" class="btn-secondary">+</button>
-                    </div>
-                    <div class="temas-wrapper" id="listaTemasConfig"></div>
-                </div>
-
-                <button id="btnSalvarConfig" class="btn-primary" style="padding: 8px; font-size: 0.9rem; margin-top: 10px;">Aplicar Configurações</button>
-            </div>
-
-            <h3>Jogadores conectados:</h3>
+            <h1>Sala: <span id="idSala" style="color:#00bfa5;">----</span></h1>
+            <h3>Jogadores:</h3>
             <ul id="listaJogadores"></ul>
-            <button class="btn-secondary" id="btnIniciar">COMEÇAR RODADA</button>
-        </div>
-
-        <div id="telaJogo" class="escondido">
-            <div class="timer-box">⏱️ <span id="tempoRestante">60</span>s</div>
-            <h2>LETRA ATUAL:</h2>
-            <div style="font-size: 4rem; font-weight: 900; color: #ff3333;" id="letra">-</div>
-            
-            <div id="containerCampos"></div>
-
-            <button class="btn-danger" id="btnStop">STOP! 🛑</button>
-
-            <div class="lupa-container">
-                <strong>🔍 Lupa (O que os outros estão digitando):</strong>
-                <div id="dadosLupa" style="margin-top: 5px; font-style: italic; color: #555;">Ninguém digitando ainda...</div>
-            </div>
-        </div>
-
-        <div id="telaResultado" class="escondido">
-            <h1>Revisão de Respostas 📋</h1>
-            <div id="resultadosCorpo"></div>
-            <button class="btn-primary" id="btnConfirmarPontos">Confirmar e Avançar</button>
-        </div>
-
-        <div id="telaPodio" class="escondido">
-            <h1 style="color: #ffd700;">🏆 Classificação Final 🏆</h1>
-            <div id="corpoPodio"></div>
-            <br>
-            <button class="btn-secondary" id="btnReiniciarTudo">Jogar Novamente (Zerar Pontos)</button>
         </div>
     </div>
 
     <script>
-        // Deixar vazio força o Socket a usar o MESMO endereço e protocolo do site aberto
         const socket = io({
-    transports: ['websocket', 'polling'],
-    upgrade: true
-});
+            transports: ['polling', 'websocket']
+        });
         
         let minhaSala = '';
-        let meuId = '';
-        let souDono = false;
-        let tempoDoJogo = 60;
-        let cronometro;
-        let categoriasLocais = [];
 
         socket.on('connect', () => { 
-            meuId = socket.id; 
-            const bolinha = document.getElementById('statusBolinha');
-            const texto = document.getElementById('statusTexto');
-            bolinha.classList.add('conectado');
-            texto.innerText = "Conectado";
+            document.getElementById('statusBolinha').classList.add('conectado');
+            document.getElementById('statusTexto').innerText = "Conectado";
         });
 
         socket.on('disconnect', () => {
-            const bolinha = document.getElementById('statusBolinha');
-            const texto = document.getElementById('statusTexto');
-            bolinha.classList.remove('conectado');
-            texto.innerText = "Desconectado";
+            document.getElementById('statusBolinha').classList.remove('conectado');
+            document.getElementById('statusTexto').innerText = "Desconectado";
         });
 
         document.getElementById('btnCriar').addEventListener('click', () => {
@@ -219,193 +95,22 @@
             }
         });
 
-        document.getElementById('btnAdicionarTema').addEventListener('click', () => {
-            const input = document.getElementById('novoTemaNome');
-            const nomeTema = input.value.trim();
-            if(nomeTema) {
-                categoriasLocais.push({ nome: nomeTema, ativa: true });
-                input.value = '';
-                dispararSalvarConfig();
-            }
-        });
-
-        document.getElementById('btnSalvarConfig').addEventListener('click', () => {
-            dispararSalvarConfig();
-        });
-
-        function disparoConfigAutomatico() {
-            if(souDono) dispararSalvarConfig();
-        }
-
-        function dispararSalvarConfig() {
-            const checkboxes = document.querySelectorAll('.check-tema');
-            checkboxes.forEach(cb => {
-                const idx = cb.getAttribute('data-index');
-                if(categoriasLocais[idx]) categoriasLocais[idx].ativa = cb.checked;
-            });
-
-            const novaConfig = {
-                tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
-                totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
-                pontosPorPalavra: parseInt(document.getElementById('cfgPoints').value) || 10,
-                limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
-                votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
-                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 3,
-                regrasRepetidas: document.getElementById('cfgRepetidas').value,
-                categorias: categoriasLocais
-            };
-            socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
-        }
-
-        document.getElementById('btnIniciar').addEventListener('click', () => {
-            if(minhaSala) {
-                socket.emit('startRound', minhaSala);
-            }
-        });
-
-        socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
+        socket.on('salaCriada', (codigo) => { minhaSala = codigo; });
 
         socket.on('atualizarSala', (sala) => {
             document.getElementById('telaInicial').classList.add('escondido');
-            document.getElementById('telaResultado').classList.add('escondido');
-            document.getElementById('telaPodio').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
-
-            categoriasLocais = sala.config.categorias;
-
-            if(socket.id !== sala.donoId) {
-                souDono = false;
-                document.getElementById('btnIniciar').classList.add('escondido');
-                document.getElementById('btnSalvarConfig').classList.add('escondido');
-                document.getElementById('areaCriarTema').classList.add('escondido');
-                document.getElementById('avisoDono').innerText = "(Apenas Visualizando)";
-                document.getElementById('cfgTempo').disabled = true;
-                document.getElementById('cfgRodadas').disabled = true;
-                document.getElementById('cfgPoints').disabled = true;
-                document.getElementById('cfgLimite').disabled = true;
-                document.getElementById('cfgVotacao').disabled = true;
-                document.getElementById('cfgVencedores').disabled = true;
-                document.getElementById('cfgRepetidas').disabled = true;
-            } else {
-                souDono = true;
-                document.getElementById('btnIniciar').classList.remove('escondido');
-                document.getElementById('btnSalvarConfig').classList.remove('escondido');
-                document.getElementById('areaCriarTema').classList.remove('escondido');
-                document.getElementById('avisoDono').innerText = "(Você é o Dono)";
-                document.getElementById('cfgTempo').disabled = false;
-                document.getElementById('cfgRodadas').disabled = false;
-                document.getElementById('cfgPoints').disabled = false;
-                document.getElementById('cfgLimite').disabled = false;
-                document.getElementById('cfgVotacao').disabled = false;
-                document.getElementById('cfgVencedores').disabled = false;
-                document.getElementById('cfgRepetidas').disabled = false;
-            }
-
-            document.getElementById('cfgTempo').value = sala.config.tempo;
-            document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
-            document.getElementById('cfgPoints').value = sala.config.pontosPorPalavra;
-            document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
-            document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
-            document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
-            document.getElementById('cfgRepetidas').value = sala.config.regrasRepetidas || 'metade';
-
-            const divTemas = document.getElementById('listaTemasConfig');
-            divTemas.innerHTML = '';
-            categoriasLocais.forEach((cat, index) => {
-                const checked = cat.ativa ? 'checked' : '';
-                const disabledStr = !souDono ? 'disabled' : '';
-                const botaoExcluir = souDono ? `<span class="btn-excluir-tema" onclick="removerTemaDoVetor(${index})">❌</span>` : '';
-                
-                divTemas.innerHTML += `
-                    <div class="tema-item">
-                        <label>
-                            <input type="checkbox" class="check-tema" data-index="${index}" ${checked} ${disabledStr} onchange="disparoConfigAutomatico()"> ${cat.nome}
-                        </label>
-                        ${botaoExcluir}
-                    </div>
-                `;
-            });
 
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
-                const coroa = p.id === sala.donoId ? '👑 ' : '👤 ';
-                let btnKick = '';
-                if(souDono && p.id !== socket.id) {
-                    btnKick = `<button class="btn-kick" onclick="expulsarId('${p.id}')">❌</button>`;
-                }
-                lista.innerHTML += `<li><span>${coroa}${p.nome} ${btnKick}</span> <span>🏆 ${p.pontos || 0} pts</span></li>`;
+                lista.innerHTML += `<li>👤 ${p.nome}</li>`;
             });
         });
 
-        function removerTemaDoVetor(idx) {
-            categoriasLocais.splice(idx, 1);
-            dispararSalvarConfig();
-        }
+        socket.on('erro', (msg) => alert(msg));
+    </script>
+</body>
+</html>
 
-        function expulsarId(id) {
-            socket.emit('expulsarJogador', { roomCode: minhaSala, idParaExpulsar: id });
-        }
-
-        socket.on('fuiExpulsado', () => {
-            alert('Você foi expulso desta sala!');
-            window.location.reload();
-        });
-
-        socket.on('rodadaIniciada', (data) => {
-            document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaJogo').classList.remove('escondido');
-            document.getElementById('letra').innerText = data.letra;
-            
-            tempoDoJogo = data.config.tempo;
-            document.getElementById('tempoRestante').innerText = tempoDoJogo;
-
-            const container = document.getElementById('containerCampos');
-            container.innerHTML = '';
-            
-            categoriasLocais = data.config.categorias.filter(c => c.ativa);
-            
-            categoriasLocais.forEach(cat => {
-                container.innerHTML += `<div style="text-align:left; margin:8px 0;"><label style="font-weight:bold; font-size:0.9rem;">${cat.nome}:</label><input type="text" class="input-geral" id="resp_${cat.nome}" placeholder="Digite aqui..." oninput="dispararLupa()"></div>`;
-            });
-
-            clearInterval(cronometro);
-            cronometro = setInterval(() => {
-                tempoDoJogo--;
-                document.getElementById('tempoRestante').innerText = tempoDoJogo;
-                if(tempoDoJogo <= 0) {
-                    clearInterval(cronometro);
-                    coletarEVoar(true);
-                }
-            }, 1000);
-        });
-
-        function dispararLupa() {
-            const respostas = {};
-            categoriasLocais.forEach(cat => {
-                const el = document.getElementById(`resp_${cat.nome}`);
-                if(el) respostas[cat.nome] = el.value.trim();
-            });
-            socket.emit('digitandoRespostas', { roomCode: minhaSala, respostas });
-        }
-
-        socket.on('espiarJogador', (data) => {
-            const divLupa = document.getElementById('dadosLupa');
-            let resumo = `<strong>Exibindo progresso:</strong><br>`;
-            let temDado = false;
-            Object.keys(data.respostas).forEach(cat => {
-                if(data.respostas[cat]) {
-                    resumo += `▪️ ${cat}: <span style="color:#764ba2">${data.respostas[cat]}</span><br>`;
-                    temDado = true;
-                }
-            });
-            divLupa.innerHTML = temDado ? resumo : "Ninguém digitando ainda...";
-        });
-
-        document.getElementById('btnStop').addEventListener('click', () => {
-            coletarEVoar(true);
-        });
-
-        function coletarEVoar(pararGeral) {
-            clearInterval(
