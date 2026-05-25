@@ -14,6 +14,7 @@ app.get('/', (req, res) => {
 
 const salas = {};
 const categoriasPadrao = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "País", "Minha Sogra É", "Marca", "Filme", "Profissão"];
+const alfabetoCompleto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
@@ -30,6 +31,7 @@ io.on('connection', (socket) => {
             letraAtual: '',
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
+            letrasAtivas: [...alfabetoCompleto], // Guarda as letras permitidas na partida
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -94,6 +96,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Evento que recebe a lista de letras atualizada pelo dono da partida
+    socket.on('atualizarLetrasAtivas', ({ roomCode, letrasSelecionadas }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id && letrasSelecionadas) {
+            sala.letrasAtivas = letrasSelecionadas;
+            io.to(roomCode).emit('atualizarSala', sala);
+        }
+    });
+
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -119,9 +130,14 @@ io.on('connection', (socket) => {
             if (sala.categoriasAtivas.length === 0) {
                 return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
+            if (!sala.letrasAtivas || sala.letrasAtivas.length === 0) {
+                return io.to(sala.donoId).emit('erro', 'Selecione pelo menos uma letra para o sorteio!');
+            }
+            
             sala.status = 'jogando';
-            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
+            
+            // Sorteia uma letra APENAS dentro do conjunto de letras permitidas/ativas pelo dono
+            const letraSorteada = sala.letrasAtivas[Math.floor(Math.random() * sala.letrasAtivas.length)];
             sala.letraAtual = letraSorteada;
 
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
@@ -145,4 +161,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                
