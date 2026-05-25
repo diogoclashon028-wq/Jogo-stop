@@ -43,21 +43,21 @@
         .panel-config input[type="number"], .panel-config select {
             width: 100px; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-weight: bold; text-align: center; outline: none;
         }
-        .panel-config select { width: 130px; text-align-last: center; cursor: pointer; }
+        .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Area de Criar Temas */
+        /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
         .btn-add-tema { width: auto; margin: 0; padding: 0 20px; font-size: 0.9rem; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; }
 
-        /* Grade de Categorias */
+        /* Temas Disponíveis */
         .wrapper-categorias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .item-categoria {
             display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;
         }
-        .item-categoria div { display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; }
-        .item-categoria input { cursor: pointer; accent-color: #a78bfa; width: 16px; height: 16px; }
+        .item-categoria label { display: flex; align-items: center; gap: 8px; width: 100%; cursor: pointer; user-select: none; }
+        .item-categoria input[type="checkbox"] { cursor: pointer; accent-color: #a78bfa; width: 16px; height: 16px; }
         .btn-del-tema { background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; width: auto; margin: 0; padding: 0 4px; box-shadow: none; }
         .btn-del-tema:hover { transform: scale(1.2); }
 
@@ -172,8 +172,7 @@
         
         let minhaSala = '';
         let souDono = false;
-        let todasCategoriasDaSala = [];
-        let categoriasMarcadasAtivas = [];
+        let todasCategoriasLocais = [];
 
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
@@ -215,7 +214,7 @@
             if (!souDono) return;
             
             const categoriasSelecionadas = [];
-            todasCategoriasDaSala.forEach(cat => {
+            todasCategoriasLocais.forEach(cat => {
                 const cb = document.getElementById(`cb-${cat}`);
                 if (cb && cb.checked) {
                     categoriasSelecionadas.push(cat);
@@ -227,10 +226,10 @@
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
                 tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
                 totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
-                pointsNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
+                pontosNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
                 pontosRepetida: parseInt(document.getElementById('cfgPtsRepetida').value) || 5,
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
-                qtdVencedores: Math.min(Math.max(parseInt(document.getElementById('cfgVencedores').value) || 1, 1), 10)
+                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
             };
 
             socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig, categoriasSelecionadas });
@@ -242,26 +241,26 @@
         });
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            if (souDono && minhaSala) socket.emit('startRound', minhaSala);
+            if (minhaSala) {
+                socket.emit('startRound', minhaSala);
+            }
         });
 
         socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
 
-        function renderizarGradeCategorias(categoriasDaSala, categoriasAtivas) {
-            todasCategoriasDaSala = categoriasDaSala;
-            categoriasMarcadasAtivas = categoriasAtivas;
-            
+        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas) {
+            todasCategoriasLocais = categoriasTotais;
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             
-            categoriasDaSala.forEach(cat => {
+            categoriasTotais.forEach(cat => {
                 const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
                 const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSala}', tema: '${cat}'})">🗑️</button>` : '';
                 
                 grade.innerHTML += `
                     <div class="item-categoria">
-                        <label style="display:flex; align-items:center; gap:8px; width:100%; cursor:pointer;">
+                        <label>
                             <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="empacotarESalvarConfig()">
                             <span>${cat}</span>
                         </label>
@@ -282,7 +281,7 @@
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgTempo').value = sala.config.tempo;
             document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
-            document.getElementById('cfgPtsNormal').value = sala.config.pointsNormal || sala.config.pontosNormal;
+            document.getElementById('cfgPtsNormal').value = sala.config.pontosNormal;
             document.getElementById('cfgPtsRepetida').value = sala.config.pontosRepetida;
             document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
             document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
@@ -298,15 +297,17 @@
                 inputsConfig.forEach(id => document.getElementById(id).disabled = true);
             }
 
-            renderizarGradeCategorias(sala.todasCategoriasExistentes, sala.categoriasDisponiveis);
+            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas);
 
             const btn = document.getElementById('btnIniciar');
             if (souDono) {
                 btn.innerText = "INICIAR PARTIDA 🚀";
                 btn.style.opacity = "1"; btn.style.cursor = "pointer";
+                btn.disabled = false;
             } else {
                 btn.innerText = "AGUARDANDO O DONO...";
                 btn.style.opacity = "0.6"; btn.style.cursor = "not-allowed";
+                btn.disabled = true;
             }
 
             const lista = document.getElementById('listaJogadores');
