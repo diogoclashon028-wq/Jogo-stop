@@ -127,7 +127,6 @@
                         <option value="1">1 Pessoa</option>
                         <option value="3">Top 3 Pessoas</option>
                         <option value="5">Top 5 Pessoas</option>
-                        <option value="10">Top 10 Pessoas</option>
                     </select>
                 </div>
 
@@ -186,7 +185,6 @@
         let cronometro;
         let categoriasLocais = [];
 
-        // MONITORAMENTO NATIVO DA BOLINHA DE CONEXÃO
         socket.on('connect', () => { 
             meuId = socket.id; 
             const bolinha = document.getElementById('statusBolinha');
@@ -372,7 +370,7 @@
                 tempoDoJogo--;
                 document.getElementById('tempoRestante').innerText = tempoDoJogo;
                 if(tempoDoJogo <= 0) {
-                    clearInterval(crononerror);
+                    clearInterval(cronometro);
                     coletarEVoar(true);
                 }
             }, 1000);
@@ -406,4 +404,6 @@
 
         function coletarEVoar(pararGeral) {
             clearInterval(cronometro);
-      
+            const respostas = {};
+            categoriasLocais.forEach(cat => {
+                const el = document.getElementBy
