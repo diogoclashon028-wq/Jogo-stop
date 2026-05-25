@@ -46,12 +46,10 @@
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
         .btn-add-tema { width: auto; margin: 0; padding: 0 20px; font-size: 0.9rem; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; }
 
-        /* Grade Temas */
         .wrapper-categorias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .item-categoria {
             display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;
@@ -103,45 +101,14 @@
             
             <div class="panel-config">
                 <h4 id="tituloConfig">Configurações da Partida</h4>
-                
-                <div class="config-row">
-                    <label>Modo de Jogo:</label>
-                    <select id="cfgModo">
-                        <option value="tempo">Terminar no Tempo</option>
-                        <option value="imediato">Acabar no Stop</option>
-                    </select>
-                </div>
-                <div class="config-row">
-                    <label>Votação de Palavras:</label>
-                    <select id="cfgVotacao">
-                        <option value="true">Ativada</option>
-                        <option value="false">Desativada</option>
-                    </select>
-                </div>
-                <div class="config-row">
-                    <label>Tempo por rodada (s):</label>
-                    <input type="number" id="cfgTempo" value="60" min="10" max="300">
-                </div>
-                <div class="config-row">
-                    <label>Total de rodadas:</label>
-                    <input type="number" id="cfgRodadas" value="5" min="1" max="20">
-                </div>
-                <div class="config-row">
-                    <label>Pontos palavra normal:</label>
-                    <input type="number" id="cfgPtsNormal" value="10" min="1" max="50">
-                </div>
-                <div class="config-row">
-                    <label>Pontos palavra repetida:</label>
-                    <input type="number" id="cfgPtsRepetida" value="5" min="0" max="50">
-                </div>
-                <div class="config-row">
-                    <label>Máximo de jogadores:</label>
-                    <input type="number" id="cfgLimite" value="8" min="2" max="20">
-                </div>
-                <div class="config-row">
-                    <label>Quantidade de ganhadores:</label>
-                    <input type="number" id="cfgVencedores" value="1" min="1" max="10">
-                </div>
+                <div class="config-row"><label>Modo de Jogo:</label><select id="cfgModo"><option value="tempo">Terminar no Tempo</option><option value="imediato">Acabar no Stop</option></select></div>
+                <div class="config-row"><label>Votação de Palavras:</label><select id="cfgVotacao"><option value="true">Ativada</option><option value="false">Desativada</option></select></div>
+                <div class="config-row"><label>Tempo por rodada (s):</label><input type="number" id="cfgTempo" value="60" min="10" max="300"></div>
+                <div class="config-row"><label>Total de rodadas:</label><input type="number" id="cfgRodadas" value="5" min="1" max="20"></div>
+                <div class="config-row"><label>Pontos palavra normal:</label><input type="number" id="cfgPtsNormal" value="10" min="1" max="50"></div>
+                <div class="config-row"><label>Pontos palavra repetida:</label><input type="number" id="cfgPtsRepetida" value="5" min="0" max="50"></div>
+                <div class="config-row"><label>Máximo de jogadores:</label><input type="number" id="cfgLimite" value="8" min="2" max="20"></div>
+                <div class="config-row"><label>Quantidade de ganhadores:</label><input type="number" id="cfgVencedores" value="1" min="1" max="10"></div>
 
                 <h4 style="margin-top: 15px;" id="subtituloTemas">Gerenciar Palavras</h4>
                 <div class="box-criar-tema" id="painelCriarTema">
@@ -155,23 +122,32 @@
                 <h3 style="text-align: left; font-size: 0.9rem; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: 10px;">JOGADORES NA ARENA</h3>
                 <ul id="listaJogadores"></ul>
             </div>
-
             <button id="btnIniciar" class="btn-primary">INICIAR PARTIDA 🚀</button>
         </div>
 
         <div id="telaJogo" class="escondido">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 id="infoRodada" style="color: #a78bfa; font-size: 0.9rem;">Rodada -/-</h3>
+                <div id="tempoExibido" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 1rem;">--s</div>
+            </div>
             <h2>Letra Sorteada</h2>
-            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 10px 0;">-</div>
-            <h4 style="color:#10b981; margin-bottom: 15px;">Ordem das Categorias Sorteada:</h4>
-            <ul id="listaOrdemJogo" style="max-height: 150px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px;"></ul>
+            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 5px 0;">-</div>
+            
+            <div id="containerInputsJogo" style="text-align: left; margin: 20px 0; max-height: 280px; overflow-y: auto; padding-right: 5px;"></div>
+            
+            <button id="btnStop" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">✋ STOP!</button>
+        </div>
+
+        <div id="telaResultados" class="escondido">
+            <h2>Resultados da Rodada</h2>
+            <div id="tabelaResultados" style="margin: 20px 0; text-align: left; max-height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px;"></div>
+            <button id="btnAvancar" class="btn-secondary">PRÓXIMA RODADA ➡️</button>
         </div>
     </div>
 
     <script>
-        // Correção de Transporte para WebSockets direto
         const socket = io({ transports: ['websocket'] });
         
-        // Gera ou recupera um ID único permanente para este navegador
         let usuarioId = localStorage.getItem('stop_usuario_id');
         if (!usuarioId) {
             usuarioId = 'usr_' + Math.random().toString(36).substring(2, 15);
@@ -192,15 +168,15 @@
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
-            if(!nome) return alert("coloque o seu nome");
+            if(!nome) return alert("Coloque o seu nome");
             socket.emit('criarSala', { nome, usuarioId });
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
-            if(!nome) return alert("coloque o seu nome");
-            if(!cod) return alert("você precisa de um código");
+            if(!nome) return alert("Coloque o seu nome");
+            if(!cod) return alert("Precisa de um código de acesso");
             socket.emit('joinRoom', { roomCode: cod, name: nome, usuarioId });
         });
 
@@ -218,7 +194,6 @@
 
         function empacotarESalvarConfig() {
             if (!minhaSalaAtual || minhaSalaAtual.donoId !== usuarioId) return;
-            
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
@@ -237,7 +212,6 @@
                 elementoCheckbox.checked = !elementoCheckbox.checked; 
                 return;
             }
-            
             let novasAtivas = [...minhaSalaAtual.categoriasAtivas];
             if (elementoCheckbox.checked) {
                 if (!novasAtivas.includes(cat)) novasAtivas.push(cat);
@@ -248,11 +222,19 @@
         }
 
         const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
-        inputsConfig.forEach(id => {
-            document.getElementById(id).addEventListener('change', empacotarESalvarConfig);
-        });
+        inputsConfig.forEach(id => document.getElementById(id).addEventListener('change', empacotarESalvarConfig));
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
+            if (minhaSalaAtual && minhaSalaAtual.donoId === usuarioId) {
+                socket.emit('startRound', minhaSalaAtual.codigo);
+            }
+        });
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            socket.emit('solicitarStop', minhaSalaAtual.codigo);
+        });
+
+        document.getElementById('btnAvancar').addEventListener('click', () => {
             if (minhaSalaAtual && minhaSalaAtual.donoId === usuarioId) {
                 socket.emit('startRound', minhaSalaAtual.codigo);
             }
@@ -261,12 +243,10 @@
         function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
-            
             categoriasTotais.forEach(cat => {
                 const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
                 const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSalaAtual.codigo}', tema: '${cat}'})">🗑️</button>` : '';
-                
                 grade.innerHTML += `
                     <div class="item-categoria">
                         <label>
@@ -274,8 +254,7 @@
                             <span>${cat}</span>
                         </label>
                         ${botaoLixeira}
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
@@ -283,10 +262,14 @@
             minhaSalaAtual = sala; 
             const souDono = (usuarioId === sala.donoId);
 
-            document.getElementById('telaInicial').classList.add('escondido');
-            document.getElementById('telaLobby').classList.remove('escondido');
-            document.getElementById('idSala').innerText = sala.codigo;
+            if (sala.status === 'lobby') {
+                document.getElementById('telaInicial').classList.add('escondido');
+                document.getElementById('telaJogo').classList.add('escondido');
+                document.getElementById('telaResultados').classList.add('escondido');
+                document.getElementById('telaLobby').classList.remove('escondido');
+            }
 
+            document.getElementById('idSala').innerText = sala.codigo;
             document.getElementById('cfgModo').value = sala.config.modoJogo;
             document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
             document.getElementById('cfgTempo').value = sala.config.tempo;
@@ -312,14 +295,10 @@
             const btn = document.getElementById('btnIniciar');
             if (souDono) {
                 btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-                btn.style.pointerEvents = "auto";
+                btn.style.opacity = "1"; btn.style.pointerEvents = "auto";
             } else {
                 btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; 
-                btn.style.cursor = "not-allowed";
-                btn.style.pointerEvents = "none";
+                btn.style.opacity = "0.6"; btn.style.pointerEvents = "none";
             }
 
             const lista = document.getElementById('listaJogadores');
@@ -328,32 +307,18 @@
                 const ehDono = p.usuarioId === sala.donoId;
                 const coroa = ehDono ? '👑' : '👤';
                 const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', usuarioIdParaExpulsar: '${p.usuarioId}'})">Expulsar</button>` : '';
-
-                lista.innerHTML += `
-                    <li>
-                        <div class="player-info">
-                            <span>${coroa}</span>
-                            <span>${p.nome}</span>
-                        </div>
-                        ${botaoKick}
-                </li>
-            `;
+                lista.innerHTML += `<li><div class="player-info"><span>${coroa}</span><span>${p.nome} (${p.pontos} pts)</span></div>${botaoKick}</li>`;
+            });
         });
-    });
 
-    socket.on('rodadaIniciada', (data) => {
-        document.getElementById('telaLobby').classList.add('escondido');
-        document.getElementById('telaJogo').classList.remove('escondido');
-        document.getElementById('letraExibida').innerText = data.letra;
+        // INICIALIZAÇÃO DA ARENA DE JOGO ATIVO
+        socket.on('rodadaIniciada', (data) => {
+            document.getElementById('telaLobby').classList.add('escondido');
+            document.getElementById('telaResultados').classList.add('escondido');
+            document.getElementById('telaJogo').classList.remove('escondido');
+            
+            document.getElementById('letraExibida').innerText = data.letra;
+            document.getElementById('infoRodada').innerText = `Rodada ${data.rodadaAtual}/${data.totalRodadas}`;
+            document.getElementById('tempoExibido').innerText = `${data.tempoRestante}s`;
 
-        const listaOrdem = document.getElementById('listaOrdemJogo');
-        listaOrdem.innerHTML = '';
-        data.categoriasOrdem.forEach((cat, index) => {
-            listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
-        });
-    });
-
-    socket.on('erro', (msg) => alert(msg));
-</script>
-</body>
-</html>
+            const container = document.getElementById('
