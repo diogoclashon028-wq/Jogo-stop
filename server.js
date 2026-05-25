@@ -28,8 +28,8 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
-            todasCategoriasExistentes: [...categoriasPadrao],
-            categoriasDisponiveis: [...categoriasPadrao], 
+            categoriasDisponiveis: [...categoriasPadrao], // Lista total com ordem mantida
+            categoriasAtivas: [...categoriasPadrao],     // Quais estão marcadas para o jogo
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
                 pontosRepetida: 5,
                 limiteJogadores: 8,
                 qtdVencedores: 1,
-                modoJogo: 'tempo',
+                modoJogo: 'tempo', // 'tempo' ou 'imediato'
                 votacaoAtiva: true
             }
         };
@@ -65,33 +65,36 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Criar um novo tema
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && novoTema) {
             const temaTratado = novoTema.trim();
-            if (!sala.todasCategoriasExistentes.includes(temaTratado)) {
-                sala.todasCategoriasExistentes.push(temaTratado);
-                sala.categoriasDisponiveis.push(temaTratado); // Inicia marcado por padrão
+            if (!sala.categoriasDisponiveis.includes(temaTratado)) {
+                sala.categoriasDisponiveis.push(temaTratado);
+                sala.categoriasAtivas.push(temaTratado); // Já nasce marcado
                 io.to(roomCode).emit('atualizarSala', sala);
             }
         }
     });
 
+    // Apagar um tema
     socket.on('deletarTema', ({ roomCode, tema }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
-            sala.todasCategoriasExistentes = sala.todasCategoriasExistentes.filter(c => c !== tema);
             sala.categoriasDisponiveis = sala.categoriasDisponiveis.filter(c => c !== tema);
+            sala.categoriasAtivas = sala.categoriasAtivas.filter(c => c !== tema);
             io.to(roomCode).emit('atualizarSala', sala);
         }
     });
 
+    // Salvar configurações e itens marcados
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.config = { ...sala.config, ...novaConfig };
             if (categoriasSelecionadas) {
-                sala.categoriasDisponiveis = categoriasSelecionadas;
+                sala.categoriasAtivas = categoriasSelecionadas;
             }
             io.to(roomCode).emit('atualizarSala', sala);
         }
@@ -110,16 +113,17 @@ io.on('connection', (socket) => {
 
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
-        if (sala && sala.donoId === socket.id) {
-            if (sala.categoriasDisponiveis.length === 0) {
-                return socket.emit('erro', 'Selecione pelo menos uma palavra/categoria ativa!');
+        if (sala) {
+            if (sala.categoriasAtivas.length === 0) {
+                return socket.emit('erro', 'Selecione pelo menos um tema ativo para jogar!');
             }
             sala.status = 'jogando';
             const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
-            let categoriasEmbaralhadas = [...sala.categoriasDisponiveis];
+            // Sorteia apenas entre as marcadas pelo dono
+            let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]];
@@ -140,3 +144,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+                
