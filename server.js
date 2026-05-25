@@ -86,7 +86,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento exclusivo para o clique na caixinha de marcar/desmarcar palavras
     socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && categoriasSelecionadas) {
@@ -118,7 +117,7 @@ io.on('connection', (socket) => {
         const sala = salas[codigo];
         if (sala) {
             if (sala.categoriasAtivas.length === 0) {
-                return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
+                return socket.emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
             sala.status = 'jogando';
             const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -146,4 +145,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-        
