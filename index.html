@@ -51,7 +51,7 @@
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
         .btn-add-tema { width: auto; margin: 0; padding: 0 20px; font-size: 0.9rem; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; }
 
-        /* Temas Disponíveis */
+        /* Grade Temas */
         .wrapper-categorias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .item-categoria {
             display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;
@@ -156,7 +156,7 @@
                 <ul id="listaJogadores"></ul>
             </div>
 
-            <button id="btnIniciar" class="btn-primary">AGUARDANDO O DONO...</button>
+            <button id="btnIniciar" class="btn-primary">INICIAR PARTIDA 🚀</button>
         </div>
 
         <div id="telaJogo" class="escondido">
@@ -202,7 +202,7 @@
         document.getElementById('btnAddTema').addEventListener('click', () => {
             const input = document.getElementById('inputNovoTema');
             const tema = input.value.trim();
-            if (tema && souDono) {
+            if (tema && minhaSala) {
                 socket.emit('adicionarTema', { roomCode: minhaSala, novoTema: tema });
                 input.value = '';
             }
@@ -211,7 +211,7 @@
         socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
 
         function empacotarESalvarConfig() {
-            if (!souDono) return;
+            if (!minhaSala) return;
             
             const categoriasSelecionadas = [];
             todasCategoriasLocais.forEach(cat => {
@@ -303,11 +303,11 @@
             if (souDono) {
                 btn.innerText = "INICIAR PARTIDA 🚀";
                 btn.style.opacity = "1"; btn.style.cursor = "pointer";
-                btn.disabled = false;
+                btn.style.pointerEvents = "auto";
             } else {
                 btn.innerText = "AGUARDANDO O DONO...";
                 btn.style.opacity = "0.6"; btn.style.cursor = "not-allowed";
-                btn.disabled = true;
+                btn.style.pointerEvents = "none";
             }
 
             const lista = document.getElementById('listaJogadores');
@@ -345,4 +345,3 @@
     </script>
 </body>
 </html>
-
