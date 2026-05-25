@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
 
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
-        if (sala && novoTema) {
+        if (sala && sala.donoId === socket.id && novoTema) {
             const temaTratado = novoTema.trim();
             if (!sala.categoriasDisponiveis.includes(temaTratado)) {
                 sala.categoriasDisponiveis.push(temaTratado);
@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
 
     socket.on('deletarTema', ({ roomCode, tema }) => {
         const sala = salas[roomCode];
-        if (sala) {
+        if (sala && sala.donoId === socket.id) {
             sala.categoriasDisponiveis = sala.categoriasDisponiveis.filter(c => c !== tema);
             sala.categoriasAtivas = sala.categoriasAtivas.filter(c => c !== tema);
             io.to(roomCode).emit('atualizarSala', sala);
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
 
     socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
-        if (sala && categoriasSelecionadas) {
+        if (sala && sala.donoId === socket.id && categoriasSelecionadas) {
             sala.categoriasAtivas = categoriasSelecionadas;
             io.to(roomCode).emit('atualizarSala', sala);
         }
@@ -96,7 +96,7 @@ io.on('connection', (socket) => {
 
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         const sala = salas[roomCode];
-        if (sala) {
+        if (sala && sala.donoId === socket.id) {
             sala.config = { ...sala.config, ...novaConfig };
             io.to(roomCode).emit('atualizarSala', sala);
         }
@@ -104,7 +104,7 @@ io.on('connection', (socket) => {
 
     socket.on('expulsarJogador', ({ roomCode, jogadorId }) => {
         const sala = salas[roomCode];
-        if (sala && jogadorId !== sala.donoId) {
+        if (sala && sala.donoId === socket.id && jogadorId !== socket.id) {
             sala.jogadores = sala.jogadores.filter(p => p.id !== jogadorId);
             io.to(jogadorId).emit('mensagemExpulso', 'você foi expulso');
             const targetSocket = io.sockets.sockets.get(jogadorId);
@@ -115,19 +115,20 @@ io.on('connection', (socket) => {
 
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
-        if (sala) {
+        if (sala && sala.donoId === socket.id) {
             if (sala.categoriasAtivas.length === 0) {
-                return io.to(codigo).emit('erro', 'Marque pelo menos uma palavra para jogar!');
+                return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
             sala.status = 'jogando';
             const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
+            // O ERRO DE DIGITAÇÃO ESTAVA AQUI! Foi corrigido para categoriasEmbaralhadas.
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriesEmbaralhadas[j], categoriesEmbaralhadas[i]];
+                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
@@ -145,4 +146,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-              
