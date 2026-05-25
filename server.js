@@ -28,6 +28,8 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, usuarioId: usuarioId, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
+            rodadaAtual: 0,
+            respostasRecebidas: {},
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
             config: {
@@ -51,7 +53,6 @@ io.on('connection', (socket) => {
         if (salas[codigo]) {
             const sala = salas[codigo];
             
-            // Tratamento de reconexão automática se o ID persistente já existe
             const jogadorExistente = sala.jogadores.find(p => p.usuarioId === usuarioId);
             if (jogadorExistente) {
                 jogadorExistente.id = socket.id;
@@ -70,6 +71,157 @@ io.on('connection', (socket) => {
         }
     });
 
+    // SISTEMA DE FLUXO E LOOP DO JOGO (START / TIMER / APURAÇÃO)
+    socket.on('startRound', (codigo) => {
+        const sala = salas[codigo];
+        if (sala) {
+            const jogador = sala.jogadores.find(p => p.id === socket.id);
+            if (jogador && jogador.usuarioId === sala.donoId) {
+                
+                // Se as rodadas acabaram, reseta tudo e manda pro lobby
+                if (sala.status === 'resultados' && sala.rodadaAtual >= sala.config.totalRodadas) {
+                    sala.status = 'lobby';
+                    sala.rodadaAtual = 0;
+                    sala.jogadores.forEach(p => p.pontos = 0);
+                    io.to(codigo).emit('atualizarSala', sala);
+                    return;
+                }
+
+                if (sala.categoriasAtivas.length === 0) {
+                    return socket.emit('erro', 'Marque pelo menos uma palavra para jogar!');
+                }
+                
+                if (sala.status === 'lobby') {
+                    sala.rodadaAtual = 1;
+                    sala.jogadores.forEach(p => p.pontos = 0);
+                } else if (sala.status === 'resultados') {
+                    sala.rodadaAtual++;
+                }
+
+                sala.status = 'jogando';
+                sala.respostasRecebidas = {};
+
+                const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                sala.letraAtual = letras[Math.floor(Math.random() * letras.length)];
+
+                let categoriasEmbaralhadas = [...sala.categoriasAtivas];
+                for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriesEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
+                }
+                sala.categoriasOrdemAtual = categoriasEmbaralhadas;
+                sala.tempoRestante = sala.config.tempo;
+
+                io.to(codigo).emit('rodadaIniciada', { 
+                    letra: sala.letraAtual, 
+                    config: sala.config,
+                    categoriasOrdem: sala.categoriasOrdemAtual,
+                    rodadaAtual: sala.rodadaAtual,
+                    totalRodadas: sala.config.totalRodadas,
+                    tempoRestante: sala.tempoRestante
+                });
+
+                if (sala.intervaloTimer) clearInterval(sala.intervaloTimer);
+                sala.intervaloTimer = setInterval(() => {
+                    sala.tempoRestante--;
+                    io.to(codigo).emit('atualizarTimer', sala.tempoRestante);
+                    
+                    if (sala.tempoRestante <= 0) {
+                        clearInterval(sala.intervaloTimer);
+                        encerrarEColher(codigo);
+                    }
+                }, 1000);
+            }
+        }
+    });
+
+    socket.on('solicitarStop', (codigo) => {
+        const sala = salas[codigo];
+        if (sala && sala.status === 'jogando') {
+            if (sala.intervaloTimer) clearInterval(sala.intervaloTimer);
+            encerrarEColher(codigo);
+        }
+    });
+
+    function encerrarEColher(codigo) {
+        const sala = salas[codigo];
+        if (!sala || sala.status !== 'jogando') return;
+        
+        sala.status = 'recolhendo';
+        io.to(codigo).emit('recolherRespostas');
+
+        // Delay estratégico de 2 segundos para dar tempo às redes 4G entregarem os dados das palavras
+        setTimeout(() => {
+            calcularPontuacaoRodada(codigo);
+        }, 2000);
+    }
+
+    socket.on('enviarRespostas', ({ roomCode, usuarioId, respostas }) => {
+        const sala = salas[roomCode];
+        if (sala && (sala.status === 'jogando' || sala.status === 'recolhendo')) {
+            sala.respostasRecebidas[usuarioId] = respostas;
+        }
+    });
+
+    function calcularPontuacaoRodada(codigo) {
+        const sala = salas[codigo];
+        if (!sala) return;
+
+        sala.status = 'resultados';
+        const relatorio = {};
+        const letraMinuscula = sala.letraAtual.toLowerCase();
+
+        sala.jogadores.forEach(p => {
+            relatorio[p.usuarioId] = { nome: p.nome, pontosGanhos: 0, palavras: {} };
+        });
+
+        sala.categoriasOrdemAtual.forEach(cat => {
+            const contagemPalavrasValidas = {};
+
+            // Filtragem inicial e validação da primeira letra
+            sala.jogadores.forEach(p => {
+                const r = sala.respostasRecebidas[p.usuarioId] || {};
+                const palavra = (r[cat] || "").trim().toLowerCase();
+                
+                if (palavra && palavra.startsWith(letraMinuscula)) {
+                    contagemPalavrasValidas[palavra] = (contagemPalavrasValidas[palavra] || 0) + 1;
+                }
+            });
+
+            // Atribuição de pontos (10 única / 5 repetida / 0 inválida)
+            sala.jogadores.forEach(p => {
+                const r = sala.respostasRecebidas[p.usuarioId] || {};
+                const palavraOriginal = r[cat] || "";
+                const palavraLimpa = palavraOriginal.trim().toLowerCase();
+
+                let pts = 0;
+                if (palavraLimpa && palavraLimpa.startsWith(letraMinuscula)) {
+                    if (contagemPalavrasValidas[palavraLimpa] > 1) {
+                        pts = sala.config.pontosRepetida;
+                    } else {
+                        pts = sala.config.pontosNormal;
+                    }
+                }
+
+                relatorio[p.usuarioId].pontosGanhos += pts;
+                relatorio[p.usuarioId].palavras[cat] = { texto: palavraOriginal || "-", pontos: pts };
+                p.pontos += pts;
+            });
+        });
+
+        sala.jogadores.sort((a, b) => b.pontos - a.pontos);
+        const ehUltimaRodada = sala.rodadaAtual >= sala.config.totalRodadas;
+
+        io.to(codigo).emit('resultadosDaRodadaExibir', {
+            relatorio,
+            jogadoresRanking: sala.jogadores,
+            categorias: sala.categoriasOrdemAtual,
+            rodadaAtual: sala.rodadaAtual,
+            ehUltimaRodada
+        });
+    }
+
+    // CONTROLES AUXILIARES DO LOBBY
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && novoTema) {
@@ -127,39 +279,11 @@ io.on('connection', (socket) => {
                 const alvo = sala.jogadores.find(p => p.usuarioId === usuarioIdParaExpulsar);
                 if (alvo) {
                     sala.jogadores = sala.jogadores.filter(p => p.usuarioId !== usuarioIdParaExpulsar);
-                    io.to(alvo.id).emit('mensagemExpulso', 'você foi expulso');
+                    io.to(alvo.id).emit('mensagemExpulso', 'Você foi expulso da sala.');
                     const targetSocket = io.sockets.sockets.get(alvo.id);
                     if (targetSocket) targetSocket.leave(roomCode);
                     io.to(roomCode).emit('atualizarSala', sala);
                 }
-            }
-        }
-    });
-
-    socket.on('startRound', (codigo) => {
-        const sala = salas[codigo];
-        if (sala) {
-            const jogador = sala.jogadores.find(p => p.id === socket.id);
-            if (jogador && jogador.usuarioId === sala.donoId) {
-                if (sala.categoriasAtivas.length === 0) {
-                    return socket.emit('erro', 'Marque pelo menos uma palavra para jogar!');
-                }
-                sala.status = 'jogando';
-                const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
-                sala.letraAtual = letraSorteada;
-
-                let categoriasEmbaralhadas = [...sala.categoriasAtivas];
-                for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
-                }
-
-                io.to(codigo).emit('rodadaIniciada', { 
-                    letra: letraSorteada, 
-                    config: sala.config,
-                    categoriasOrdem: categoriasEmbaralhadas
-                });
             }
         }
     });
@@ -171,4 +295,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                                     
+                        
