@@ -191,7 +191,6 @@
     </div>
 
     <script>
-        // Configuração contínua do Socket para estabilizar o status de rede
         const socket = io(window.location.origin, {
             transports: ['websocket', 'polling'],
             reconnection: true,
@@ -250,7 +249,7 @@
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
                 tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
                 totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
-                pontosNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
+                pointsNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
                 pontosRepetida: parseInt(document.getElementById('cfgPtsRepetida').value) || 5,
                 limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
@@ -328,12 +327,12 @@
                 document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
                 painelTema.classList.remove('escondido');
                 inputsConfig.forEach(id => document.getElementById(id).disabled = false);
+                document.getElementById('btnIniciar').classList.remove('escondido');
             } else {
                 document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
                 painelTema.classList.add('escondido');
                 inputsConfig.forEach(id => document.getElementById(id).disabled = true);
+                document.getElementById('btnIniciar').classList.add('escondido');
             }
 
-            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
-
-            con
+            // Atualiza a
