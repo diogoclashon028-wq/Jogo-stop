@@ -168,8 +168,15 @@
     </div>
 
     <script>
-        // CORREÇÃO AQUI: Removido 'polling' para forçar conexão WebSocket direta e evitar travar no Render
+        // Correção de Transporte para WebSockets direto
         const socket = io({ transports: ['websocket'] });
+        
+        // Gera ou recupera um ID único permanente para este navegador
+        let usuarioId = localStorage.getItem('stop_usuario_id');
+        if (!usuarioId) {
+            usuarioId = 'usr_' + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('stop_usuario_id', usuarioId);
+        }
         
         let minhaSalaAtual = null;
 
@@ -186,7 +193,7 @@
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             if(!nome) return alert("coloque o seu nome");
-            socket.emit('criarSala', nome);
+            socket.emit('criarSala', { nome, usuarioId });
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
@@ -194,11 +201,11 @@
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
             if(!nome) return alert("coloque o seu nome");
             if(!cod) return alert("você precisa de um código");
-            socket.emit('joinRoom', { roomCode: cod, name: nome });
+            socket.emit('joinRoom', { roomCode: cod, name: nome, usuarioId });
         });
 
         document.getElementById('btnAddTema').addEventListener('click', () => {
-            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== usuarioId) return;
             const input = document.getElementById('inputNovoTema');
             const tema = input.value.trim();
             if (tema) {
@@ -210,7 +217,7 @@
         socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
 
         function empacotarESalvarConfig() {
-            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== usuarioId) return;
             
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
@@ -226,7 +233,7 @@
         }
 
         function alternarCategoria(cat, elementoCheckbox) {
-            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== usuarioId) {
                 elementoCheckbox.checked = !elementoCheckbox.checked; 
                 return;
             }
@@ -246,17 +253,17 @@
         });
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            if (minhaSalaAtual && minhaSalaAtual.donoId === socket.id) {
+            if (minhaSalaAtual && minhaSalaAtual.donoId === usuarioId) {
                 socket.emit('startRound', minhaSalaAtual.codigo);
             }
         });
 
-        function renderizarGradeCategorias(categoriasTotais, categoriesAtivas, souDono) {
+        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             
             categoriasTotais.forEach(cat => {
-                const checkado = categoriesAtivas.includes(cat) ? 'checked' : '';
+                const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
                 const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSalaAtual.codigo}', tema: '${cat}'})">🗑️</button>` : '';
                 
@@ -274,7 +281,7 @@
 
         socket.on('atualizarSala', (sala) => {
             minhaSalaAtual = sala; 
-            const souDono = (socket.id === sala.donoId);
+            const souDono = (usuarioId === sala.donoId);
 
             document.getElementById('telaInicial').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
@@ -318,9 +325,9 @@
             const lista = document.getElementById('listaJogadores');
             lista.innerHTML = '';
             sala.jogadores.forEach(p => {
-                const ehDono = p.id === sala.donoId;
+                const ehDono = p.usuarioId === sala.donoId;
                 const coroa = ehDono ? '👑' : '👤';
-                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
+                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', usuarioIdParaExpulsar: '${p.usuarioId}'})">Expulsar</button>` : '';
 
                 lista.innerHTML += `
                     <li>
@@ -329,25 +336,24 @@
                             <span>${p.nome}</span>
                         </div>
                         ${botaoKick}
-                    </li>
-                `;
-            });
+                </li>
+            `;
         });
+    });
 
-        socket.on('rodadaIniciada', (data) => {
-            document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaJogo').classList.remove('escondido');
-            document.getElementById('letraExibida').innerText = data.letra;
+    socket.on('rodadaIniciada', (data) => {
+        document.getElementById('telaLobby').classList.add('escondido');
+        document.getElementById('telaJogo').classList.remove('escondido');
+        document.getElementById('letraExibida').innerText = data.letra;
 
-            const listaOrdem = document.getElementById('listaOrdemJogo');
-            listaOrdem.innerHTML = '';
-            data.categoriasOrdem.forEach((cat, index) => {
-                listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
-            });
+        const listaOrdem = document.getElementById('listaOrdemJogo');
+        listaOrdem.innerHTML = '';
+        data.categoriasOrdem.forEach((cat, index) => {
+            listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
         });
+    });
 
-        socket.on('erro', (msg) => alert(msg));
-    </script>
+    socket.on('erro', (msg) => alert(msg));
+</script>
 </body>
 </html>
-
