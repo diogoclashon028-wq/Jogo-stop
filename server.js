@@ -2,8 +2,7 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { 
-    cors: { origin: "*" },
-    transports: ['websocket', 'polling']
+    cors: { origin: "*" } 
 });
 const path = require('path');
 
@@ -130,12 +129,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarPontos', ({ roomCode, pointsMap }) => {
+    socket.on('atualizarPontos', ({ roomCode, pontosAtualizados }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
             sala.jogadores.forEach(j => {
-                if (pointsMap[j.id] !== undefined) {
-                    j.pontos = (j.pontos || 0) + pointsMap[j.id];
+                if (pontosAtualizados[j.id] !== undefined) {
+                    j.pontos = (j.pontos || 0) + pontosAtualizados[j.id];
                 }
             });
             sala.status = 'lobby';
