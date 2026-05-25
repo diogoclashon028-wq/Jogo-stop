@@ -46,12 +46,10 @@
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
         .btn-add-tema { width: auto; margin: 0; padding: 0 20px; font-size: 0.9rem; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; }
 
-        /* Grade Temas */
         .wrapper-categorias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .item-categoria {
             display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;
@@ -70,6 +68,7 @@
         button:active { transform: scale(0.98); }
         .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .btn-secondary { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 1.5rem; text-transform: uppercase; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
         .btn-kick { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; width: auto; margin: 0; font-weight: bold; }
         .divider { margin: 20px 0; color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
@@ -78,6 +77,16 @@
         ul { list-style: none; margin: 15px 0; text-align: left; max-height: 160px; overflow-y: auto; }
         li { background: rgba(255, 255, 255, 0.04); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.02); }
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+        /* Estilos da gameplay */
+        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px; }
+        .letra-destaque { font-size: 4rem; font-weight: 900; color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); line-height: 1; }
+        .tempo-destaque { font-size: 3rem; font-weight: 900; color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); line-height: 1; }
+        .tempo-destaque.perigo { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+        
+        .formulario-jogo { width: 100%; max-height: 50vh; overflow-y: auto; padding-right: 5px; text-align: left; }
+        .formulario-jogo label { display: block; font-size: 0.85rem; font-weight: bold; color: #c084fc; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .input-jogo { margin-top: 0; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -159,11 +168,23 @@
             <button id="btnIniciar" class="btn-primary">INICIAR PARTIDA 🚀</button>
         </div>
 
-        <div id="telaJogo" class="escondido">
-            <h2>Letra Sorteada</h2>
-            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 10px 0;">-</div>
-            <h4 style="color:#10b981; margin-bottom: 15px;">Ordem das Categorias Sorteada:</h4>
-            <ul id="listaOrdemJogo" style="max-height: 150px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px;"></ul>
+        <div id="telaJogo" class="escondido" style="width: 100%;">
+            
+            <div class="game-header">
+                <div style="text-align: left;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: rgba(255,255,255,0.5); text-transform: uppercase;">Letra</span><br>
+                    <div id="letraExibida" class="letra-destaque">-</div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: rgba(255,255,255,0.5); text-transform: uppercase;">Tempo</span><br>
+                    <div id="tempoRestante" class="tempo-destaque">60</div>
+                </div>
+            </div>
+
+            <div id="formularioJogo" class="formulario-jogo">
+                </div>
+
+            <button id="btnStop" class="btn-danger">🛑 BATER STOP! 🛑</button>
         </div>
     </div>
 
@@ -171,6 +192,7 @@
         const socket = io({ transports: ['polling', 'websocket'] });
         
         let minhaSalaAtual = null;
+        let timerInterval;
 
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
@@ -206,8 +228,6 @@
             }
         });
 
-        socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
-
         function empacotarESalvarConfig() {
             if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
             
@@ -224,13 +244,11 @@
             socket.emit('salvarConfiguracoes', { roomCode: minhaSalaAtual.codigo, novaConfig });
         }
 
-        // AGORA SIM: Lendo o checkbox diretamente do clique (this) para não engasgar.
         function alternarCategoria(cat, elementoCheckbox) {
             if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) {
-                elementoCheckbox.checked = !elementoCheckbox.checked; // Bloqueia clique falso
+                elementoCheckbox.checked = !elementoCheckbox.checked;
                 return;
             }
-            
             let novasAtivas = [...minhaSalaAtual.categoriasAtivas];
             if (elementoCheckbox.checked) {
                 if (!novasAtivas.includes(cat)) novasAtivas.push(cat);
@@ -254,7 +272,6 @@
         function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
-            
             categoriasTotais.forEach(cat => {
                 const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
@@ -273,10 +290,11 @@
         }
 
         socket.on('atualizarSala', (sala) => {
-            minhaSalaAtual = sala; // Salvando a sala na memória principal do site
+            minhaSalaAtual = sala;
             const souDono = (socket.id === sala.donoId);
 
             document.getElementById('telaInicial').classList.add('escondido');
+            document.getElementById('telaJogo').classList.add('escondido');
             document.getElementById('telaLobby').classList.remove('escondido');
             document.getElementById('idSala').innerText = sala.codigo;
 
@@ -326,28 +344,4 @@
                     <li>
                         <div class="player-info">
                             <span>${coroa}</span>
-                            <span>${p.nome}</span>
-                        </div>
-                        ${botaoKick}
-                    </li>
-                `;
-            });
-        });
-
-        socket.on('rodadaIniciada', (data) => {
-            document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaJogo').classList.remove('escondido');
-            document.getElementById('letraExibida').innerText = data.letra;
-
-            const listaOrdem = document.getElementById('listaOrdemJogo');
-            listaOrdem.innerHTML = '';
-            data.categoriasOrdem.forEach((cat, index) => {
-                listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
-            });
-        });
-
-        socket.on('erro', (msg) => alert(msg));
-    </script>
-</body>
-</html>
-
+                            <span>${p.no
