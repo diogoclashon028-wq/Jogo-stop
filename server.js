@@ -124,10 +124,11 @@ io.on('connection', (socket) => {
             const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
+            // O ERRO DE DIGITAÇÃO ESTAVA AQUI! Foi corrigido para categoriasEmbaralhadas.
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
+                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
@@ -138,32 +139,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('baterStop', (codigo) => {
-        const sala = salas[codigo];
-        if (sala && sala.status === 'jogando') {
-            sala.status = 'recolhendo_respostas';
-            const jogador = sala.jogadores.find(p => p.id === socket.id);
-            io.to(codigo).emit('fimDeTempo', { apelidoStop: jogador ? jogador.nome : 'Alguém' });
-        }
-    });
-
-    socket.on('enviarRespostas', ({ roomCode, respostas }) => {
-        const sala = salas[roomCode];
-        if (sala) {
-            const jogador = sala.jogadores.find(p => p.id === socket.id);
-            if (jogador) {
-                jogador.respostasUltimaRodada = respostas;
-            }
-            
-            if(socket.id === sala.donoId) {
-                setTimeout(() => {
-                    sala.status = 'lobby';
-                    io.to(roomCode).emit('atualizarSala', sala);
-                }, 3000);
-            }
-        }
-    });
-
     socket.on('disconnect', () => {
         console.log('Usuário desconectado:', socket.id);
     });
@@ -171,4 +146,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-            
+              
