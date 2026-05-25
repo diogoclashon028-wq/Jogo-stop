@@ -173,6 +173,7 @@
         let minhaSala = '';
         let souDono = false;
         let todasCategoriasLocais = [];
+        let categoriasAtivasLocais = [];
 
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
@@ -210,17 +211,10 @@
 
         socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
 
+        // Modificado: Salva apenas os inputs numéricos e seletores
         function empacotarESalvarConfig() {
-            if (!minhaSala) return;
+            if (!minhaSala || !souDono) return;
             
-            const categoriasSelecionadas = [];
-            todasCategoriasLocais.forEach(cat => {
-                const cb = document.getElementById(`cb-${cat}`);
-                if (cb && cb.checked) {
-                    categoriasSelecionadas.push(cat);
-                }
-            });
-
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
                 votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
@@ -232,7 +226,21 @@
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
             };
 
-            socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig, categoriasSelecionadas });
+            socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
+        }
+
+        // Função isolada e cirúrgica para marcar e desmarcar palavras
+        function alternarCategoria(cat) {
+            if (!souDono || !minhaSala) return;
+            
+            let novasAtivas = [...categoriasAtivasLocais];
+            if (novasAtivas.includes(cat)) {
+                novasAtivas = novasAtivas.filter(c => c !== cat);
+            } else {
+                novasAtivas.push(cat);
+            }
+            
+            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSala, categoriasSelecionadas: novasAtivas });
         }
 
         const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
@@ -241,7 +249,7 @@
         });
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            if (minhaSala) {
+            if (minhaSala && souDono) {
                 socket.emit('startRound', minhaSala);
             }
         });
@@ -250,6 +258,8 @@
 
         function renderizarGradeCategorias(categoriasTotais, categoriasAtivas) {
             todasCategoriasLocais = categoriasTotais;
+            categoriasAtivasLocais = categoriasAtivas;
+            
             const grade = document.getElementById('gradeCategorias');
             grade.innerHTML = '';
             
@@ -261,7 +271,7 @@
                 grade.innerHTML += `
                     <div class="item-categoria">
                         <label>
-                            <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="empacotarESalvarConfig()">
+                            <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="alternarCategoria('${cat}')">
                             <span>${cat}</span>
                         </label>
                         ${botaoLixeira}
@@ -302,11 +312,13 @@
             const btn = document.getElementById('btnIniciar');
             if (souDono) {
                 btn.innerText = "INICIAR PARTIDA 🚀";
-                btn.style.opacity = "1"; btn.style.cursor = "pointer";
+                btn.style.opacity = "1"; 
+                btn.style.cursor = "pointer";
                 btn.style.pointerEvents = "auto";
             } else {
                 btn.innerText = "AGUARDANDO O DONO...";
-                btn.style.opacity = "0.6"; btn.style.cursor = "not-allowed";
+                btn.style.opacity = "0.6"; 
+                btn.style.cursor = "not-allowed";
                 btn.style.pointerEvents = "none";
             }
 
@@ -345,3 +357,4 @@
     </script>
 </body>
 </html>
+
