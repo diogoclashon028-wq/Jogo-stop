@@ -27,9 +27,10 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
+            rodadaAtual: 0,
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
-            letrasAtivas: [...alfabetoCompleto], 
+            letrasAtivas: [...alfabetoCompleto],
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -132,7 +133,9 @@ io.on('connection', (socket) => {
             }
             
             sala.status = 'jogando';
-            
+            sala.rodadaAtual++;
+            sala.tempoRestante = sala.config.tempo;
+
             const letraSorteada = sala.letrasAtivas[Math.floor(Math.random() * sala.letrasAtivas.length)];
             sala.letraAtual = letraSorteada;
 
@@ -145,13 +148,52 @@ io.on('connection', (socket) => {
             io.to(codigo).emit('rodadaIniciada', { 
                 letra: letraSorteada, 
                 config: sala.config,
-                categoriasOrdem: categoriasEmbaralhadas
+                categoriasOrdem: categoriasEmbaralhadas,
+                rodadaAtual: sala.rodadaAtual
             });
+
+            clearInterval(sala.intervaloTempo);
+            sala.intervaloTempo = setInterval(() => {
+                sala.tempoRestante--;
+                io.to(codigo).emit('tempoRestante', sala.tempoRestante);
+                
+                if (sala.tempoRestante <= 0) {
+                    clearInterval(sala.intervaloTempo);
+                    sala.status = 'validacao';
+                    io.to(codigo).emit('alguemBateuStop', 'Tempo Esgotado');
+                }
+            }, 1000);
         }
     });
 
-    socket.on('disconnect', () => {});
+    socket.on('baterStop', (codigo) => {
+        const sala = salas[codigo];
+        if (sala && sala.status === 'jogando') {
+            clearInterval(sala.intervaloTempo);
+            sala.status = 'validacao';
+            const jogadorQueBateu = sala.jogadores.find(j => j.id === socket.id);
+            const nome = jogadorQueBateu ? jogadorQueBateu.nome : 'Alguém';
+            io.to(codigo).emit('alguemBateuStop', nome);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        for (const codigo in salas) {
+            const sala = salas[codigo];
+            sala.jogadores = sala.jogadores.filter(p => p.id !== socket.id);
+            if (sala.jogadores.length === 0) {
+                clearInterval(sala.intervaloTempo);
+                delete salas[codigo];
+            } else {
+                if (sala.donoId === socket.id) {
+                    sala.donoId = sala.jogadores[0].id;
+                }
+                io.to(codigo).emit('atualizarSala', sala);
+            }
+        }
+    });
 });
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+                
