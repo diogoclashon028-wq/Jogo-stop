@@ -170,7 +170,6 @@
     <script>
         const socket = io({ transports: ['polling', 'websocket'] });
         
-        let minhaSala = '';
         let souDono = false;
         let todasCategoriasLocais = [];
         let categoriasAtivasLocais = [];
@@ -196,24 +195,24 @@
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
             if(!nome) { alert("coloque o seu nome"); return; }
             if(!cod) { alert("você precisa de um código"); return; }
-            minhaSala = cod;
-            socket.emit('joinRoom', { roomCode: minhaSala, name: nome });
+            socket.emit('joinRoom', { roomCode: cod, name: nome });
         });
 
         document.getElementById('btnAddTema').addEventListener('click', () => {
+            const salaCodigo = document.getElementById('idSala').innerText;
             const input = document.getElementById('inputNovoTema');
             const tema = input.value.trim();
-            if (tema && minhaSala) {
-                socket.emit('adicionarTema', { roomCode: minhaSala, novoTema: tema });
+            if (tema && salaCodigo && salaCodigo !== '----') {
+                socket.emit('adicionarTema', { roomCode: salaCodigo, novoTema: tema });
                 input.value = '';
             }
         });
 
         socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
 
-        // Modificado: Salva apenas os inputs numéricos e seletores
         function empacotarESalvarConfig() {
-            if (!minhaSala || !souDono) return;
+            const salaCodigo = document.getElementById('idSala').innerText;
+            if (!salaCodigo || salaCodigo === '----' || !souDono) return;
             
             const novaConfig = {
                 modoJogo: document.getElementById('cfgModo').value,
@@ -226,12 +225,12 @@
                 qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
             };
 
-            socket.emit('salvarConfiguracoes', { roomCode: minhaSala, novaConfig });
+            socket.emit('salvarConfiguracoes', { roomCode: salaCodigo, novaConfig });
         }
 
-        // Função isolada e cirúrgica para marcar e desmarcar palavras
         function alternarCategoria(cat) {
-            if (!souDono || !minhaSala) return;
+            const salaCodigo = document.getElementById('idSala').innerText;
+            if (!souDono || !salaCodigo || salaCodigo === '----') return;
             
             let novasAtivas = [...categoriasAtivasLocais];
             if (novasAtivas.includes(cat)) {
@@ -240,7 +239,7 @@
                 novasAtivas.push(cat);
             }
             
-            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSala, categoriasSelecionadas: novasAtivas });
+            socket.emit('atualizarCategoriasAtivas', { roomCode: salaCodigo, categoriasSelecionadas: novasAtivas });
         }
 
         const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
@@ -249,14 +248,16 @@
         });
 
         document.getElementById('btnIniciar').addEventListener('click', () => {
-            if (minhaSala && souDono) {
-                socket.emit('startRound', minhaSala);
+            const salaCodigo = document.getElementById('idSala').innerText;
+            if (salaCodigo && salaCodigo !== '----' && souDono) {
+                socket.emit('startRound', salaCodigo);
             }
         });
 
-        socket.on('salaCriada', (codigo) => { minhaSala = codigo; souDono = true; });
+        socket.on('salaCriada', () => { souDono = true; });
 
         function renderizarGradeCategorias(categoriasTotais, categoriasAtivas) {
+            const salaCodigo = document.getElementById('idSala').innerText;
             todasCategoriasLocais = categoriasTotais;
             categoriasAtivasLocais = categoriasAtivas;
             
@@ -266,7 +267,7 @@
             categoriasTotais.forEach(cat => {
                 const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
                 const desabilitado = souDono ? '' : 'disabled';
-                const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSala}', tema: '${cat}'})">🗑️</button>` : '';
+                const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${salaCodigo}', tema: '${cat}'})">🗑️</button>` : '';
                 
                 grade.innerHTML += `
                     <div class="item-categoria">
@@ -357,4 +358,3 @@
     </script>
 </body>
 </html>
-
