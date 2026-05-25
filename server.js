@@ -2,10 +2,7 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 const path = require('path');
 
@@ -16,8 +13,6 @@ app.get('/', (req, res) => {
 });
 
 const salas = {};
-
-// Lista de categorias padrão para inicializar o jogo
 const categoriasPadrao = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "País", "Minha Sogra É", "Marca", "Filme", "Profissão"];
 
 io.on('connection', (socket) => {
@@ -40,7 +35,9 @@ io.on('connection', (socket) => {
                 pontosNormal: 10,
                 pontosRepetida: 5,
                 limiteJogadores: 8,
-                qtdVencedores: 1
+                qtdVencedores: 1,
+                modoJogo: 'tempo', // 'tempo' ou 'imediato'
+                votacaoAtiva: true
             }
         };
         socket.join(codigo);
@@ -67,6 +64,27 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Adicionar novo tema customizado
+    socket.on('adicionarTema', ({ roomCode, novoTema }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id && novoTema) {
+            const temaTratado = novoTema.trim();
+            if (!sala.categoriasDisponiveis.includes(temaTratado)) {
+                sala.categoriasDisponiveis.push(temaTratado);
+                io.to(roomCode).emit('atualizarSala', sala);
+            }
+        }
+    });
+
+    // Apagar tema da lista
+    socket.on('deletarTema', ({ roomCode, tema }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id) {
+            sala.categoriasDisponiveis = sala.categoriasDisponiveis.filter(c => c !== tema);
+            io.to(roomCode).emit('atualizarSala', sala);
+        }
+    });
+
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -78,20 +96,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Função de expulsão requisitada
     socket.on('expulsarJogador', ({ roomCode, jogadorId }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && jogadorId !== socket.id) {
-            // Remove o jogador do array da sala
             sala.jogadores = sala.jogadores.filter(p => p.id !== jogadorId);
-            
-            // Avisa o alvo específico e desconecta ele da sala do socket
             io.to(jogadorId).emit('mensagemExpulso', 'você foi expulso');
-            
             const targetSocket = io.sockets.sockets.get(jogadorId);
             if (targetSocket) targetSocket.leave(roomCode);
-
-            // Sincroniza a sala atualizada para quem ficou
             io.to(roomCode).emit('atualizarSala', sala);
         }
     });
@@ -107,7 +118,6 @@ io.on('connection', (socket) => {
             const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
-            // Algoritmo Fisher-Yates para embaralhamento e randomização extrema sem repetições
             let categoriasEmbaralhadas = [...sala.categoriasDisponiveis];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -129,3 +139,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+      
