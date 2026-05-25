@@ -17,18 +17,8 @@ app.get('/', (req, res) => {
 
 const salas = {};
 
-// Lista de temas padrão que o dono pode ligar/desligar
-const TEMAS_PADRAO = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "Cidade/Estado/País", "Profissão", "Filme/Série"];
-
-// Função de embaralhamento ultra aleatório (Fisher-Yates)
-function embaralharTemas(lista) {
-    let copia = [...lista];
-    for (let i = copia.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copia[i], copia[j]] = [copia[j], copia[i]];
-    }
-    return copia;
-}
+// Lista de categorias padrão para inicializar o jogo
+const categoriasPadrao = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "País", "Minha Sogra É", "Marca", "Filme", "Profissão"];
 
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
@@ -37,23 +27,20 @@ io.on('connection', (socket) => {
         if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         
-        // Inicializa a sala com os temas padrão ativados
-        const temasIniciais = TEMAS_PADRAO.map(t => ({ nome: t, ativo: true }));
-
         salas[codigo] = {
             codigo: codigo,
             donoId: socket.id,
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
-            temas: temasIniciais,
+            categoriasDisponiveis: [...categoriasPadrao], 
             config: {
                 tempo: 60,
                 totalRodadas: 5,
                 pontosNormal: 10,
                 pontosRepetida: 5,
                 limiteJogadores: 8,
-                qtdGanhadores: 1
+                qtdVencedores: 1
             }
         };
         socket.join(codigo);
@@ -80,15 +67,65 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
-        if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
-            salas[roomCode].config = { ...salas[roomCode].config, ...novaConfig };
-            io.to(roomCode).emit('atualizarSala', salas[roomCode]);
+    socket.on('salvarConfiguracoes', ({ roomCode, novaConfig, categoriasSelecionadas }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id) {
+            sala.config = { ...sala.config, ...novaConfig };
+            if (categoriasSelecionadas) {
+                sala.categoriasDisponiveis = categoriasSelecionadas;
+            }
+            io.to(roomCode).emit('atualizarSala', sala);
         }
     });
 
-    // Alternar ativação de um tema específica
-    socket.on('alternarTema', ({ roomCode, index }) => {
-        if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
-            salas[roomCode].temas
+    // Função de expulsão requisitada
+    socket.on('expulsarJogador', ({ roomCode, jogadorId }) => {
+        const sala = salas[roomCode];
+        if (sala && sala.donoId === socket.id && jogadorId !== socket.id) {
+            // Remove o jogador do array da sala
+            sala.jogadores = sala.jogadores.filter(p => p.id !== jogadorId);
             
+            // Avisa o alvo específico e desconecta ele da sala do socket
+            io.to(jogadorId).emit('mensagemExpulso', 'você foi expulso');
+            
+            const targetSocket = io.sockets.sockets.get(jogadorId);
+            if (targetSocket) targetSocket.leave(roomCode);
+
+            // Sincroniza a sala atualizada para quem ficou
+            io.to(roomCode).emit('atualizarSala', sala);
+        }
+    });
+
+    socket.on('startRound', (codigo) => {
+        const sala = salas[codigo];
+        if (sala && sala.donoId === socket.id) {
+            if (sala.categoriasDisponiveis.length === 0) {
+                return socket.emit('erro', 'Selecione pelo menos uma palavra/categoria ativa!');
+            }
+            sala.status = 'jogando';
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
+            sala.letraAtual = letraSorteada;
+
+            // Algoritmo Fisher-Yates para embaralhamento e randomização extrema sem repetições
+            let categoriasEmbaralhadas = [...sala.categoriasDisponiveis];
+            for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]];
+            }
+
+            io.to(codigo).emit('rodadaIniciada', { 
+                letra: letraSorteada, 
+                config: sala.config,
+                categoriasOrdem: categoriasEmbaralhadas
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Usuário desconectado:', socket.id);
+    });
+});
+
+const PORT = process.env.PORT || 10000;
+http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
