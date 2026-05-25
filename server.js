@@ -17,8 +17,6 @@ const categoriasPadrao = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "País", "
 const alfabetoCompleto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 io.on('connection', (socket) => {
-    console.log('Usuário conectado:', socket.id);
-
     socket.on('criarSala', (nome) => {
         if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -31,7 +29,7 @@ io.on('connection', (socket) => {
             letraAtual: '',
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
-            letrasAtivas: [...alfabetoCompleto], // Guarda as letras permitidas na partida
+            letrasAtivas: [...alfabetoCompleto], 
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -96,7 +94,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento que recebe a lista de letras atualizada pelo dono da partida
     socket.on('atualizarLetrasAtivas', ({ roomCode, letrasSelecionadas }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id && letrasSelecionadas) {
@@ -136,7 +133,6 @@ io.on('connection', (socket) => {
             
             sala.status = 'jogando';
             
-            // Sorteia uma letra APENAS dentro do conjunto de letras permitidas/ativas pelo dono
             const letraSorteada = sala.letrasAtivas[Math.floor(Math.random() * sala.letrasAtivas.length)];
             sala.letraAtual = letraSorteada;
 
@@ -154,9 +150,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
-        console.log('Usuário desconectado:', socket.id);
-    });
+    socket.on('disconnect', () => {});
 });
 
 const PORT = process.env.PORT || 10000;
