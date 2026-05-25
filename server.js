@@ -14,9 +14,10 @@ app.get('/', (req, res) => {
 
 const salas = {};
 const categoriasPadrao = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "País", "Minha Sogra É", "Marca", "Filme", "Profissão"];
-const alfabetoCompleto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 io.on('connection', (socket) => {
+    console.log('Usuário conectado:', socket.id);
+
     socket.on('criarSala', (nome) => {
         if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -27,10 +28,8 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
-            rodadaAtual: 0,
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
-            letrasAtivas: [...alfabetoCompleto],
             config: {
                 tempo: 60,
                 totalRodadas: 5,
@@ -95,14 +94,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarLetrasAtivas', ({ roomCode, letrasSelecionadas }) => {
-        const sala = salas[roomCode];
-        if (sala && sala.donoId === socket.id && letrasSelecionadas) {
-            sala.letrasAtivas = letrasSelecionadas;
-            io.to(roomCode).emit('atualizarSala', sala);
-        }
-    });
-
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         const sala = salas[roomCode];
         if (sala && sala.donoId === socket.id) {
@@ -128,72 +119,30 @@ io.on('connection', (socket) => {
             if (sala.categoriasAtivas.length === 0) {
                 return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
-            if (!sala.letrasAtivas || sala.letrasAtivas.length === 0) {
-                return io.to(sala.donoId).emit('erro', 'Selecione pelo menos uma letra para o sorteio!');
-            }
-            
             sala.status = 'jogando';
-            sala.rodadaAtual++;
-            sala.tempoRestante = sala.config.tempo;
-
-            const letraSorteada = sala.letrasAtivas[Math.floor(Math.random() * sala.letrasAtivas.length)];
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
             for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
+                [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriesEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
             }
 
             io.to(codigo).emit('rodadaIniciada', { 
                 letra: letraSorteada, 
                 config: sala.config,
-                categoriasOrdem: categoriasEmbaralhadas,
-                rodadaAtual: sala.rodadaAtual
+                categoriasOrdem: categoriasEmbaralhadas
             });
-
-            clearInterval(sala.intervaloTempo);
-            sala.intervaloTempo = setInterval(() => {
-                sala.tempoRestante--;
-                io.to(codigo).emit('tempoRestante', sala.tempoRestante);
-                
-                if (sala.tempoRestante <= 0) {
-                    clearInterval(sala.intervaloTempo);
-                    sala.status = 'validacao';
-                    io.to(codigo).emit('alguemBateuStop', 'Tempo Esgotado');
-                }
-            }, 1000);
-        }
-    });
-
-    socket.on('baterStop', (codigo) => {
-        const sala = salas[codigo];
-        if (sala && sala.status === 'jogando') {
-            clearInterval(sala.intervaloTempo);
-            sala.status = 'validacao';
-            const jogadorQueBateu = sala.jogadores.find(j => j.id === socket.id);
-            const nome = jogadorQueBateu ? jogadorQueBateu.nome : 'Alguém';
-            io.to(codigo).emit('alguemBateuStop', nome);
         }
     });
 
     socket.on('disconnect', () => {
-        for (const codigo in salas) {
-            const sala = salas[codigo];
-            sala.jogadores = sala.jogadores.filter(p => p.id !== socket.id);
-            if (sala.jogadores.length === 0) {
-                clearInterval(sala.intervaloTempo);
-                delete salas[codigo];
-            } else {
-                if (sala.donoId === socket.id) {
-                    sala.donoId = sala.jogadores[0].id;
-                }
-                io.to(codigo).emit('atualizarSala', sala);
-            }
-        }
+        console.log('Usuário desconectado:', socket.id);
     });
 });
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                
+        
