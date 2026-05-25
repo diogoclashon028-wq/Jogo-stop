@@ -17,24 +17,43 @@ app.get('/', (req, res) => {
 
 const salas = {};
 
+// Lista de temas padrão que o dono pode ligar/desligar
+const TEMAS_PADRAO = ["Nome", "Animal", "Fruta", "Cor", "Objeto", "Cidade/Estado/País", "Profissão", "Filme/Série"];
+
+// Função de embaralhamento ultra aleatório (Fisher-Yates)
+function embaralharTemas(lista) {
+    let copia = [...lista];
+    for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+    }
+    return copia;
+}
+
 io.on('connection', (socket) => {
     console.log('Usuário conectado:', socket.id);
 
     socket.on('criarSala', (nome) => {
         if (!nome) return;
         const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        // Inicializa a sala com os temas padrão ativados
+        const temasIniciais = TEMAS_PADRAO.map(t => ({ nome: t, ativo: true }));
+
         salas[codigo] = {
             codigo: codigo,
             donoId: socket.id,
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
+            temas: temasIniciais,
             config: {
                 tempo: 60,
                 totalRodadas: 5,
                 pontosNormal: 10,
                 pontosRepetida: 5,
-                limiteJogadores: 8
+                limiteJogadores: 8,
+                qtdGanhadores: 1
             }
         };
         socket.join(codigo);
@@ -61,7 +80,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento para sincronizar as configurações salvas pelo Dono
     socket.on('salvarConfiguracoes', ({ roomCode, novaConfig }) => {
         if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
             salas[roomCode].config = { ...salas[roomCode].config, ...novaConfig };
@@ -69,22 +87,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento para o Dono iniciar a partida
-    socket.on('startRound', (codigo) => {
-        const sala = salas[codigo];
-        if (sala && sala.donoId === socket.id) {
-            sala.status = 'jogando';
-            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
-            sala.letraAtual = letraSorteada;
-            io.to(codigo).emit('rodadaIniciada', { letra: letraSorteada, config: sala.config });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Usuário desconectado:', socket.id);
-    });
-});
-
-const PORT = process.env.PORT || 10000;
-http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+    // Alternar ativação de um tema específica
+    socket.on('alternarTema', ({ roomCode, index }) => {
+        if (salas[roomCode] && salas[roomCode].donoId === socket.id) {
+            salas[roomCode].temas
+            
