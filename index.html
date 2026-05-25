@@ -23,7 +23,6 @@
         .status-servidor {
             position: absolute; top: 18px; right: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 700;
             background: rgba(255, 255, 255, 0.06); padding: 6px 14px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05);
-            z-index: 10;
         }
         .bolinha { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444; }
         .bolinha.conectado { background: #10b981; box-shadow: 0 0 12px #10b981; }
@@ -47,10 +46,12 @@
         .panel-config select { width: 140px; text-align-last: center; cursor: pointer; }
         .panel-config input:disabled, .panel-config select:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Criar Temas */
         .box-criar-tema { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .box-criar-tema input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 12, 32, 0.6); color: #fff; outline: none; font-size: 0.9rem; margin: 0; }
         .btn-add-tema { width: auto; margin: 0; padding: 0 20px; font-size: 0.9rem; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; }
 
+        /* Grade Temas */
         .wrapper-categorias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .item-categoria {
             display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;
@@ -69,7 +70,6 @@
         button:active { transform: scale(0.98); }
         .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .btn-secondary { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 1.5rem; text-transform: uppercase; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); margin-top: 20px; }
 
         .btn-kick { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; width: auto; margin: 0; font-weight: bold; }
         .divider { margin: 20px 0; color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
@@ -78,23 +78,6 @@
         ul { list-style: none; margin: 15px 0; text-align: left; max-height: 160px; overflow-y: auto; }
         li { background: rgba(255, 255, 255, 0.04); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.02); }
         .player-info { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-
-        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 25px; }
-        .letra-box, .tempo-box { text-align: center; background: rgba(0, 0, 0, 0.2); padding: 10px 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.04); }
-        .letra-destaque { font-size: 3.5rem; font-weight: 900; color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.5); line-height: 1; margin-top: 5px; }
-        .tempo-destaque { font-size: 3.5rem; font-weight: 900; color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); line-height: 1; margin-top: 5px; }
-        .tempo-destaque.perigo { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
-        
-        .formulario-jogo { width: 100%; max-height: 48vh; overflow-y: auto; padding-right: 5px; text-align: left; }
-        .row-campo-jogo { background: rgba(0, 0, 0, 0.15); padding: 12px 16px; border-radius: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); }
-        .row-campo-jogo label { display: block; font-size: 0.85rem; font-weight: bold; color: #c084fc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .input-jogo { width: 100%; padding: 12px 14px; background: rgba(15, 12, 32, 0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff; font-size: 1rem; outline: none; margin: 0; }
-        .input-jogo:focus { border-color: #a78bfa; background: rgba(15, 12, 32, 0.6); }
-        
-        /* Estilos do Sorteio Prévio */
-        .preview-box { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; }
-        .lista-preview { display: flex; flex-direction: column; gap: 8px; margin: 15px 0; text-align: left; }
-        .item-preview { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
@@ -176,29 +159,194 @@
             <button id="btnIniciar" class="btn-primary">INICIAR PARTIDA 🚀</button>
         </div>
 
-        <div id="telaSorteio" class="escondido" style="width: 100%;">
+        <div id="telaJogo" class="escondido">
             <h2>Letra Sorteada</h2>
-            <div id="sorteioLetraDestaque" class="letra-destaque" style="font-size: 5rem; margin: 20px 0;">-</div>
-            <h3 style="color: #10b981; margin-bottom: 15px;">Ordem das Categorias Sorteada:</h3>
-            <div id="listaCategoriasSorteadas" class="lista-preview"></div>
-            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.4); font-style: italic;">A partida começará em instantes...</p>
-        </div>
-
-        <div id="telaJogo" class="escondido" style="width: 100%;">
-            <div class="game-header">
-                <div class="letra-box">
-                    <span style="font-size: 0.75rem; font-weight: bold; color: rgba(255,255,255,0.4); text-transform: uppercase;">Letra</span>
-                    <div id="letraExibida" class="letra-destaque">-</div>
-                </div>
-                <div class="tempo-box">
-                    <span style="font-size: 0.75rem; font-weight: bold; color: rgba(255,255,255,0.4); text-transform: uppercase;">Tempo</span>
-                    <div id="tempoRestante" class="tempo-destaque">60</div>
-                </div>
-            </div>
-
-            <div id="formularioJogo" class="formulario-jogo"></div>
-
-            <button id="btnStop" class="btn-danger">🛑 BATER STOP! 🛑</button>
+            <div id="letraExibida" style="font-size: 5rem; font-weight: 900; color: #a78bfa; margin: 10px 0;">-</div>
+            <h4 style="color:#10b981; margin-bottom: 15px;">Ordem das Categorias Sorteada:</h4>
+            <ul id="listaOrdemJogo" style="max-height: 150px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px;"></ul>
         </div>
     </div>
-    
+
+    <script>
+        const socket = io({ transports: ['polling', 'websocket'] });
+        
+        let minhaSalaAtual = null;
+
+        socket.on('connect', () => { 
+            document.getElementById('statusBolinha').classList.add('conectado');
+            document.getElementById('statusTexto').innerText = "ONLINE";
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('statusBolinha').classList.remove('conectado');
+            document.getElementById('statusTexto').innerText = "DESCONECTADO";
+        });
+
+        document.getElementById('btnCriar').addEventListener('click', () => {
+            const nome = document.getElementById('nome').value.trim();
+            if(!nome) return alert("coloque o seu nome");
+            socket.emit('criarSala', nome);
+        });
+
+        document.getElementById('btnEntrar').addEventListener('click', () => {
+            const nome = document.getElementById('nome').value.trim();
+            const cod = document.getElementById('codigo').value.trim().toUpperCase();
+            if(!nome) return alert("coloque o seu nome");
+            if(!cod) return alert("você precisa de um código");
+            socket.emit('joinRoom', { roomCode: cod, name: nome });
+        });
+
+        document.getElementById('btnAddTema').addEventListener('click', () => {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
+            const input = document.getElementById('inputNovoTema');
+            const tema = input.value.trim();
+            if (tema) {
+                socket.emit('adicionarTema', { roomCode: minhaSalaAtual.codigo, novoTema: tema });
+                input.value = '';
+            }
+        });
+
+        socket.on('mensagemExpulso', (msg) => { alert(msg); window.location.reload(); });
+
+        function empacotarESalvarConfig() {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) return;
+            
+            const novaConfig = {
+                modoJogo: document.getElementById('cfgModo').value,
+                votacaoAtiva: document.getElementById('cfgVotacao').value === 'true',
+                tempo: parseInt(document.getElementById('cfgTempo').value) || 60,
+                totalRodadas: parseInt(document.getElementById('cfgRodadas').value) || 5,
+                pontosNormal: parseInt(document.getElementById('cfgPtsNormal').value) || 10,
+                pontosRepetida: parseInt(document.getElementById('cfgPtsRepetida').value) || 5,
+                limiteJogadores: parseInt(document.getElementById('cfgLimite').value) || 8,
+                qtdVencedores: parseInt(document.getElementById('cfgVencedores').value) || 1
+            };
+            socket.emit('salvarConfiguracoes', { roomCode: minhaSalaAtual.codigo, novaConfig });
+        }
+
+        // AGORA SIM: Lendo o checkbox diretamente do clique (this) para não engasgar.
+        function alternarCategoria(cat, elementoCheckbox) {
+            if (!minhaSalaAtual || minhaSalaAtual.donoId !== socket.id) {
+                elementoCheckbox.checked = !elementoCheckbox.checked; // Bloqueia clique falso
+                return;
+            }
+            
+            let novasAtivas = [...minhaSalaAtual.categoriasAtivas];
+            if (elementoCheckbox.checked) {
+                if (!novasAtivas.includes(cat)) novasAtivas.push(cat);
+            } else {
+                novasAtivas = novasAtivas.filter(c => c !== cat);
+            }
+            socket.emit('atualizarCategoriasAtivas', { roomCode: minhaSalaAtual.codigo, categoriasSelecionadas: novasAtivas });
+        }
+
+        const inputsConfig = ['cfgTempo', 'cfgRodadas', 'cfgPtsNormal', 'cfgPtsRepetida', 'cfgLimite', 'cfgVencedores', 'cfgModo', 'cfgVotacao'];
+        inputsConfig.forEach(id => {
+            document.getElementById(id).addEventListener('change', empacotarESalvarConfig);
+        });
+
+        document.getElementById('btnIniciar').addEventListener('click', () => {
+            if (minhaSalaAtual && minhaSalaAtual.donoId === socket.id) {
+                socket.emit('startRound', minhaSalaAtual.codigo);
+            }
+        });
+
+        function renderizarGradeCategorias(categoriasTotais, categoriasAtivas, souDono) {
+            const grade = document.getElementById('gradeCategorias');
+            grade.innerHTML = '';
+            
+            categoriasTotais.forEach(cat => {
+                const checkado = categoriasAtivas.includes(cat) ? 'checked' : '';
+                const desabilitado = souDono ? '' : 'disabled';
+                const botaoLixeira = souDono ? `<button class="btn-del-tema" onclick="socket.emit('deletarTema', {roomCode: '${minhaSalaAtual.codigo}', tema: '${cat}'})">🗑️</button>` : '';
+                
+                grade.innerHTML += `
+                    <div class="item-categoria">
+                        <label>
+                            <input type="checkbox" id="cb-${cat}" ${checkado} ${desabilitado} onchange="alternarCategoria('${cat}', this)">
+                            <span>${cat}</span>
+                        </label>
+                        ${botaoLixeira}
+                    </div>
+                `;
+            });
+        }
+
+        socket.on('atualizarSala', (sala) => {
+            minhaSalaAtual = sala; // Salvando a sala na memória principal do site
+            const souDono = (socket.id === sala.donoId);
+
+            document.getElementById('telaInicial').classList.add('escondido');
+            document.getElementById('telaLobby').classList.remove('escondido');
+            document.getElementById('idSala').innerText = sala.codigo;
+
+            document.getElementById('cfgModo').value = sala.config.modoJogo;
+            document.getElementById('cfgVotacao').value = sala.config.votacaoAtiva.toString();
+            document.getElementById('cfgTempo').value = sala.config.tempo;
+            document.getElementById('cfgRodadas').value = sala.config.totalRodadas;
+            document.getElementById('cfgPtsNormal').value = sala.config.pontosNormal;
+            document.getElementById('cfgPtsRepetida').value = sala.config.pontosRepetida;
+            document.getElementById('cfgLimite').value = sala.config.limiteJogadores;
+            document.getElementById('cfgVencedores').value = sala.config.qtdVencedores;
+
+            const painelTema = document.getElementById('painelCriarTema');
+            if (souDono) {
+                document.getElementById('tituloConfig').innerText = "Configurações (Você é o Dono)";
+                painelTema.classList.remove('escondido');
+                inputsConfig.forEach(id => document.getElementById(id).disabled = false);
+            } else {
+                document.getElementById('tituloConfig').innerText = "Configurações (Apenas Dono altera)";
+                painelTema.classList.add('escondido');
+                inputsConfig.forEach(id => document.getElementById(id).disabled = true);
+            }
+
+            renderizarGradeCategorias(sala.categoriasDisponiveis, sala.categoriasAtivas, souDono);
+
+            const btn = document.getElementById('btnIniciar');
+            if (souDono) {
+                btn.innerText = "INICIAR PARTIDA 🚀";
+                btn.style.opacity = "1"; 
+                btn.style.cursor = "pointer";
+                btn.style.pointerEvents = "auto";
+            } else {
+                btn.innerText = "AGUARDANDO O DONO...";
+                btn.style.opacity = "0.6"; 
+                btn.style.cursor = "not-allowed";
+                btn.style.pointerEvents = "none";
+            }
+
+            const lista = document.getElementById('listaJogadores');
+            lista.innerHTML = '';
+            sala.jogadores.forEach(p => {
+                const ehDono = p.id === sala.donoId;
+                const coroa = ehDono ? '👑' : '👤';
+                const botaoKick = (souDono && !ehDono) ? `<button class="btn-kick" onclick="socket.emit('expulsarJogador', {roomCode: '${sala.codigo}', jogadorId: '${p.id}'})">Expulsar</button>` : '';
+
+                lista.innerHTML += `
+                    <li>
+                        <div class="player-info">
+                            <span>${coroa}</span>
+                            <span>${p.nome}</span>
+                        </div>
+                        ${botaoKick}
+                    </li>
+                `;
+            });
+        });
+
+        socket.on('rodadaIniciada', (data) => {
+            document.getElementById('telaLobby').classList.add('escondido');
+            document.getElementById('telaJogo').classList.remove('escondido');
+            document.getElementById('letraExibida').innerText = data.letra;
+
+            const listaOrdem = document.getElementById('listaOrdemJogo');
+            listaOrdem.innerHTML = '';
+            data.categoriasOrdem.forEach((cat, index) => {
+                listaOrdem.innerHTML += `<li style="padding: 6px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.05); font-size: 0.9rem;">${index + 1}° - ${cat}</li>`;
+            });
+        });
+
+        socket.on('erro', (msg) => alert(msg));
+    </script>
+</body>
+</html>
