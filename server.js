@@ -28,8 +28,6 @@ io.on('connection', (socket) => {
             jogadores: [{ id: socket.id, nome: nome, pontos: 0 }],
             status: 'lobby',
             letraAtual: '',
-            rodadaAtual: 0,
-            letrasSorteadas: [],
             categoriasDisponiveis: [...categoriasPadrao], 
             categoriasAtivas: [...categoriasPadrao],     
             config: {
@@ -41,10 +39,7 @@ io.on('connection', (socket) => {
                 qtdVencedores: 1,
                 modoJogo: 'tempo',
                 votacaoAtiva: true
-            },
-            respostasRodada: {}, // idJogador -> { categoria: palavra }
-            votosRodada: {},      // categoria -> palavra -> { idJogador: true/false }
-            respostasValidadas: {} // categoria -> palavra -> boolean
+            }
         };
         socket.join(codigo);
         socket.emit('salaCriada', codigo);
@@ -120,36 +115,13 @@ io.on('connection', (socket) => {
 
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
-        if (sala && (sala.status === 'lobby' || sala.status === 'resultados')) {
+        if (sala && sala.donoId === socket.id) {
             if (sala.categoriasAtivas.length === 0) {
                 return io.to(sala.donoId).emit('erro', 'Marque pelo menos uma palavra para jogar!');
             }
-            
-            if (sala.status === 'lobby') {
-                sala.rodadaAtual = 1;
-                sala.jogadores.forEach(p => p.pontos = 0);
-                sala.letrasSorteadas = [];
-            } else {
-                sala.rodadaAtual++;
-            }
-
-            if (sala.rodadaAtual > sala.config.totalRodadas) {
-                sala.status = 'lobby';
-                io.to(codigo).emit('atualizarSala', sala);
-                return;
-            }
-
             sala.status = 'jogando';
-            sala.respostasRodada = {};
-            sala.votosRodada = {};
-            sala.respostasValidadas = {};
-
-            const letrasPossiveis = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(l => !sala.letrasSorteadas.includes(l));
-            const letraSorteada = letrasPossiveis.length > 0 
-                ? letrasPossiveis[Math.floor(Math.random() * letrasPossiveis.length)]
-                : 'A';
-            
-            sala.letrasSorteadas.push(letraSorteada);
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
             sala.letraAtual = letraSorteada;
 
             let categoriasEmbaralhadas = [...sala.categoriasAtivas];
@@ -161,139 +133,16 @@ io.on('connection', (socket) => {
             io.to(codigo).emit('rodadaIniciada', { 
                 letra: letraSorteada, 
                 config: sala.config,
-                categoriasOrdem: categoriasEmbaralhadas,
-                rodadaAtual: sala.rodadaAtual
+                categoriasOrdem: categoriasEmbaralhadas
             });
         }
     });
-
-    socket.on('baterStop', (codigo) => {
-        const sala = salas[codigo];
-        if (sala && sala.status === 'jogando') {
-            sala.status = 'recolhendo';
-            const jogador = sala.jogadores.find(p => p.id === socket.id);
-            io.to(codigo).emit('fimDeTempo', { apelidoStop: jogador ? jogador.nome : 'Alguém' });
-        }
-    });
-
-    socket.on('enviarRespostas', ({ roomCode, respostas }) => {
-        const sala = salas[roomCode];
-        if (sala && (sala.status === 'jogando' || sala.status === 'recolhendo')) {
-            sala.respostasRodada[socket.id] = respostas;
-
-            // Se todos os jogadores enviaram ou tempo esgotou
-            if (Object.keys(sala.respostasRodada).length >= sala.jogadores.length) {
-                processarFaseVotacao(roomCode);
-            }
-        }
-    });
-
-    function processarFaseVotacao(roomCode) {
-        const sala = salas[roomCode];
-        if (!sala) return;
-
-        if (sala.config.votacaoAtiva) {
-            sala.status = 'votacao';
-            io.to(roomCode).emit('entrarVotacao', {
-                respostas: sala.respostasRodada,
-                jogadores: sala.jogadores,
-                categorias: sala.categoriasAtivas,
-                letra: sala.letraAtual
-            });
-        } else {
-            calcularPontuacaoFinais(roomCode);
-        }
-    }
-
-    socket.on('enviarVotos', ({ roomCode, votos }) => {
-        const sala = salas[roomCode];
-        if (sala && sala.status === 'votacao') {
-            // votos: { categoria: { jogadorId: true/false } }
-            for (let cat in votos) {
-                if (!sala.votosRodada[cat]) sala.votosRodada[cat] = {};
-                for (let jId in votos[cat]) {
-                    if (!sala.votosRodada[cat][jId]) sala.votosRodada[cat][jId] = { validos: 0, invalidos: 0 };
-                    if (votos[cat][jId] === true) sala.votosRodada[cat][jId].validos++;
-                    else sala.votosRodada[cat][jId].invalidos++;
-                }
-            }
-
-            calcularPontuacaoFinais(roomCode);
-        }
-    });
-
-    function calcularPontuacaoFinais(roomCode) {
-        const sala = salas[roomCode];
-        if (!sala) return;
-
-        const pontosGanhosNestaRodada = {};
-        sala.jogadores.forEach(p => pontosGanhosNestaRodada[p.id] = 0);
-
-        // Para cada categoria ativa, verificar repetição e validade
-        sala.categoriasAtivas.forEach(cat => {
-            const contagemPalavras = {};
-            
-            // 1. Filtrar palavras válidas baseadas na votação ou regras básicas (letra inicial)
-            sala.jogadores.forEach(p => {
-                const respostasJogador = sala.respostasRodada[p.id] || {};
-                let palavra = (respostasJogador[cat] || "").trim().toUpperCase();
-
-                if (palavra && palavra.startsWith(sala.letraAtual)) {
-                    // Se houve votação e a maioria rejeitou, invalida
-                    if (sala.config.votacaoAtiva && sala.votosRodada[cat] && sala.votosRodada[cat][p.id]) {
-                        const v = sala.votosRodada[cat][p.id];
-                        if (v.invalidos >= v.validos && v.invalidos > 0) {
-                            palavra = ""; // Invalidada
-                        }
-                    }
-
-                    if (palavra) {
-                        contagemPalavras[palavra] = (contagemPalavras[palavra] || 0) + 1;
-                    }
-                }
-            });
-
-            // 2. Distribuir os pontos conforme repetição
-            sala.jogadores.forEach(p => {
-                const respostasJogador = sala.respostasRodada[p.id] || {};
-                const palavra = (respostasJogador[cat] || "").trim().toUpperCase();
-
-                if (palavra && contagemPalavras[palavra]) {
-                    if (contagemPalavras[palavra] === 1) {
-                        p.pontos += sala.config.pontosNormal;
-                        pontosGanhosNestaRodada[p.id] += sala.config.pontosNormal;
-                    } else {
-                        p.pontos += sala.config.pontosRepetida;
-                        pontosGanhosNestaRodada[p.id] += sala.config.pontosRepetida;
-                    }
-                }
-            });
-        });
-
-        sala.status = 'resultados';
-        io.to(roomCode).emit('mostrarResultados', {
-            sala: sala,
-            pontosRodada: pontosGanhosNestaRodada,
-            respostas: sala.respostasRodada
-        });
-    }
 
     socket.on('disconnect', () => {
-        for (let codigo in salas) {
-            const sala = salas[codigo];
-            sala.jogadores = sala.jogadores.filter(p => p.id !== socket.id);
-            if (sala.jogadores.length === 0) {
-                delete salas[codigo];
-            } else {
-                if (sala.donoId === socket.id) {
-                    sala.donoId = sala.jogadores[0].id;
-                }
-                io.to(codigo).emit('atualizarSala', sala);
-            }
-        }
+        console.log('Usuário desconectado:', socket.id);
     });
 });
 
 const PORT = process.env.PORT || 10000;
-http.listen(PORT, '0.0.0.0', () => console.log(`Servidor na porta ${PORT}`));
-            
+http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+                
