@@ -146,7 +146,11 @@
     </div>
 
     <script>
-        const socket = io({ transports: ['websocket'] });
+        // CORREÇÃO: Força conexão direta por WebSocket anulando o polling da Render
+        const socket = io({ 
+            transports: ['websocket'],
+            upgrade: false
+        });
         
         let usuarioId = localStorage.getItem('stop_usuario_id');
         if (!usuarioId) {
@@ -311,7 +315,6 @@
             });
         });
 
-        // INICIALIZAÇÃO DA ARENA DE JOGO ATIVO
         socket.on('rodadaIniciada', (data) => {
             document.getElementById('telaLobby').classList.add('escondido');
             document.getElementById('telaResultados').classList.add('escondido');
@@ -319,6 +322,4 @@
             
             document.getElementById('letraExibida').innerText = data.letra;
             document.getElementById('infoRodada').innerText = `Rodada ${data.rodadaAtual}/${data.totalRodadas}`;
-            document.getElementById('tempoExibido').innerText = `${data.tempoRestante}s`;
-
-            const container = document.getElementById('
+            document.getElementById('tempoExibido').innerTex
