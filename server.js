@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-// CORREÇÃO: Servidor configurado para aceitar conexão direta do WebSocket 
+// CORREÇÃO: Força o backend a aceitar conexões diretas via WebSocket
 const io = require('socket.io')(http, {
     cors: { origin: "*", methods: ["GET", "POST"] },
     transports: ['websocket']
@@ -52,12 +52,14 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', ({ roomCode, name, usuarioId }) => {
         if (!roomCode || !usuarioId) return;
         const codigo = roomCode.toUpperCase();
+        
         if (salas[codigo]) {
             const sala = salas[codigo];
             
+            // Verifica se o jogador já estava na sala antes (reconexão por ID único)
             const jogadorExistente = sala.jogadores.find(p => p.usuarioId === usuarioId);
             if (jogadorExistente) {
-                jogadorExistente.id = socket.id;
+                jogadorExistente.id = socket.id; // Atualiza o canal de comunicação dele
             } else {
                 if (sala.jogadores.length >= sala.config.limiteJogadores) {
                     return socket.emit('erro', 'A sala já está cheia!');
@@ -73,13 +75,14 @@ io.on('connection', (socket) => {
         }
     });
 
-    // CONTROLO DE JOGABILIDADE E LOOP DE RODADAS
+    // SISTEMA PRINCIPAL DE MECÂNICA E CONTROLE DE RODADAS
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
         if (sala) {
             const jogador = sala.jogadores.find(p => p.id === socket.id);
             if (jogador && jogador.usuarioId === sala.donoId) {
                 
+                // Retorna ao lobby caso as rodadas tenham terminado
                 if (sala.status === 'resultados' && sala.rodadaAtual >= sala.config.totalRodadas) {
                     sala.status = 'lobby';
                     sala.rodadaAtual = 0;
@@ -89,7 +92,7 @@ io.on('connection', (socket) => {
                 }
 
                 if (sala.categoriasAtivas.length === 0) {
-                    return socket.emit('erro', 'Marque pelo menos uma palavra para jogar!');
+                    return socket.emit('erro', 'Marque pelo menos uma categoria para jogar!');
                 }
                 
                 if (sala.status === 'lobby') {
@@ -105,6 +108,7 @@ io.on('connection', (socket) => {
                 const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
                 sala.letraAtual = letras[Math.floor(Math.random() * letras.length)];
 
+                // Sorteia a ordem das categorias para dinâmica
                 let categoriasEmbaralhadas = [...sala.categoriasAtivas];
                 for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -151,7 +155,7 @@ io.on('connection', (socket) => {
         sala.status = 'recolhendo';
         io.to(codigo).emit('recolherRespostas');
 
-        // Delay para garantir a receção das respostas enviadas por redes oscilantes
+        // Delay de segurança para receber respostas de conexões oscilantes
         setTimeout(() => {
             calcularPontuacaoRodada(codigo);
         }, 2000);
@@ -179,6 +183,7 @@ io.on('connection', (socket) => {
         sala.categoriasOrdemAtual.forEach(cat => {
             const contagemPalavrasValidas = {};
 
+            // Mapeia todas as respostas válidas fornecidas para esta categoria
             sala.jogadores.forEach(p => {
                 const r = sala.respostasRecebidas[p.usuarioId] || {};
                 const palavra = (r[cat] || "").trim().toLowerCase();
@@ -188,6 +193,7 @@ io.on('connection', (socket) => {
                 }
             });
 
+            // Aplica a distribuição de pontos (Normal vs Repetida)
             sala.jogadores.forEach(p => {
                 const r = sala.respostasRecebidas[p.usuarioId] || {};
                 const palavraOriginal = r[cat] || "";
@@ -220,7 +226,7 @@ io.on('connection', (socket) => {
         });
     }
 
-    // GESTÃO DE PALAVRAS E CONFIGURAÇÕES DO LOBBY
+    // INTERFACES CONFIGURATIVAS DO LOBBY
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && novoTema) {
@@ -248,12 +254,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriesSelecionadas }) => {
+    socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriasSelecionadas }) => {
         const sala = salas[roomCode];
-        if (sala && categoriesSelecionadas) {
+        if (sala && categoriasSelecionadas) {
             const jogador = sala.jogadores.find(p => p.id === socket.id);
             if (jogador && jogador.usuarioId === sala.donoId) {
-                sala.categoriasAtivas = categoriesSelecionadas;
+                sala.categoriasAtivas = categoriasSelecionadas;
                 io.to(roomCode).emit('atualizarSala', sala);
             }
         }
@@ -294,3 +300,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+                                                    
