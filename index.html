@@ -146,12 +146,13 @@
     </div>
 
     <script>
-        // CORREÇÃO: Força conexão direta por WebSocket anulando o polling da Render
+        // CORREÇÃO: Força conexão por WebSocket estável eliminando polling que cai na Render
         const socket = io({ 
             transports: ['websocket'],
             upgrade: false
         });
         
+        // Identificador persistente para evitar perder pontos em quedas de rede do celular
         let usuarioId = localStorage.getItem('stop_usuario_id');
         if (!usuarioId) {
             usuarioId = 'usr_' + Math.random().toString(36).substring(2, 15);
@@ -163,6 +164,11 @@
         socket.on('connect', () => { 
             document.getElementById('statusBolinha').classList.add('conectado');
             document.getElementById('statusTexto').innerText = "ONLINE";
+            
+            // Se caiu e voltou no meio de uma sala ativa, reconecta automaticamente
+            if(minhaSalaAtual) {
+                socket.emit('joinRoom', { roomCode: minhaSalaAtual.codigo, name: null, usuarioId });
+            }
         });
 
         socket.on('disconnect', () => {
@@ -172,15 +178,15 @@
 
         document.getElementById('btnCriar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
-            if(!nome) return alert("Coloque o seu nome");
+            if(!nome) return alert("Por favor, digite seu apelido!");
             socket.emit('criarSala', { nome, usuarioId });
         });
 
         document.getElementById('btnEntrar').addEventListener('click', () => {
             const nome = document.getElementById('nome').value.trim();
             const cod = document.getElementById('codigo').value.trim().toUpperCase();
-            if(!nome) return alert("Coloque o seu nome");
-            if(!cod) return alert("Precisa de um código de acesso");
+            if(!nome) return alert("Por favor, digite seu apelido!");
+            if(!cod) return alert("Digite o código da sala!");
             socket.emit('joinRoom', { roomCode: cod, name: nome, usuarioId });
         });
 
@@ -317,9 +323,4 @@
 
         socket.on('rodadaIniciada', (data) => {
             document.getElementById('telaLobby').classList.add('escondido');
-            document.getElementById('telaResultados').classList.add('escondido');
-            document.getElementById('telaJogo').classList.remove('escondido');
-            
-            document.getElementById('letraExibida').innerText = data.letra;
-            document.getElementById('infoRodada').innerText = `Rodada ${data.rodadaAtual}/${data.totalRodadas}`;
-            document.getElementById('tempoExibido').innerTex
+            document.getElementById('telaResultados').clas
