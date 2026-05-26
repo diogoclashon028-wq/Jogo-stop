@@ -1,8 +1,10 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
+// CORREÇÃO: Servidor configurado para aceitar conexão direta do WebSocket 
 const io = require('socket.io')(http, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    transports: ['websocket']
 });
 const path = require('path');
 
@@ -71,14 +73,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SISTEMA DE FLUXO E LOOP DO JOGO (START / TIMER / APURAÇÃO)
+    // CONTROLO DE JOGABILIDADE E LOOP DE RODADAS
     socket.on('startRound', (codigo) => {
         const sala = salas[codigo];
         if (sala) {
             const jogador = sala.jogadores.find(p => p.id === socket.id);
             if (jogador && jogador.usuarioId === sala.donoId) {
                 
-                // Se as rodadas acabaram, reseta tudo e manda pro lobby
                 if (sala.status === 'resultados' && sala.rodadaAtual >= sala.config.totalRodadas) {
                     sala.status = 'lobby';
                     sala.rodadaAtual = 0;
@@ -107,7 +108,7 @@ io.on('connection', (socket) => {
                 let categoriasEmbaralhadas = [...sala.categoriasAtivas];
                 for (let i = categoriasEmbaralhadas.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    [categoriasEmbaralhadas[i], categoriesEmbaralhadas[j]] = [categoriesEmbaralhadas[j], categoriesEmbaralhadas[i]]; 
+                    [categoriasEmbaralhadas[i], categoriasEmbaralhadas[j]] = [categoriasEmbaralhadas[j], categoriasEmbaralhadas[i]]; 
                 }
                 sala.categoriasOrdemAtual = categoriasEmbaralhadas;
                 sala.tempoRestante = sala.config.tempo;
@@ -150,7 +151,7 @@ io.on('connection', (socket) => {
         sala.status = 'recolhendo';
         io.to(codigo).emit('recolherRespostas');
 
-        // Delay estratégico de 2 segundos para dar tempo às redes 4G entregarem os dados das palavras
+        // Delay para garantir a receção das respostas enviadas por redes oscilantes
         setTimeout(() => {
             calcularPontuacaoRodada(codigo);
         }, 2000);
@@ -178,7 +179,6 @@ io.on('connection', (socket) => {
         sala.categoriasOrdemAtual.forEach(cat => {
             const contagemPalavrasValidas = {};
 
-            // Filtragem inicial e validação da primeira letra
             sala.jogadores.forEach(p => {
                 const r = sala.respostasRecebidas[p.usuarioId] || {};
                 const palavra = (r[cat] || "").trim().toLowerCase();
@@ -188,7 +188,6 @@ io.on('connection', (socket) => {
                 }
             });
 
-            // Atribuição de pontos (10 única / 5 repetida / 0 inválida)
             sala.jogadores.forEach(p => {
                 const r = sala.respostasRecebidas[p.usuarioId] || {};
                 const palavraOriginal = r[cat] || "";
@@ -221,7 +220,7 @@ io.on('connection', (socket) => {
         });
     }
 
-    // CONTROLES AUXILIARES DO LOBBY
+    // GESTÃO DE PALAVRAS E CONFIGURAÇÕES DO LOBBY
     socket.on('adicionarTema', ({ roomCode, novoTema }) => {
         const sala = salas[roomCode];
         if (sala && novoTema) {
@@ -249,12 +248,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriasSelecionadas }) => {
+    socket.on('atualizarCategoriasAtivas', ({ roomCode, categoriesSelecionadas }) => {
         const sala = salas[roomCode];
-        if (sala && categoriasSelecionadas) {
+        if (sala && categoriesSelecionadas) {
             const jogador = sala.jogadores.find(p => p.id === socket.id);
             if (jogador && jogador.usuarioId === sala.donoId) {
-                sala.categoriasAtivas = categoriasSelecionadas;
+                sala.categoriasAtivas = categoriesSelecionadas;
                 io.to(roomCode).emit('atualizarSala', sala);
             }
         }
@@ -295,4 +294,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
-                        
+            
